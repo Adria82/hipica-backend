@@ -1,0 +1,12 @@
+# Variables de entorno
+.env
+
+# Entorno virtual de Python
+.venv/
+
+# Carpetas de cache de pytest (todas las que empiecen así)
+pytest-cache-files*/
+
+# Bytecode de Python
+*.pyc
+__pycache__/

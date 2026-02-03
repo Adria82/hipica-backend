@@ -1,0 +1,35 @@
+Desde la carpeta raíz (para levantar el docker): docker-compose up --build
+
+Cuando todo esté arriba:
+
+    API: http://localhost:8000
+    Swagger: http://localhost:8000/docs
+    Health DB: http://localhost:8000/health/db
+
+
+Abrir un terminal dentro del contenedor
+    exec -> ejecutar un comando dentro de un contenedor ya levantado
+    api -> nombre del servicio que definiste en tu docker-compose.yml
+    bash -> abrir una shell dentro del contenedor
+
+Accediendo al contenedor de la API: 
+    docker-compose exec api bash
+
+Llamar a un .py
+    PYTHONPATH=. python app/seed.py
+
+Correr tests:
+    PYTHONPATH=. python -m pytest
+
+Usando psql dentro del contenedor:
+    Entra en el contenedor de la base de datos: docker-compose exec db bash
+    Conéctate a PostgreSQL usando psql:
+        psql -U <tu_usuario> -d <tu_base_de_datos>
+        psql -U hipica -d hipica
+
+        \dt               # Lista las tablas
+        \d <nombre_tabla> # Muestra la estructura de una tabla
+        \q               # Salir de psql
+
+Si tienes psql instalado en tu máquina:
+    psql -h localhost -p 5432 -U hipica -d hipica
