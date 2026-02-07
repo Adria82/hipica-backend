@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from sqlmodel import Session, SQLModel
 
 from app.db.session import engine
+from app.models.level import Level, NivelEquitacion
 from app.security import hash_password
 
 # Importar modelos (sin provocar imports circulares)
@@ -25,7 +26,7 @@ from app.models.user import User
 from app.models.horse import Horse
 from app.models.client import Client
 from app.models.lesson import Lesson
-from app.models.links import LessonHorseLink, LessonClientLink
+from app.models.links import HorseLevelLink, LessonHorseLink, LessonClientLink
 
 
 def seed_db() -> None:
@@ -60,10 +61,20 @@ def seed_db() -> None:
         # -----------------------------------------------------------------
         # 2. Crear usuarios
         # -----------------------------------------------------------------
+        superAdmin = User(
+            name="ABE",
+            email="abe@hipica.com",
+            role="app_admin",
+            #stable_id=stable.id,
+            hashed_password=hash_password("qwerty"),
+            is_active=True,
+            created_at=now,
+        )
+
         admin = User(
             name="Admin Hípica",
             email="admin@hipica.com",
-            role="admin",
+            role="stable_admin",
             stable_id=stable.id,
             hashed_password=hash_password("admin123"),
             is_active=True,
@@ -80,10 +91,32 @@ def seed_db() -> None:
             created_at=now,
         )
 
-        session.add_all([admin, monitor])
-        session.commit()
-        print(f"Usuarios creados: {admin}, {monitor}")
+        client = User(
+            name="Cliente Ana",
+            email="ana@hipica.com",
+            role="client",
+            stable_id=stable.id,
+            hashed_password=hash_password("client123"),
+            is_active=True,
+            created_at=now,
+        )
 
+        session.add_all([superAdmin, admin, monitor, client])
+        session.commit()
+        print(f"Usuarios creados: {superAdmin}, {admin}, {monitor}, {client}")
+
+        # -----------------------------------------------------------------
+        # 2.5 Crear niveles de equitación (catálogo)
+        # -----------------------------------------------------------------
+        levels = []
+        for nivel in NivelEquitacion:
+            level = Level(name=nivel)
+            session.add(level)
+            levels.append(level)
+
+        session.commit()
+        print(f"Niveles de equitación creados: {[l.name for l in levels]}")
+        
         # -----------------------------------------------------------------
         # 3. Crear caballos
         # -----------------------------------------------------------------
@@ -94,6 +127,29 @@ def seed_db() -> None:
         session.add_all([horse1, horse2, horse3])
         session.commit()
         print(f"Caballos creados: {horse1}, {horse2}, {horse3}")
+
+        # -----------------------------------------------------------------
+        # 3.1 Asignar niveles a caballos
+        # -----------------------------------------------------------------
+        # Trueno: principiante + iniciado
+        session.add_all([
+            HorseLevelLink(horse_id=horse1.id, level_id=levels[0].id),
+            HorseLevelLink(horse_id=horse1.id, level_id=levels[1].id),
+        ])
+
+        # Rayo: iniciado + experto
+        session.add_all([
+            HorseLevelLink(horse_id=horse2.id, level_id=levels[1].id),
+            HorseLevelLink(horse_id=horse2.id, level_id=levels[2].id),
+        ])
+
+        # Estrella: solo experto
+        session.add(
+            HorseLevelLink(horse_id=horse3.id, level_id=levels[2].id)
+        )
+
+        session.commit()
+        print("Niveles asignados a los caballos.")
 
         # -----------------------------------------------------------------
         # 4. Crear clientes

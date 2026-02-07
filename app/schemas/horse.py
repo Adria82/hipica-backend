@@ -10,7 +10,9 @@ Proyecto: Gestión de Hípica
 """
 
 from sqlmodel import SQLModel
-from typing import Optional
+from typing import List, Optional
+
+from app.models.level import NivelEquitacion
 
 
 class HorseBase(SQLModel):
@@ -35,15 +37,23 @@ class HorseCreate(HorseBase):
 class HorseUpdate(SQLModel):
     """
     Esquema para actualizar parcialmente un caballo.
+
+    Puede ser utilizado por administradores para modificar
+    los niveles de equitación asignados.
     """
     name: Optional[str] = None
     breed: Optional[str] = None
     is_active: Optional[bool] = None
     stable_id: Optional[int] = None
+    levels: Optional[List[NivelEquitacion]] = None
 
 class HorseRead(SQLModel):
+    """
+    Esquema de salida de un caballo.
+    """
     id: int
     name: str
     box: Optional[str] = None
     is_active: bool
     stable_id: int
+    levels: List[NivelEquitacion]

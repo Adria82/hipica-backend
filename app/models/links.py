@@ -25,3 +25,11 @@ class LessonClientLink(SQLModel, table=True):
     """
     lesson_id: int = Field(foreign_key="lesson.id", primary_key=True)
     client_id: int = Field(foreign_key="client.id", primary_key=True)
+
+class HorseLevelLink(SQLModel, table=True):
+    """
+    Relación entre caballos y niveles de equitación.
+    """
+    horse_id: int = Field(foreign_key="horse.id", primary_key=True)
+    level_id: int = Field(foreign_key="level.id", primary_key=True)
+

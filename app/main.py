@@ -19,6 +19,7 @@ from app.api.v1.api import api_router
 
 
 
+
 # Creación del motor de conexión de SQLAlchemy.
 # El engine se reutilizará en toda la aplicación.
 engine = create_engine(DATABASE_URL)
@@ -39,6 +40,7 @@ app.include_router(api_router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(lesson.router, prefix="/api/v1/lessons", tags=["lessons"])
 app.include_router(horse.router, prefix="/api/v1/horses", tags=["horses"])
+app.include_router(auth.router, prefix="/api/v1/auth")
 
 
 # -------------------------------------------------------------------------

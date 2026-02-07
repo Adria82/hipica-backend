@@ -1,5 +1,12 @@
+# Modelos base (sin dependencias)
+from .stable import Stable
 from .user import User
-from .horse import Horse
 from .lesson import Lesson
+from .level import Level, NivelEquitacion
 
-__all__ = ["User", "Horse", "Lesson"]
+# Tablas intermedias (MUY IMPORTANTE: antes de Horse)
+from .links import LessonHorseLink
+from .links import HorseLevelLink
+
+# Modelos que usan las relaciones
+from .horse import Horse

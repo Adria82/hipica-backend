@@ -16,7 +16,7 @@ from app.schemas.client import ClientRead
 from app.schemas.horse import HorseRead
 from app.schemas.lesson import LessonCreate, LessonRead, LessonUpdate
 
-router = APIRouter(tags=["lessons"])
+router = APIRouter(prefix="/lessons", tags=["Lessons"])
 
 @router.post("/", response_model=LessonRead)
 def create_lesson(

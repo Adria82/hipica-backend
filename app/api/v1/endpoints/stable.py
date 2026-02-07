@@ -9,7 +9,7 @@ from app.db.session import get_session
 from app.models.stable import Stable
 from app.schemas.stable import StableCreate, StableRead, StableUpdate
 
-router = APIRouter()
+router = APIRouter(prefix="/stables", tags=["Stables"])
 
 
 @router.post("/", response_model=StableRead)

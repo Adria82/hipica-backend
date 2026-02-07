@@ -7,8 +7,11 @@ from sqlmodel import Session, select
 
 from app.db.session import get_session
 from app.models.horse import Horse
+from app.dependencies import require_role
+from app.models import User
+from app.models.level import NivelEquitacion, Level
 
-router = APIRouter(tags=["horses"])
+router = APIRouter(prefix="/horses", tags=["Horses"])
 
 @router.post("/", response_model=Horse)
 def create_horse(
@@ -81,4 +84,42 @@ def delete_horse(
     session.delete(horse)
     session.commit()
     return {"ok": True}
+
+@router.put(
+    "/{horse_id}/levels",
+    response_model=Horse,
+    summary="Asignar niveles de equitación a un caballo",
+)
+def set_horse_levels(
+    horse_id: int,
+    levels: list[NivelEquitacion],
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["stable_admin", "app_admin"])),
+):
+    """
+    Asignar o reemplazar los niveles de equitación de un caballo.
+    Solo accesible para administradores.
+    """
+    horse = session.get(Horse, horse_id)
+    if not horse:
+        raise HTTPException(status_code=404, detail="Caballo no encontrado")
+
+    db_levels = session.exec(
+        select(Level).where(Level.name.in_(levels))
+    ).all()
+
+    if len(db_levels) != len(levels):
+        raise HTTPException(
+            status_code=400,
+            detail="Uno o más niveles no son válidos"
+        )
+
+    horse.levels.clear()
+    horse.levels.extend(db_levels)
+
+    session.add(horse)
+    session.commit()
+    session.refresh(horse)
+
+    return horse
 

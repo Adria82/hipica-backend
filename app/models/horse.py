@@ -11,8 +11,7 @@ Proyecto: Gestión de Hípica
 
 from sqlmodel import SQLModel, Field, Relationship
 from typing import List, Optional
-from app.models.links import LessonHorseLink
-
+from app.models.links import LessonHorseLink, HorseLevelLink
 
 class Horse(SQLModel, table=True):
     """
@@ -36,5 +35,8 @@ class Horse(SQLModel, table=True):
         back_populates="horses",
         link_model=LessonHorseLink
     )
+    levels: List["Level"] = Relationship(
+        back_populates="horses",
+        link_model=HorseLevelLink)
 
-Horse.model_rebuild()
+

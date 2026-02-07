@@ -12,7 +12,7 @@ from sqlmodel import Session, select
 from app.db.session import get_session
 from app.models.client import Client
 
-router = APIRouter()
+router = APIRouter(prefix="/clients", tags=["Clients"])
 
 @router.post("/", response_model=Client)
 def create_client(

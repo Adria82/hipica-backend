@@ -24,8 +24,9 @@ class UserBase(SQLModel):
     """
     name: str
     email: str
+    hashed_password: str
     role: str = "client"
-    stable_id: int
+    stable_id: Optional[int] = None
     is_active: bool = True
 
 

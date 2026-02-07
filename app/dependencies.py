@@ -41,12 +41,17 @@ from sqlmodel import Session
 from jose import JWTError, jwt
 from app.models import User
 from app.security import SECRET_KEY, ALGORITHM
+from app.db.session import get_session
+
 
 # Dependencia para leer el token Bearer desde la cabecera Authorization
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
-def get_current_user(token: str = Depends(oauth2_scheme), session: Session = Depends()):
+def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    session: Session = Depends(get_session),
+):
     """
     Obtiene el usuario actual a partir del JWT.
 
@@ -65,17 +70,28 @@ def get_current_user(token: str = Depends(oauth2_scheme), session: Session = Dep
         detail="No se pudo validar las credenciales",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: int = int(payload.get("sub"))
+
+        # 🔐 Validar tipo de token
+        token_type = payload.get("type")
+        if token_type != "access":
+            raise credentials_exception
+
+        user_id = payload.get("sub")
         if user_id is None:
             raise credentials_exception
-    except JWTError:
+
+        user_id = int(user_id)
+
+    except (JWTError, ValueError):
         raise credentials_exception
 
     user = session.get(User, user_id)
     if user is None or not user.is_active:
         raise credentials_exception
+
     return user
 
 
@@ -104,4 +120,5 @@ def require_role(required_roles: list[str]):
                 detail="No tienes permisos para realizar esta acción",
             )
         return current_user
+
     return role_checker
