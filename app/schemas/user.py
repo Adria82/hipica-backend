@@ -20,11 +20,10 @@ from sqlmodel import SQLModel
 
 class UserBase(SQLModel):
     """
-    Atributos base de un usuario.
+    Atributos base de un usuario (sin credenciales).
     """
     name: str
     email: str
-    hashed_password: str
     role: str = "client"
     stable_id: Optional[int] = None
     is_active: bool = True

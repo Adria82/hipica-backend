@@ -12,7 +12,6 @@ Proyecto: Gestión de Hípica
 
 from fastapi import FastAPI
 from sqlalchemy import create_engine, text
-from app.api.v1.endpoints import auth, lesson, horse
 from app.core.config import DATABASE_URL
 from app.db.base import init_db
 from app.api.v1.api import api_router
@@ -37,10 +36,6 @@ app = FastAPI(
 
 # Registramos los endpoints versión 1
 app.include_router(api_router, prefix="/api/v1")
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
-app.include_router(lesson.router, prefix="/api/v1/lessons", tags=["lessons"])
-app.include_router(horse.router, prefix="/api/v1/horses", tags=["horses"])
-app.include_router(auth.router, prefix="/api/v1/auth")
 
 
 # -------------------------------------------------------------------------
