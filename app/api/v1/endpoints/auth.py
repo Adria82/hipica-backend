@@ -27,7 +27,7 @@ from app.security import (
     ALGORITHM,
 )
 
-router = APIRouter(tags=["auth"])
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/login", response_model=TokenResponse)
 def login(
