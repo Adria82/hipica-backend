@@ -15,6 +15,7 @@ from sqlalchemy import create_engine, text
 from app.core.config import DATABASE_URL
 from app.db.base import init_db
 from app.api.v1.api import api_router
+from fastapi.middleware.cors import CORSMiddleware
 
 
 
@@ -32,6 +33,21 @@ app = FastAPI(
     title="Gestión Hípica API",
     description="API para la gestión de una hípica (caballos, clientes, clases, etc.)",
     version="1.0.0"
+)
+
+# ---------------------------------------------------------
+# CORS (permite que el frontend Vue se comunique con FastAPI)
+# ---------------------------------------------------------
+origins = [
+    "http://localhost:5173",  # Vite dev server
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Registramos los endpoints versión 1
