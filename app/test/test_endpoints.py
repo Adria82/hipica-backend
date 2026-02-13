@@ -131,6 +131,10 @@ def test_i18n_headers(client):
     """Verifica traducciones básicas por Accept-Language."""
     test_client, _ = client
 
+    response = test_client.get("/")
+    assert response.status_code == 200
+    assert response.json()["message"] == "API Hípica en marxa"
+
     response = test_client.get("/", headers={"Accept-Language": "en"})
     assert response.status_code == 200
     assert response.json()["message"] == "Hipica API is running"

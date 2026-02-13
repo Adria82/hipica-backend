@@ -12,7 +12,7 @@ const initialLocale = getInitialLocale();
 export const i18n = createI18n({
   legacy: false,
   locale: initialLocale,
-  fallbackLocale: "es",
+  fallbackLocale: "ca",
   messages,
 });
 

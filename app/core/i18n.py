@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from fastapi import Request
 
-DEFAULT_LANGUAGE = "es"
+DEFAULT_LANGUAGE = "ca"
 SUPPORTED_LANGUAGES = {"ca", "es", "en"}
 
 TRANSLATIONS: dict[str, dict[str, str]] = {
@@ -76,7 +76,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 
 
 def _normalize_language(raw_language: str | None) -> str:
-    """Normaliza Accept-Language y devuelve ca/es/en con fallback a es."""
+    """Normaliza Accept-Language y devuelve ca/es/en con fallback a ca."""
     if not raw_language:
         return DEFAULT_LANGUAGE
 

@@ -1,7 +1,7 @@
 export const SUPPORTED_LOCALES = ["ca", "es", "en"] as const;
 export type LocaleCode = (typeof SUPPORTED_LOCALES)[number];
 
-export const DEFAULT_LOCALE: LocaleCode = "es";
+export const DEFAULT_LOCALE: LocaleCode = "ca";
 const LOCALE_STORAGE_KEY = "hipica.locale";
 
 function extractBaseLocale(value: string): string {

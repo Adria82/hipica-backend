@@ -42,4 +42,4 @@ Para ejecutar el proyecto frontend, sigue estos pasos: npm run dev
 I18N
 - Frontend: selector de idioma (catalan, espanol, ingles) en Login y Horses.
 - Frontend: persiste idioma en localStorage (`hipica.locale`).
-- Backend: responde mensajes segun `Accept-Language` (`ca`, `es`, `en`). Si no llega idioma valido, usa `es`.
+- Backend: responde mensajes segun `Accept-Language` (`ca`, `es`, `en`). Si no llega idioma valido, usa `ca`.

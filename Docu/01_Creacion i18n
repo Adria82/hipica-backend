@@ -17,7 +17,7 @@ Cambios principales en Backend (FastAPI)
 1) Nuevo modulo central de i18n
 - Archivo: `app/core/i18n.py`
 - Incluye:
-  - Idioma por defecto: `es`
+  - Idioma por defecto: `ca`
   - Idiomas soportados: `ca`, `es`, `en`
   - Diccionario de traducciones por clave
   - Resolucion de idioma desde `Accept-Language`
@@ -60,7 +60,7 @@ Cambios principales en Backend (FastAPI)
 5) Resultado funcional backend
 - Si llega `Accept-Language: ca`, responde mensajes en catalan.
 - Si llega `Accept-Language: en`, responde mensajes en ingles.
-- Si no llega cabecera o es invalida, usa espanol (`es`) por defecto.
+- Si no llega cabecera o es invalida, usa catalan (`ca`) por defecto.
 
 
 Cambios principales en Frontend (Vue + Vite)
@@ -82,7 +82,7 @@ Cambios principales en Frontend (Vue + Vite)
 3) Gestion de locale y persistencia
 - `hipica-frontend/src/i18n/locale.ts`
   - Idiomas soportados: `ca`, `es`, `en`
-  - Default: `es`
+  - Default: `ca`
   - Persistencia en `localStorage` con clave `hipica.locale`
   - Normalizacion de idioma (ej. `en-US` -> `en`)
 
@@ -140,4 +140,4 @@ Resumen operativo
 - El frontend lo guarda y lo aplica a los textos de la UI.
 - Cada request envia `Accept-Language` al backend.
 - El backend traduce `detail` de errores y mensajes principales segun el idioma.
-- Si el idioma no es valido, se usa `es` como fallback.
+- Si el idioma no es valido, se usa `ca` como fallback.
