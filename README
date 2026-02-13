@@ -33,3 +33,7 @@ Usando psql dentro del contenedor:
 
 Si tienes psql instalado en tu máquina:
     psql -h localhost -p 5432 -U hipica -d hipica
+
+
+#FRONTEND
+Para ejecutar el proyecto frontend, sigue estos pasos: npm run dev
