@@ -2,7 +2,7 @@
 Endpoints CRUD para Lesson (clases).
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session, select
 from sqlalchemy import delete
 from typing import List, Optional
@@ -15,12 +15,14 @@ from app.models.links import LessonClientLink, LessonHorseLink
 from app.schemas.client import ClientRead
 from app.schemas.horse import HorseRead
 from app.schemas.lesson import LessonCreate, LessonRead, LessonUpdate
+from app.core.i18n import t
 
 router = APIRouter(prefix="/lessons", tags=["Lessons"])
 
 @router.post("/", response_model=LessonRead)
 def create_lesson(
     lesson_data: LessonCreate,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -43,7 +45,7 @@ def create_lesson(
         if not client:
             raise HTTPException(
                 status_code=404,
-                detail=f"Cliente {client_id} no encontrado"
+                detail=t(request, "lesson.client_not_found", client_id=client_id),
             )
         session.add(
             LessonClientLink(
@@ -58,7 +60,7 @@ def create_lesson(
         if not horse:
             raise HTTPException(
                 status_code=404,
-                detail=f"Caballo {horse_id} no encontrado"
+                detail=t(request, "lesson.horse_not_found", horse_id=horse_id),
             )
         session.add(
             LessonHorseLink(
@@ -69,11 +71,12 @@ def create_lesson(
 
     session.commit()
 
-    return get_lesson(lesson.id, session)
+    return get_lesson(lesson.id, request, session)
 
 @router.get("/{lesson_id}", response_model=LessonRead)
 def get_lesson(
     lesson_id: int,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -81,7 +84,7 @@ def get_lesson(
     """
     lesson = session.get(Lesson, lesson_id)
     if not lesson:
-        raise HTTPException(status_code=404, detail="Lesson not found")
+        raise HTTPException(status_code=404, detail=t(request, "lesson.not_found"))
 
     # Clientes
     client_links = session.exec(
@@ -164,6 +167,7 @@ def list_lessons(
 @router.delete("/{lesson_id}")
 def delete_lesson(
     lesson_id: int,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -171,7 +175,7 @@ def delete_lesson(
     """
     lesson = session.get(Lesson, lesson_id)
     if not lesson:
-        raise HTTPException(status_code=404, detail="Lección no encontrada")
+        raise HTTPException(status_code=404, detail=t(request, "lesson.not_found"))
 
     # Borrar relaciones N:N
     session.exec(
@@ -189,6 +193,7 @@ def delete_lesson(
 def update_lesson(
     lesson_id: int,
     lesson_update: LessonUpdate,
+    request: Request,
     session: Session = Depends(get_session)
 ):
     """
@@ -205,7 +210,7 @@ def update_lesson(
     """
     lesson = session.get(Lesson, lesson_id)
     if not lesson:
-        raise HTTPException(status_code=404, detail="Lesson not found")
+        raise HTTPException(status_code=404, detail=t(request, "lesson.not_found"))
 
     # Actualizar campos básicos
     if lesson_update.date_time is not None:

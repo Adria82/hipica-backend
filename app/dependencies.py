@@ -35,13 +35,14 @@ def list_lessons(current_user: User = Depends(require_role(["monitor", "stable_a
     '''
 """
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import Session
 from jose import JWTError, jwt
 from app.models import User
 from app.security import SECRET_KEY, ALGORITHM
 from app.db.session import get_session
+from app.core.i18n import t
 
 
 # Dependencia para leer el token Bearer desde la cabecera Authorization
@@ -49,6 +50,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 def get_current_user(
+    request: Request,
     token: str = Depends(oauth2_scheme),
     session: Session = Depends(get_session),
 ):
@@ -67,7 +69,7 @@ def get_current_user(
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="No se pudo validar las credenciales",
+        detail=t(request, "auth.credentials_not_validated"),
         headers={"WWW-Authenticate": "Bearer"},
     )
 
@@ -113,11 +115,11 @@ def require_role(required_roles: list[str]):
         def list_lessons(current_user: User = Depends(require_role(["stable_admin", "app_admin"]))):
             ...
     """
-    def role_checker(current_user: User = Depends(get_current_user)):
+    def role_checker(request: Request, current_user: User = Depends(get_current_user)):
         if current_user.role not in required_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="No tienes permisos para realizar esta acción",
+                detail=t(request, "auth.permission_denied"),
             )
         return current_user
 

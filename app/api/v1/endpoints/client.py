@@ -6,11 +6,12 @@ Fecha:  01/02/2026
 Proyecto: Gestión de Hípica
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session, select
 
 from app.db.session import get_session
 from app.models.client import Client
+from app.core.i18n import t
 
 router = APIRouter(prefix="/clients", tags=["Clients"])
 
@@ -39,6 +40,7 @@ def get_clients(
 @router.get("/{client_id}", response_model=Client)
 def get_client(
     client_id: int,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -46,13 +48,14 @@ def get_client(
     """
     client = session.get(Client, client_id)
     if not client:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+        raise HTTPException(status_code=404, detail=t(request, "client.not_found"))
     return client
 
 @router.put("/{client_id}", response_model=Client)
 def update_client(
     client_id: int,
     client_data: Client,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -60,7 +63,7 @@ def update_client(
     """
     client = session.get(Client, client_id)
     if not client:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+        raise HTTPException(status_code=404, detail=t(request, "client.not_found"))
 
     client.name = client_data.name
     client.email = client_data.email
@@ -73,6 +76,7 @@ def update_client(
 @router.delete("/{client_id}")
 def delete_client(
     client_id: int,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -80,7 +84,7 @@ def delete_client(
     """
     client = session.get(Client, client_id)
     if not client:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+        raise HTTPException(status_code=404, detail=t(request, "client.not_found"))
 
     session.delete(client)
     session.commit()

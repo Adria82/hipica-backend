@@ -27,6 +27,7 @@ import {
   setTokens,
   clearTokens,
 } from "../auth/tokens";
+import { getAppLocale } from "../i18n";
 
 import type { RefreshRequest, TokenResponse } from "../types/api";
 
@@ -51,6 +52,9 @@ export const http: AxiosInstance = axios.create({
  */
 http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = getAccessToken();
+  const locale = getAppLocale();
+
+  config.headers["Accept-Language"] = locale;
 
   // Si tenemos access token, lo enviamos como Bearer token
   if (token) {
@@ -150,7 +154,12 @@ http.interceptors.response.use(
       const res = await axios.post<TokenResponse>(
         `${API_BASE_URL}/api/v1/auth/refresh`,
         payload,
-        { headers: { "Content-Type": "application/json" } }
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": getAppLocale(),
+          },
+        }
       );
 
       // Guardamos nuevos tokens

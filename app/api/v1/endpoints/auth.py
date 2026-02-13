@@ -10,9 +10,8 @@ Autor: Adrià Bofill
 Proyecto: Gestión de Hípica
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel
 from sqlmodel import Session, select
 from jose import jwt, JWTError
 from app.schemas.auth import TokenResponse, RefreshRequest
@@ -26,11 +25,13 @@ from app.security import (
     SECRET_KEY,
     ALGORITHM,
 )
+from app.core.i18n import t
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/login", response_model=TokenResponse)
 def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: Session = Depends(get_session),
 ):
@@ -51,7 +52,7 @@ def login(
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales incorrectas",
+            detail=t(request, "auth.credentials_invalid"),
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -70,7 +71,7 @@ def login(
     }
 
 @router.post("/refresh", response_model=TokenResponse)
-def refresh_access_token(data: RefreshRequest):
+def refresh_access_token(data: RefreshRequest, request: Request):
     """
     Genera un nuevo access token usando refresh token válido.
 
@@ -90,20 +91,20 @@ def refresh_access_token(data: RefreshRequest):
         if payload.get("type") != "refresh":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Refresh token inválido",
+                detail=t(request, "auth.refresh_token_invalid"),
             )
 
         user_id = payload.get("sub")
         if not user_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Refresh token inválido",
+                detail=t(request, "auth.refresh_token_invalid"),
             )
 
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token inválido",
+            detail=t(request, "auth.refresh_token_invalid"),
         )
 
     new_access_token = create_access_token(

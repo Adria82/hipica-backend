@@ -2,7 +2,7 @@
 Endpoints CRUD para Horse (caballos).
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session, select
 
 from app.db.session import get_session
@@ -10,6 +10,7 @@ from app.models.horse import Horse
 from app.dependencies import require_role
 from app.models import User
 from app.models.level import NivelEquitacion, Level
+from app.core.i18n import t
 
 router = APIRouter(prefix="/horses", tags=["Horses"])
 
@@ -38,6 +39,7 @@ def get_horses(
 @router.get("/{horse_id}", response_model=Horse)
 def get_horse(
     horse_id: int,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -45,13 +47,14 @@ def get_horse(
     """
     horse = session.get(Horse, horse_id)
     if not horse:
-        raise HTTPException(status_code=404, detail="Caballo no encontrado")
+        raise HTTPException(status_code=404, detail=t(request, "horse.not_found"))
     return horse
 
 @router.put("/{horse_id}", response_model=Horse)
 def update_horse(
     horse_id: int,
     horse_data: Horse,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -59,7 +62,7 @@ def update_horse(
     """
     horse = session.get(Horse, horse_id)
     if not horse:
-        raise HTTPException(status_code=404, detail="Caballo no encontrado")
+        raise HTTPException(status_code=404, detail=t(request, "horse.not_found"))
 
     horse.name = horse_data.name
     horse.stable_id = horse_data.stable_id
@@ -72,6 +75,7 @@ def update_horse(
 @router.delete("/{horse_id}")
 def delete_horse(
     horse_id: int,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -79,7 +83,7 @@ def delete_horse(
     """
     horse = session.get(Horse, horse_id)
     if not horse:
-        raise HTTPException(status_code=404, detail="Caballo no encontrado")
+        raise HTTPException(status_code=404, detail=t(request, "horse.not_found"))
 
     session.delete(horse)
     session.commit()
@@ -93,6 +97,7 @@ def delete_horse(
 def set_horse_levels(
     horse_id: int,
     levels: list[NivelEquitacion],
+    request: Request,
     session: Session = Depends(get_session),
     current_user: User = Depends(require_role(["stable_admin", "app_admin"])),
 ):
@@ -102,7 +107,7 @@ def set_horse_levels(
     """
     horse = session.get(Horse, horse_id)
     if not horse:
-        raise HTTPException(status_code=404, detail="Caballo no encontrado")
+        raise HTTPException(status_code=404, detail=t(request, "horse.not_found"))
 
     db_levels = session.exec(
         select(Level).where(Level.name.in_(levels))
@@ -111,7 +116,7 @@ def set_horse_levels(
     if len(db_levels) != len(levels):
         raise HTTPException(
             status_code=400,
-            detail="Uno o más niveles no son válidos"
+            detail=t(request, "horse.invalid_levels"),
         )
 
     horse.levels.clear()

@@ -1,0 +1,143 @@
+Creacion i18n (Catalan, Espanol e Ingles)
+=========================================
+
+Objetivo
+--------
+Se adapto el proyecto para soportar internacionalizacion (i18n) en backend y frontend con tres idiomas:
+- `ca` (catalan)
+- `es` (espanol)
+- `en` (ingles)
+
+El idioma seleccionado en frontend se envia al backend mediante la cabecera `Accept-Language`, y el backend responde mensajes traducidos segun ese idioma.
+
+
+Cambios principales en Backend (FastAPI)
+----------------------------------------
+
+1) Nuevo modulo central de i18n
+- Archivo: `app/core/i18n.py`
+- Incluye:
+  - Idioma por defecto: `es`
+  - Idiomas soportados: `ca`, `es`, `en`
+  - Diccionario de traducciones por clave
+  - Resolucion de idioma desde `Accept-Language`
+  - Helper `t(request, key, **kwargs)` para traducir mensajes
+
+2) Traduccion del mensaje raiz de la API
+- Archivo: `app/main.py`
+- Endpoint `/` ahora devuelve:
+  - `status: "ok"`
+  - `message` traducido con `t(request, "api.running")`
+
+3) Traduccion de mensajes de autenticacion y autorizacion
+- Archivo: `app/dependencies.py`
+  - `get_current_user`: mensaje 401 traducido (`auth.credentials_not_validated`)
+  - `require_role`: mensaje 403 traducido (`auth.permission_denied`)
+- Archivo: `app/api/v1/endpoints/auth.py`
+  - Login: error de credenciales traducido (`auth.credentials_invalid`)
+  - Refresh: errores de refresh token traducidos (`auth.refresh_token_invalid`)
+
+4) Traduccion de mensajes de endpoints CRUD
+- `app/api/v1/endpoints/client.py`
+  - `client.not_found`
+- `app/api/v1/endpoints/horse.py`
+  - `horse.not_found`
+  - `horse.invalid_levels`
+- `app/api/v1/endpoints/level.py`
+  - `level.exists`
+  - `level.not_found`
+  - `level.delete_associated`
+- `app/api/v1/endpoints/stable.py`
+  - `stable.not_found`
+- `app/api/v1/endpoints/user.py`
+  - `user.email_exists`
+  - `user.not_found`
+- `app/api/v1/endpoints/lesson.py`
+  - `lesson.client_not_found` (con placeholder `{client_id}`)
+  - `lesson.horse_not_found` (con placeholder `{horse_id}`)
+  - `lesson.not_found`
+
+5) Resultado funcional backend
+- Si llega `Accept-Language: ca`, responde mensajes en catalan.
+- Si llega `Accept-Language: en`, responde mensajes en ingles.
+- Si no llega cabecera o es invalida, usa espanol (`es`) por defecto.
+
+
+Cambios principales en Frontend (Vue + Vite)
+---------------------------------------------
+
+1) Dependencia nueva
+- Se anadio `vue-i18n` en:
+  - `hipica-frontend/package.json`
+  - `hipica-frontend/package-lock.json`
+
+2) Inicializacion i18n de la app
+- `hipica-frontend/src/i18n/index.ts`
+  - Crea instancia `createI18n`
+  - Define locale inicial y fallback
+  - Expone helpers:
+    - `setAppLocale(locale)`
+    - `getAppLocale()`
+
+3) Gestion de locale y persistencia
+- `hipica-frontend/src/i18n/locale.ts`
+  - Idiomas soportados: `ca`, `es`, `en`
+  - Default: `es`
+  - Persistencia en `localStorage` con clave `hipica.locale`
+  - Normalizacion de idioma (ej. `en-US` -> `en`)
+
+4) Textos traducibles del frontend
+- `hipica-frontend/src/i18n/messages.ts`
+  - Diccionario de textos para `es`, `ca`, `en`
+  - Incluye textos de:
+    - Login
+    - Vista de caballos
+    - Selector de idioma
+
+5) Selector de idioma en UI
+- `hipica-frontend/src/components/LanguageSelector.vue`
+  - Componente reutilizable con `select`
+  - Cambia locale en runtime
+  - Guarda idioma seleccionado en localStorage
+
+6) Integracion del selector en vistas
+- `hipica-frontend/src/views/Login.vue`
+- `hipica-frontend/src/views/Horses.vue`
+- Se reemplazaron textos hardcodeados por `t("...")`
+
+7) Envio del idioma al backend (Accept-Language)
+- `hipica-frontend/src/api/http.ts`
+  - Interceptor request anade `Accept-Language` en todas las peticiones
+  - La llamada de refresh tambien envia `Accept-Language`
+- `hipica-frontend/src/views/Login.vue`
+  - Login inicial (axios directo) envia `Accept-Language`
+
+8) Registro del plugin i18n
+- `hipica-frontend/src/main.ts`
+  - Se anadio `.use(i18n)` al arranque de Vue
+
+
+Pruebas y validacion
+--------------------
+
+1) Backend tests
+- Archivo actualizado: `app/test/test_endpoints.py`
+  - Se anadio `test_i18n_headers` para validar traducciones por cabecera:
+    - `/` en ingles
+    - error 404 de stables en catalan
+  - Se ajusto test de auth al contrato real:
+    - login con `data={"username","password"}`
+    - refresh con JSON `{"refresh_token": "..."}`
+
+2) Resultado de ejecucion
+- `pytest`: 8 tests pasados.
+- `npm run build`: build frontend correcto tras integrar `vue-i18n`.
+
+
+Resumen operativo
+-----------------
+- El usuario selecciona idioma en frontend (`ca/es/en`).
+- El frontend lo guarda y lo aplica a los textos de la UI.
+- Cada request envia `Accept-Language` al backend.
+- El backend traduce `detail` de errores y mensajes principales segun el idioma.
+- Si el idioma no es valido, se usa `es` como fallback.

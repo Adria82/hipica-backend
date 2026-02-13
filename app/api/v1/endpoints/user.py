@@ -6,13 +6,14 @@ Fecha:  01/02/2026
 Proyecto: Gestión de Hípica
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session, select
 
 from app.db.session import get_session
 from app.models.user import User
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 from app.security import hash_password
+from app.core.i18n import t
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -20,6 +21,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 @router.post("/", response_model=UserRead)
 def create_user(
     user_data: UserCreate,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -34,7 +36,7 @@ def create_user(
     if existing:
         raise HTTPException(
             status_code=400,
-            detail="Ya existe un usuario con este email"
+            detail=t(request, "user.email_exists"),
         )
 
     user = User(
@@ -60,6 +62,7 @@ def list_users(
 @router.get("/{user_id}", response_model=UserRead)
 def get_user(
     user_id: int,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -67,7 +70,7 @@ def get_user(
     """
     user = session.get(User, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise HTTPException(status_code=404, detail=t(request, "user.not_found"))
     return user
 
 
@@ -75,6 +78,7 @@ def get_user(
 def update_user(
     user_id: int,
     user_data: UserUpdate,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -82,7 +86,7 @@ def update_user(
     """
     user = session.get(User, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise HTTPException(status_code=404, detail=t(request, "user.not_found"))
 
     for field, value in user_data.model_dump(exclude_unset=True).items():
         setattr(user, field, value)
@@ -96,6 +100,7 @@ def update_user(
 @router.delete("/{user_id}")
 def delete_user(
     user_id: int,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -103,7 +108,7 @@ def delete_user(
     """
     user = session.get(User, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise HTTPException(status_code=404, detail=t(request, "user.not_found"))
 
     session.delete(user)
     session.commit()

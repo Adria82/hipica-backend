@@ -10,12 +10,13 @@ Fecha:  31/01/2026
 Proyecto: Gestión de Hípica
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from sqlalchemy import create_engine, text
 from app.core.config import DATABASE_URL
 from app.db.base import init_db
 from app.api.v1.api import api_router
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.i18n import t
 
 
 
@@ -65,7 +66,7 @@ init_db()
 # -------------------------------------------------------------------------
 
 @app.get("/")
-def read_root():
+def read_root(request: Request):
     """
     Endpoint raíz de la API.
 
@@ -76,7 +77,7 @@ def read_root():
     """
     return {
         "status": "ok",
-        "message": "API Hípica en marcha 🐎"
+        "message": t(request, "api.running"),
     }
 
 

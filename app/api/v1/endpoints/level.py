@@ -4,12 +4,13 @@ Endpoints CRUD para Level (niveles de equitación).
 Gestiona el catálogo de niveles disponibles en la hípica.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session, select
 
 from app.db.session import get_session
 from app.models.level import Level
 from app.schemas.level import LevelCreate, LevelRead
+from app.core.i18n import t
 # from app.dependencies import require_role  # activar cuando quieras auth
 
 router = APIRouter(prefix="/levels", tags=["levels"])
@@ -22,6 +23,7 @@ router = APIRouter(prefix="/levels", tags=["levels"])
 )
 def create_level(
     level: LevelCreate,
+    request: Request,
     session: Session = Depends(get_session),
     # current_user = Depends(require_role(["app_admin"])),
 ):
@@ -35,7 +37,7 @@ def create_level(
     if exists:
         raise HTTPException(
             status_code=400,
-            detail="El nivel ya existe",
+            detail=t(request, "level.exists"),
         )
 
     db_level = Level(name=level.name)
@@ -64,6 +66,7 @@ def list_levels(
 )
 def get_level(
     level_id: int,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -73,7 +76,7 @@ def get_level(
     if not level:
         raise HTTPException(
             status_code=404,
-            detail="Nivel no encontrado",
+            detail=t(request, "level.not_found"),
         )
     return level
 
@@ -84,6 +87,7 @@ def get_level(
 )
 def delete_level(
     level_id: int,
+    request: Request,
     session: Session = Depends(get_session),
     # current_user = Depends(require_role(["app_admin"])),
 ):
@@ -96,13 +100,13 @@ def delete_level(
     if not level:
         raise HTTPException(
             status_code=404,
-            detail="Nivel no encontrado",
+            detail=t(request, "level.not_found"),
         )
 
     if level.horses:
         raise HTTPException(
             status_code=400,
-            detail="No se puede eliminar un nivel asociado a caballos",
+            detail=t(request, "level.delete_associated"),
         )
 
     session.delete(level)

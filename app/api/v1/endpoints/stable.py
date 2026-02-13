@@ -2,12 +2,13 @@
 Endpoints CRUD para Stables (hípicas).
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session, select
 
 from app.db.session import get_session
 from app.models.stable import Stable
 from app.schemas.stable import StableCreate, StableRead, StableUpdate
+from app.core.i18n import t
 
 router = APIRouter(prefix="/stables", tags=["Stables"])
 
@@ -40,6 +41,7 @@ def list_stables(
 @router.get("/{stable_id}", response_model=StableRead)
 def get_stable(
     stable_id: int,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -47,7 +49,7 @@ def get_stable(
     """
     stable = session.get(Stable, stable_id)
     if not stable:
-        raise HTTPException(status_code=404, detail="Hípica no encontrada")
+        raise HTTPException(status_code=404, detail=t(request, "stable.not_found"))
     return stable
 
 
@@ -55,6 +57,7 @@ def get_stable(
 def update_stable(
     stable_id: int,
     stable_data: StableUpdate,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -62,7 +65,7 @@ def update_stable(
     """
     stable = session.get(Stable, stable_id)
     if not stable:
-        raise HTTPException(status_code=404, detail="Hípica no encontrada")
+        raise HTTPException(status_code=404, detail=t(request, "stable.not_found"))
 
     for key, value in stable_data.model_dump(exclude_unset=True).items():
         setattr(stable, key, value)
@@ -76,6 +79,7 @@ def update_stable(
 @router.delete("/{stable_id}")
 def delete_stable(
     stable_id: int,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """
@@ -83,7 +87,7 @@ def delete_stable(
     """
     stable = session.get(Stable, stable_id)
     if not stable:
-        raise HTTPException(status_code=404, detail="Hípica no encontrada")
+        raise HTTPException(status_code=404, detail=t(request, "stable.not_found"))
 
     session.delete(stable)
     session.commit()

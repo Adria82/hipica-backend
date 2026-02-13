@@ -127,6 +127,19 @@ def test_root_and_health(client):
     assert payload["db"] == "ok"
 
 
+def test_i18n_headers(client):
+    """Verifica traducciones básicas por Accept-Language."""
+    test_client, _ = client
+
+    response = test_client.get("/", headers={"Accept-Language": "en"})
+    assert response.status_code == 200
+    assert response.json()["message"] == "Hipica API is running"
+
+    response = test_client.get("/api/v1/stables/999", headers={"Accept-Language": "ca"})
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Hípica no trobada"
+
+
 def test_stable_crud(client):
     """Valida el CRUD completo de stables."""
     test_client, _ = client
@@ -285,7 +298,7 @@ def test_auth_login_and_refresh(client):
 
     response = test_client.post(
         "/api/v1/auth/login",
-        json={"email": user.email, "password": "secret"},
+        data={"username": user.email, "password": "secret"},
     )
     assert response.status_code == 200
     tokens = response.json()
@@ -293,7 +306,8 @@ def test_auth_login_and_refresh(client):
     assert "refresh_token" in tokens
 
     response = test_client.post(
-        f"/api/v1/auth/refresh?refresh_token={tokens['refresh_token']}"
+        "/api/v1/auth/refresh",
+        json={"refresh_token": tokens["refresh_token"]},
     )
     assert response.status_code == 200
     refreshed = response.json()
