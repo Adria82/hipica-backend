@@ -25,6 +25,24 @@ const vuetify = createVuetify({
       mdi,
     },
   },
+  theme: {
+    defaultTheme: "hipica",
+    themes: {
+      hipica: {
+        dark: false,
+        colors: {
+          background: "#f4efe7",
+          surface: "#ffffff",
+          primary: "#8b5e3c",
+          secondary: "#5c3d2e",
+          accent: "#c8a27a",
+          info: "#8b5e3c",
+          "on-primary": "#ffffff",
+          "on-secondary": "#ffffff",
+        },
+      },
+    },
+  },
 });
 
 createApp(App)

@@ -1,29 +1,50 @@
 <template>
-  <div style="max-width: 420px; margin: 60px auto; font-family: system-ui;">
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
-      <LanguageSelector />
-    </div>
+  <v-container class="fill-height" fluid>
+    <v-row align="center" justify="center">
+      <v-col cols="12" sm="8" md="4">
+        <v-card class="hipica-card">
+          <v-card-title class="d-flex align-center">
+            <div>
+              <h2 style="margin:0">{{ t("login.title") }}</h2>
+            </div>
+            <v-spacer />
+            <LanguageSelector />
+          </v-card-title>
 
-    <h2>{{ t("login.title") }}</h2>
+          <v-card-text>
+            <v-form @submit.prevent="onSubmit">
+              <v-text-field
+                v-model="email"
+                :label="t('login.email')"
+                type="email"
+                required
+                autocomplete="username"
+              />
 
-    <form @submit.prevent="onSubmit" style="display: grid; gap: 12px;">
-      <label>
-        {{ t("login.email") }}
-        <input v-model="email" type="email" required style="width: 100%; padding: 10px;" />
-      </label>
+              <v-text-field
+                v-model="password"
+                :label="t('login.password')"
+                type="password"
+                required
+                autocomplete="current-password"
+              />
 
-      <label>
-        {{ t("login.password") }}
-        <input v-model="password" type="password" required style="width: 100%; padding: 10px;" />
-      </label>
+              <v-alert v-if="error" type="error" variant="tonal" class="mb-4">
+                {{ error }}
+              </v-alert>
 
-      <button :disabled="loading" style="padding: 10px;">
-        {{ loading ? t("login.submitting") : t("login.submit") }}
-      </button>
-
-      <p v-if="error" style="color: #b00020;">{{ error }}</p>
-    </form>
-  </div>
+              <v-card-actions>
+                <v-spacer />
+                <v-btn class="hipica" :loading="loading" type="submit">
+                  {{ loading ? t("login.submitting") : t("login.submit") }}
+                </v-btn>
+              </v-card-actions>
+            </v-form>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script setup lang="ts">

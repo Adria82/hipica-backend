@@ -2,9 +2,20 @@
   box-sizing: border-box;
 }
 
+/* Paleta de colores - Hípica (madera / cuero) */
+:root {
+  --hipica-bg: #f4efe7; /* Fondo principal - Arena / establo */
+  --hipica-wood-dark: #5c3d2e; /* Madera oscura - Roble */
+  --hipica-wood: #8b5e3c; /* Madera media - Cuero */
+  --hipica-accent: #c8a27a; /* Acento - Montura */
+  --hipica-text: #2b2b2b; /* Texto - Elegante */
+  --hipica-hover: #6e4a33; /* Hover botón - Natural */
+}
 body {
   margin: 0;
   padding: 0;
+  background-color: var(--hipica-bg);
+  color: var(--hipica-text);
 }
 
 html,
@@ -31,8 +42,8 @@ button:focus-visible {
 
 @media (prefers-color-scheme: light) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    color: var(--hipica-text);
+    background-color: var(--hipica-bg);
   }
   a:hover {
     color: #747bff;
@@ -40,4 +51,34 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+/* Botones estilo Hípica (usar clase `hipica` en v-btn) */
+.v-btn.hipica {
+  background-color: var(--hipica-wood) !important;
+  color: var(--hipica-text) !important;
+}
+.v-btn.hipica:hover {
+  background-color: var(--hipica-hover) !important;
+}
+
+/* Tarjetas con un toque madera */
+.hipica-card {
+  border: 1px solid rgba(92, 61, 46, 0.08);
+}
+
+/* Forzar texto blanco cuando el fondo es oscuro */
+.theme--dark,
+.v-application--is-dark,
+.v-sheet.theme--dark,
+.v-card.theme--dark,
+.v-app-bar.theme--dark,
+.v-alert.theme--dark,
+.dark {
+  color: #ffffff !important;
+}
+
+/* Asegurar botones hipica en variantes oscuras */
+.v-btn.hipica.theme--dark {
+  color: #ffffff !important;
 }
