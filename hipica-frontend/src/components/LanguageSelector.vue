@@ -1,16 +1,14 @@
 <template>
-  <label style="display: inline-flex; gap: 8px; align-items: center;">
-    <span>{{ t("language.label") }}</span>
-    <select v-model="currentLocale" style="padding: 4px 6px;">
-      <option
-        v-for="localeCode in SUPPORTED_LOCALES"
-        :key="localeCode"
-        :value="localeCode"
-      >
-        {{ t(`language.options.${localeCode}`) }}
-      </option>
-    </select>
-  </label>
+  <v-select
+    :model-value="currentLocale"
+    @update:model-value="setLocale"
+    :items="localeOptions"
+    item-title="label"
+    item-value="code"
+    density="compact"
+    variant="outlined"
+    prepend-inner-icon="mdi-translate"
+  />
 </template>
 
 <script setup lang="ts">
@@ -21,10 +19,16 @@ import { SUPPORTED_LOCALES, type LocaleCode } from "../i18n/locale";
 
 const { t, locale } = useI18n();
 
-const currentLocale = computed<LocaleCode>({
-  get: () => locale.value as LocaleCode,
-  set: (value) => {
-    setAppLocale(value);
-  },
-});
+const currentLocale = computed(() => locale.value as LocaleCode);
+
+const localeOptions = computed(() =>
+  SUPPORTED_LOCALES.map((code) => ({
+    code,
+    label: t(`language.options.${code}`),
+  }))
+);
+
+const setLocale = (code: LocaleCode) => {
+  setAppLocale(code);
+};
 </script>
