@@ -66,7 +66,4 @@ body,
   --color-border: #e0d6c8;
 }
 
-/* Solo pequeños helpers opcionales */
-.hipica-page {
-  background: var(--color-bg);
-}
+
