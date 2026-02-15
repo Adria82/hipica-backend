@@ -8,6 +8,8 @@
           <v-card-title class="d-flex align-center">
             <h2 class="text-h5">{{ t("login.title") }}</h2>
             <v-spacer />
+            <!-- Selector de idioma -->
+            <language-selector />
           </v-card-title>
 
           <v-divider />
@@ -71,6 +73,8 @@ import { useI18n } from "vue-i18n";
 import { setTokens } from "@/auth/tokens";
 import { getAppLocale } from "@/i18n";
 import type { TokenResponse } from "@/types/api";
+
+import LanguageSelector from "@/components/LanguageSelector.vue";
 
 /**
  * Hook de traducciones (NECESARIO para poder usar t() en el template)

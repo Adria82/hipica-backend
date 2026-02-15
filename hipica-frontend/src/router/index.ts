@@ -16,6 +16,8 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router"
 import Login from "../views/Login.vue";
 import Horses from "../views/Horses.vue";
 import { isLoggedIn } from "../auth/tokens";
+import MainLayout from "../layouts/MainLayout.vue";
+
 
 /**
  * Definición de rutas de la aplicación.
@@ -28,23 +30,26 @@ const routes: RouteRecordRaw[] = [
   },
 
   /**
-   * Ruta raíz -> redirige al listado de caballos
+   * Zona protegida de la app (usa layout)
    */
   {
     path: "/",
-    redirect: "/horses",
-  },
-
-  /**
-   * Ruta protegida (requiere login)
-   */
-  {
-    path: "/horses",
-    name: "horses",
-    component: Horses,
-    meta: { requiresAuth: true }, // <-- clave para protección
+    component: MainLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: "",
+        redirect: "/horses",
+      },
+      {
+        path: "horses",
+        name: "horses",
+        component: Horses,
+      },
+    ],
   },
 ];
+
 
 /**
  * Creación del router usando history mode (URLs limpias).
