@@ -13,6 +13,16 @@
 
     <script>
       function detectClient() {
+        const params = new URLSearchParams(window.location.search);
+
+        // Permitir override manual (solo para desarrollo)
+        const forced = params.get("client");
+        if (forced) {
+          console.info("[Branding] Forced client:", forced);
+          return forced;
+        }
+
+        // Detectar por subdominio en producción
         const host = window.location.hostname;
 
         if (host.includes("localhost") || host.startsWith("127.0.0.1")) {
@@ -22,6 +32,7 @@
         const parts = host.split(".");
         return parts.length > 2 ? parts[0] : "demo";
       }
+
 
       const client = detectClient();
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="login-page">
+  <div class="login-page" :style="loginImageUrl ? { backgroundImage: `url(${loginImageUrl})` } : {}">
     <v-container class="login-container">
       <v-row align="center" justify="center">
         <v-col cols="12" sm="8" md="4" class="d-flex justify-center">
@@ -78,6 +78,26 @@ import type { TokenResponse } from "@/types/api";
 
 import LanguageSelector from "@/components/LanguageSelector.vue";
 
+const branding = (window as any).__APP_BRANDING__ ?? {};
+
+function detectClient(): string {
+  const host = window.location.hostname;
+
+  if (host.includes("localhost") || host.startsWith("127.0.0.1")) {
+    return "demo";
+  }
+
+  const parts = host.split(".");
+  return parts.length > 2 ? parts[0] : "demo";
+}
+
+const client = detectClient();
+
+const loginImageUrl = branding.loginImage
+  ? `/branding/${client}/${branding.loginImage}`
+  : null;
+
+
 /**
  * Hook de traducciones (NECESARIO para poder usar t() en el template)
  */
@@ -135,7 +155,13 @@ async function onSubmit() {
 <style scoped>
 .login-page {
   min-height: 100vh;
-  background: var(--color-bg); /* ← usa el background del branding */
+  background: var(--color-bg);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
   display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

@@ -1,8 +1,8 @@
 {
   "appName": "Hípica Demo",
   "favicon": "/branding/favicon.ico",
-
   "logo": "/branding/logo.png",
+  "loginImage": "login.jpg",
 
   "theme": {
     "primary": "#8b5e3c",
