@@ -1,0 +1,14 @@
+{
+  "appName": "Hípica Abe Demo",
+  "logo": "logo.png",
+  "favicon": "favicon.ico",
+
+  "theme": {
+    "primary": "#8b5e3c",
+    "secondary": "#5c3d2e",
+    "accent": "#c8a27a",
+    "background": "#f4efe7",
+    "surface": "#ffffff"
+  }
+}
+

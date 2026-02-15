@@ -1,67 +1,69 @@
 <template>
-  <v-container class="login-container">
-    <v-row align="center" justify="center">
-      <v-col cols="12" sm="8" md="4" class="d-flex justify-center">
-        
-        <v-card class="mx-auto" width="420" elevation="3">
-          <!-- Cabecera -->
-          <v-card-title class="d-flex align-center">
-            <h2 class="text-h5">{{ t("login.title") }}</h2>
-            <v-spacer />
-            <!-- Selector de idioma -->
-            <language-selector />
-          </v-card-title>
+  <div class="login-page">
+    <v-container class="login-container">
+      <v-row align="center" justify="center">
+        <v-col cols="12" sm="8" md="4" class="d-flex justify-center">
+          
+          <v-card class="mx-auto" width="420" elevation="3">
+            <!-- Cabecera -->
+            <v-card-title class="d-flex align-center">
+              <h2 class="text-h5">{{ t("login.title") }}</h2>
+              <v-spacer />
+              <!-- Selector de idioma -->
+              <language-selector />
+            </v-card-title>
 
-          <v-divider />
+            <v-divider />
 
-          <v-card-text>
-            <v-form @submit.prevent="onSubmit">
+            <v-card-text>
+              <v-form @submit.prevent="onSubmit">
 
-              <!-- Email -->
-              <v-text-field
-                v-model="email"
-                :label="t('login.email')"
-                type="email"
-                required
-                autocomplete="username"
-                prepend-inner-icon="mdi-account"
-                variant="outlined"
-              />
+                <!-- Email -->
+                <v-text-field
+                  v-model="email"
+                  :label="t('login.email')"
+                  type="email"
+                  required
+                  autocomplete="username"
+                  prepend-inner-icon="mdi-account"
+                  variant="outlined"
+                />
 
-              <!-- Password -->
-              <v-text-field
-                v-model="password"
-                :label="t('login.password')"
-                type="password"
-                required
-                autocomplete="current-password"
-                prepend-inner-icon="mdi-lock-outline"
-                variant="outlined"
-              />
+                <!-- Password -->
+                <v-text-field
+                  v-model="password"
+                  :label="t('login.password')"
+                  type="password"
+                  required
+                  autocomplete="current-password"
+                  prepend-inner-icon="mdi-lock-outline"
+                  variant="outlined"
+                />
 
-              <!-- Error -->
-              <v-alert v-if="error" type="error" variant="tonal" class="mb-4">
-                {{ error }}
-              </v-alert>
+                <!-- Error -->
+                <v-alert v-if="error" type="error" variant="tonal" class="mb-4">
+                  {{ error }}
+                </v-alert>
 
-              <!-- Submit -->
-              <v-btn
-                :loading="loading"
-                type="submit"
-                color="primary"
-                block
-                size="large"
-              >
-                {{ loading ? t("login.submitting") : t("login.submit") }}
-              </v-btn>
+                <!-- Submit -->
+                <v-btn
+                  :loading="loading"
+                  type="submit"
+                  color="primary"
+                  block
+                  size="large"
+                >
+                  {{ loading ? t("login.submitting") : t("login.submit") }}
+                </v-btn>
 
-            </v-form>
-          </v-card-text>
-        </v-card>
+              </v-form>
+            </v-card-text>
+          </v-card>
 
-      </v-col>
-    </v-row>
-  </v-container>
+        </v-col>
+      </v-row>
+    </v-container>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -129,3 +131,11 @@ async function onSubmit() {
   }
 }
 </script>
+
+<style scoped>
+.login-page {
+  min-height: 100vh;
+  background: var(--color-bg); /* ← usa el background del branding */
+  display: flex;
+}
+</style>

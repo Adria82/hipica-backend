@@ -1,6 +1,5 @@
 /**
  * Punto de entrada de la aplicación Vue.
- * Aquí solo montamos la app y registramos plugins globales.
  */
 
 import { createApp } from "vue";
@@ -9,13 +8,20 @@ import router from "./router";
 import { i18n } from "./i18n";
 
 import "vuetify/styles";
-import { vuetify } from "./plugins/vuetify";
+import { createVuetifyInstance } from "./plugins/vuetify";
 
 // estilos globales (tokens visuales)
 import "./assets/theme.css";
 
-createApp(App)
-  .use(i18n)
-  .use(router)
-  .use(vuetify)
-  .mount("#app");
+/**
+ * Crear Vuetify YA con el branding cargado en index.html
+ */
+const vuetify = createVuetifyInstance();
+
+const app = createApp(App);
+
+app.use(i18n);
+app.use(router);
+app.use(vuetify);
+
+app.mount("#app");

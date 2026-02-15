@@ -1,13 +1,63 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+
+    <!-- Favicon dinámico -->
+    <link id="app-favicon" rel="icon" href="/branding/favicon.ico" />
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>hipica-frontend</title>
+
+    <!-- Título dinámico -->
+    <title id="app-title">Cargando...</title>
+
+    <script>
+      function detectClient() {
+        const host = window.location.hostname;
+
+        if (host.includes("localhost") || host.startsWith("127.0.0.1")) {
+          return "demo";
+        }
+
+        const parts = host.split(".");
+        return parts.length > 2 ? parts[0] : "demo";
+      }
+
+      const client = detectClient();
+
+      async function bootstrap() {
+        try {
+          const res = await fetch(`/branding/${client}/branding.json`);
+          const branding = res.ok
+            ? await res.json()
+            : await fetch(`/branding/demo/branding.json`).then(r => r.json());
+
+          window.__APP_BRANDING__ = branding;
+
+          document.title = branding.appName;
+
+          const favicon = document.getElementById("app-favicon");
+          favicon.href = `/branding/${client}/${branding.favicon}`;
+        } catch (e) {
+          console.warn("Branding load failed, continuing without branding.");
+          window.__APP_BRANDING__ = {};
+        }
+
+        // SOLO ahora arrancamos Vue
+        const script = document.createElement("script");
+        script.type = "module";
+        script.src = "/src/main.ts";
+        document.body.appendChild(script);
+      }
+
+      bootstrap();
+    </script>
+
+
   </head>
+
   <body>
     <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
+
