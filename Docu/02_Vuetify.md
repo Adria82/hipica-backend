@@ -1,56 +1,180 @@
-# Vuetify - Implementación de Framework UI Profesional
+# 02_Vuetify — Integración de Vuetify 3 y sistema de temas
 
-## Descripción
-Integración de **Vuetify 3** en la aplicación Vue para proporcionar un diseño profesional y consistente con componentes Material Design.
+## 🎯 Objetivo
+Dejar configurado Vuetify 3 como **fuente única de verdad de los colores** y usar un archivo `theme.css` como puente para exponer *design tokens* reutilizables en toda la aplicación.
 
-## Cambios Realizados
+---
 
-### 1. Instalación de Dependencias
-Se instalaron los siguientes paquetes en el frontend:
-- **vuetify** (^3.11.8) - Framework UI basado en Material Design
-- **vite-plugin-vuetify** - Plugin automático para integración con Vite
-- **@mdi/js** (^7.4.47) - Iconos Material Design en JavaScript
-- **@mdi/font** (^7.4.47) - Fuentes Material Design
-- **sass** (^1.97.3) - Preprocesador CSS necesario para Vuetify
+## 🧠 Cambio de mentalidad respecto a Vuetify 2
 
-### 2. Configuración de Vite
-**Archivo**: `vite.config.ts`
-
-Se añadió el plugin `vite-plugin-vuetify` con autoImport habilitado:
-```typescript
-import vuetify from 'vite-plugin-vuetify'
-
-export default defineConfig({
-  plugins: [
-    vue(),
-    vuetify({
-      autoImport: true,
-    }),
-  ],
-})
+### Antes (Vuetify 2)
+```
+CSS definía los colores → Vuetify los usaba
 ```
 
-### 3. Configuración en main.ts
-**Archivo**: `src/main.ts`
+### Ahora (Vuetify 3)
+```
+Vuetify define los colores → CSS los reutiliza
+```
 
-Se registró Vuetify con el sistema de iconos Material Design Icons:
-```typescript
+👉 Vuetify genera automáticamente variables CSS internas (`--v-theme-*`).
+👉 Nuestra app NO debe inventar colores por fuera.
+
+---
+
+## ⚙️ Cómo funciona internamente Vuetify 3
+
+Si defines en `vuetify.ts`:
+
+```ts
+primary: "#8b5e3c"
+```
+
+Vuetify genera dinámicamente:
+
+```css
+--v-theme-primary: 139,94,60;
+```
+
+Eso permite que el framework calcule:
+- Contrastes automáticos
+- Hover
+- Opacidades
+- Dark mode
+- Tonalidades Material Design 3
+
+⚠️ Por eso Vuetify NO acepta `var(--mi-color)` como entrada.
+
+---
+
+## 🧩 Qué es `theme.css`
+
+`theme.css` NO define colores.
+
+Es un **adaptador** que traduce:
+
+```
+--v-theme-primary → --color-primary
+```
+
+Así nuestra app puede usar nombres semánticos:
+
+```css
+color: var(--color-primary);
+```
+
+Sin depender directamente de Vuetify.
+
+Esto desacopla diseño y framework.
+
+---
+
+## 🏗️ Arquitectura final
+
+```
+vuetify.ts
+   ↓ define colores reales (#hex)
+
+Vuetify runtime
+   ↓ genera --v-theme-*
+
+theme.css
+   ↓ expone tokens --color-*
+
+componentes propios
+   ↓ usan tokens de diseño
+```
+
+---
+
+## 📁 Configuración correcta de archivos
+
+---
+
+# ✅ `src/plugins/vuetify.ts`
+
+```ts
+import "vuetify/styles";
+
 import { createVuetify } from "vuetify";
 import * as components from "vuetify/components";
 import * as directives from "vuetify/directives";
+
 import { mdi } from "vuetify/iconsets/mdi";
 import "@mdi/font/css/materialdesignicons.css";
 
-const vuetify = createVuetify({
+export const vuetify = createVuetify({
   components,
   directives,
+
   icons: {
     defaultSet: "mdi",
-    sets: {
-      mdi,
+    sets: { mdi },
+  },
+
+  theme: {
+    defaultTheme: "hipica",
+
+    themes: {
+      hipica: {
+        dark: false,
+
+        colors: {
+          background: "#f4efe7",
+          surface: "#ffffff",
+
+          primary: "#8b5e3c",
+          secondary: "#5c3d2e",
+          accent: "#c8a27a",
+
+          error: "#b00020",
+          info: "#8b5e3c",
+          success: "#2e7d32",
+          warning: "#ed6c02",
+
+          "on-surface": "#2b2b2b",
+        },
+      },
     },
   },
 });
+```
+
+---
+
+# ✅ `src/assets/theme.css`
+
+```css
+/* Bridge entre Vuetify y nuestros tokens de diseño */
+
+:root {
+  --color-bg: rgb(var(--v-theme-background));
+  --color-surface: rgb(var(--v-theme-surface));
+  --color-text: rgb(var(--v-theme-on-surface));
+
+  --color-primary: rgb(var(--v-theme-primary));
+  --color-primary-dark: rgb(var(--v-theme-secondary));
+  --color-accent: rgb(var(--v-theme-accent));
+
+  --color-border: rgba(var(--v-theme-on-surface), 0.12);
+}
+```
+
+---
+
+# ✅ `src/main.ts`
+
+```ts
+import { createApp } from "vue";
+import App from "./App.vue";
+import router from "./router";
+import { i18n } from "./i18n";
+
+import "vuetify/styles";
+
+import { vuetify } from "./plugins/vuetify";
+
+import "./assets/theme.css";
 
 createApp(App)
   .use(i18n)
@@ -59,21 +183,16 @@ createApp(App)
   .mount("#app");
 ```
 
-### 4. Estructura App.vue
-**Archivo**: `src/App.vue`
+---
 
-Se implementó el layout base con componentes Vuetify:
-- `v-app` - Contenedor raíz (requerido para Vuetify)
-- `v-app-bar` - Barra de navegación superior con tema primary
-- `v-main` - Contenedor principal para las vistas
-- `language-selector` - Selector de idiomas integrado en la barra
+# ✅ `src/App.vue`
 
 ```vue
 <template>
   <v-app>
-    <v-app-bar color="primary" dark>
+    <v-app-bar color="primary">
       <v-app-bar-title>Hípica</v-app-bar-title>
-      <v-spacer></v-spacer>
+      <v-spacer />
       <language-selector />
     </v-app-bar>
 
@@ -82,75 +201,46 @@ Se implementó el layout base con componentes Vuetify:
     </v-main>
   </v-app>
 </template>
+
+<script setup lang="ts">
+import LanguageSelector from "./components/LanguageSelector.vue";
+</script>
 ```
 
-### 5. Actualización de LanguageSelector.vue
-**Archivo**: `src/components/LanguageSelector.vue`
+---
 
-Se reemplazó el select nativo HTML con el componente `v-select` de Vuetify:
+## 🧪 Cómo usar los colores ahora
+
+### Dentro de Vuetify
+
 ```vue
-<v-select
-  :model-value="currentLocale"
-  @update:model-value="setLocale"
-  :items="localeOptions"
-  item-title="label"
-  item-value="code"
-  density="compact"
-  variant="outlined"
-  prepend-inner-icon="mdi-translate"
-/>
+<v-btn color="primary" />
 ```
 
-Ventajas:
-- Ícono de traducción Material Design
-- Diseño consistente con Material Design
-- Mejor accesibilidad y UX
+### En CSS propio
 
-### 6. Limpieza de Estilos Globales
-**Archivo**: `src/style.css`
-
-Se simplificaron los estilos globales para permitir que Vuetify gestione el diseño:
 ```css
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  padding: 0;
-}
-
-html,
-body,
-#app {
-  height: 100%;
-  width: 100%;
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
 }
 ```
 
-## Beneficios
+---
 
-✅ **Componentes profesionales** - Acceso a 100+ componentes Material Design listos para usar  
-✅ **Sistema de temas** - Personalización de colores y temas de forma centralizada  
-✅ **Responsive design** - Componentes adaptables a diferentes dispositivos  
-✅ **Iconos integrados** - Material Design Icons disponibles en toda la app  
-✅ **Accesibilidad** - Componentes accesibles (ARIA, keyboard nav, etc.)  
-✅ **Consistencia visual** - Diseño uniforme en toda la aplicación  
+## 🚀 Ventaja futura
 
-## Compilación
-El proyecto compila sin errores:
-```
-✓ 633 modules transformed.
-✓ built in 4.07s
-```
+Cuando añadamos modo oscuro, SOLO cambiaremos `vuetify.ts`.
 
-## Próximos Pasos
-1. Crear vistas profesionales (Login, Dashboard, etc.) usando componentes Vuetify
-2. Configurar tema personalizado (colores corporativos)
-3. Añadir componentes de layout (sidebars, drawers, etc.)
-4. Implementar componentes de formularios reutilizables
+Toda la aplicación —incluyendo CSS propio— cambiará automáticamente.
 
-## Referencias
-- [Documentación oficial Vuetify 3](https://vuetifyjs.com/)
-- [Material Design Icons](https://materialdesignicons.com/)
-- [Vite Plugin Vuetify](https://github.com/vuetifyjs/vuetify-loader)
+---
+
+## ✅ Resultado
+
+✔ Sistema desacoplado
+✔ Compatible con dark mode
+✔ Compatible con multi-brand
+✔ Sin hacks
+✔ 100% Vuetify 3 compliant
+
