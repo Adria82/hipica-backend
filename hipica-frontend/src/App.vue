@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-app-bar color="primary" dark>
+    <v-app-bar color="primary">
       <v-app-bar-title>Hípica</v-app-bar-title>
       <v-spacer></v-spacer>
       <language-selector />

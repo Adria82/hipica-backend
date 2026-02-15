@@ -1,69 +1,24 @@
 /* ============================================================
-   Design Tokens - Identidad Hípica
+   HÍPICA — Design Tokens (bridge con Vuetify 3)
    ============================================================ */
+
 /*
-:root {
-  --color-bg: #f4efe7;
-  --color-surface: #ffffff;
-  --color-text: #2b2b2b;
-
-  --color-primary: #8b5e3c;
-  --color-primary-dark: #5c3d2e;
-  --color-accent: #c8a27a;
-
-  --color-border: #e0d6c8;
-}
+  Este archivo NO define colores.
+  Solo expone tokens de Vuetify como variables reutilizables
+  para estilos propios fuera de los componentes Vuetify.
 */
-
-/* NECESARIO para Vuetify */
-/*
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-*/
-
-/* Reset mínimo */
-/*
-html,
-body,
-#app {
-  height: 100%;
-  margin: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: "Inter", system-ui, sans-serif;
-  overflow: hidden;
-}
-  */
-
-/* Arregla el bug visual de v-text-field */
-/*
-.v-field,
-.v-field__field,
-.v-field__input {
-  background: transparent;
-}
-*/
-
-/* ============================================================
-   HÍPICA — Design Tokens (solo variables, SIN tocar layout)
-   ============================================================ */
 
 :root {
   /* Base */
-  --color-bg: #f4efe7;
-  --color-surface: #ffffff;
-  --color-text: #2b2b2b;
+  --color-bg: rgb(var(--v-theme-background));
+  --color-surface: rgb(var(--v-theme-surface));
+  --color-text: rgb(var(--v-theme-on-surface));
 
   /* Marca */
-  --color-primary: #8b5e3c;
-  --color-primary-dark: #5c3d2e;
-  --color-accent: #c8a27a;
+  --color-primary: rgb(var(--v-theme-primary));
+  --color-primary-dark: rgb(var(--v-theme-secondary));
+  --color-accent: rgb(var(--v-theme-accent));
 
   /* UI */
-  --color-border: #e0d6c8;
+  --color-border: rgba(var(--v-theme-on-surface), 0.12);
 }
-
-

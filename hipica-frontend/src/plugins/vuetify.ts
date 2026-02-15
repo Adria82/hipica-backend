@@ -53,11 +53,9 @@ export const vuetify = createVuetify({
 
 /**
  * Configuración centralizada de Vuetify
- * 
- * OK NO RECUADROS
  */
 
-import "vuetify/styles"; // NECESARIO-> sin esto Vuetify se rompe
+import "vuetify/styles"; // NECESARIO
 
 import { createVuetify } from "vuetify";
 import * as components from "vuetify/components";
@@ -74,28 +72,32 @@ export const vuetify = createVuetify({
     defaultSet: "mdi",
     sets: { mdi },
   },
+
   theme: {
     defaultTheme: "hipica",
-    
+
     themes: {
       hipica: {
         dark: false,
 
         colors: {
-          background: "var(--color-bg)",
-          surface: "var(--color-surface)",
+          // AQUÍ VAN LOS COLORES REALES (no CSS vars)
+          background: "#f4efe7",
+          surface: "#ffffff",
 
-          primary: "var(--color-primary)",
-          secondary: "var(--color-primary-dark)",
-          accent: "var(--color-accent)",
+          primary: "#8b5e3c",
+          secondary: "#5c3d2e",
+          accent: "#c8a27a",
 
           error: "#b00020",
-          info: "var(--color-primary)",
+          info: "#8b5e3c",
           success: "#2e7d32",
           warning: "#ed6c02",
+
+          // importante para el color del texto base
+          "on-surface": "#2b2b2b",
         },
       },
     },
   },
-
 });
