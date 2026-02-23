@@ -36,7 +36,12 @@ Si tienes psql instalado en tu máquina:
 
 
 #FRONTEND
-Para ejecutar el proyecto frontend, sigue estos pasos: npm run dev
+Para ejecutar el proyecto frontend, sigue estos pasos (dentro de hipica-frontend): 
+    npm run dev
+
+Acceder al Site:
+    http://localhost:5173/      --> Por defecto (demo)
+    http://localhost:5173/?client=canValls  --> para aceder a la configuración de algun cliente
 
 
 I18N

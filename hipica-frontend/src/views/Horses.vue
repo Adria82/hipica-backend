@@ -1,9 +1,5 @@
 <template>
   <div style="max-width: 900px; margin: 40px auto; font-family: system-ui;">
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
-      <LanguageSelector />
-    </div>
-
     <div style="display:flex; justify-content: space-between; align-items:center;">
       <h2>{{ t("horses.title") }}</h2>
       <button @click="logout" style="padding: 8px 10px;">{{ t("horses.logout") }}</button>

@@ -31,6 +31,9 @@ const messages = {
         stable: "Hípica",
       },
     },
+    menu: {
+      horses: "Caballos"
+    }
   },
   ca: {
     language: {
@@ -64,6 +67,9 @@ const messages = {
         stable: "Hípica",
       },
     },
+    menu: {
+      horses: "Cavalls"
+    }
   },
   en: {
     language: {
@@ -97,6 +103,9 @@ const messages = {
         stable: "Stable",
       },
     },
+    menu: {
+      horses: "Horses"
+    }
   },
 };
 

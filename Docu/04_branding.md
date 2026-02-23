@@ -168,8 +168,7 @@ En local (`localhost`) no hay subdominio, por lo que por defecto se carga `demo`
 Para probar otros clientes sin cambiar hosts ni recompilar, se permite un **override por query param**:
 
 ```
-http://localhost:5173/?client=can-vila
-http://localhost:5173/?client=hipica-sol
+http://localhost:5173/?client=canValls
 ```
 
 El `index.html` comprueba primero si existe `?client=` y, si está presente, lo usa en lugar de detectar por subdominio. En producción no se usa este parámetro y la detección sigue siendo automática por hostname.

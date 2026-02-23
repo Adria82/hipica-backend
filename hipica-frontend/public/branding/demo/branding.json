@@ -10,6 +10,14 @@
     "accent": "#c8a27a",
     "background": "#f4efe7",
     "surface": "#ffffff"
-  }
+  },
+
+  "navigation": [
+    {
+      "titleKey": "menu.horses",
+      "icon": "mdi-horse",
+      "route": "/horses"
+    }
+  ]
 }
 
