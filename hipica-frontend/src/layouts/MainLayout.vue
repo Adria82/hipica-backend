@@ -57,10 +57,27 @@
 import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import LanguageSelector from "@/components/LanguageSelector.vue";
+import type { NavItem } from "@/types/features";
+
+import { onMounted } from "vue";
+import { getAccessToken } from "@/auth/tokens";
+import { features, fetchFeatures } from "@/features/features";
+import { filterNavigationByFeatures } from "@/features/filter";
 
 const { t } = useI18n();
 const drawer = ref(true);
 
+onMounted(async () => {
+  // Si no hay token, no cargamos features (estás en login / público)
+  if (!getAccessToken()) return;
+
+  try {
+    await fetchFeatures();
+  } catch (e) {
+    // Si falla, seguimos con lo cacheado (si hubiese), sin romper UI
+    console.warn("No se pudieron cargar features:", e);
+  }
+});
 
 /**
  * Branding cargado previamente en index.html
@@ -75,6 +92,7 @@ const branding = (window as any).__APP_BRANDING__ as
         titleKey: string;
         icon?: string;
         route: string;
+        navigation?: NavItem[];
       }[];
     }
   | null;
@@ -93,7 +111,10 @@ const brandingLogoUrl = computed(() => {
 /**
  * Creamos la navegación reactiva
  */
-const navigation = computed(() => branding?.navigation ?? []);
+const navigation = computed(() => {
+  const base = (branding?.navigation ?? []) as NavItem[];
+  return filterNavigationByFeatures(base, features.value);
+});
 
 /**
  * Detectar cliente igual que en index.html
@@ -109,6 +130,7 @@ function detectClient(): string {
   const parts = host.split(".");
   return parts.length > 2 ? parts[0] : "demo";
 }
+
 
 
 

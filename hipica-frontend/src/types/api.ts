@@ -43,3 +43,18 @@ export type Horse = {
   is_active: boolean;
   stable_id: number;
 };
+
+export type FeatureCode =
+  | "HORSES"
+  | "CLIENTS"
+  | "LESSONS"
+  | "BOOKINGS"
+  | "BILLING"
+  | "REPORTING";
+
+export type NavItem = {
+  titleKey: string;
+  icon?: string;
+  route: string;
+  feature?: FeatureCode; // si existe, se filtra por licencia
+};

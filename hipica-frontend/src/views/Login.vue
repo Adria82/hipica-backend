@@ -71,12 +71,11 @@ import axios from "axios";
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-
 import { setTokens } from "@/auth/tokens";
 import { getAppLocale } from "@/i18n";
 import type { TokenResponse } from "@/types/api";
-
 import LanguageSelector from "@/components/LanguageSelector.vue";
+import { fetchFeatures } from "@/features/features";
 
 const branding = (window as any).__APP_BRANDING__ ?? {};
 
@@ -140,6 +139,9 @@ async function onSubmit() {
 
     // Guardar tokens en localStorage
     setTokens(res.data);
+
+    // cargar licencias antes de entrar
+    await fetchFeatures();
 
     // Redirigir a la app
     router.push({ name: "horses" });

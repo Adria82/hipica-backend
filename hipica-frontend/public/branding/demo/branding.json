@@ -16,7 +16,8 @@
     {
       "titleKey": "menu.horses",
       "icon": "mdi-horse",
-      "route": "/horses"
+      "route": "/horses",
+      "feature": "HORSES"
     }
   ]
 }

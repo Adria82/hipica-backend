@@ -27,6 +27,8 @@ from app.models.horse import Horse
 from app.models.client import Client
 from app.models.lesson import Lesson
 from app.models.links import HorseLevelLink, LessonHorseLink, LessonClientLink
+from app.models.stable_feature import StableFeature
+from app.models.feature import FeatureCode
 
 
 def seed_db() -> None:
@@ -57,6 +59,22 @@ def seed_db() -> None:
         session.commit()
         session.refresh(stable)
         print(f"Stable creado: {stable}")
+
+        # -----------------------------------------------------------------
+        # 1.1 Activar funcionalidades para la hípica (licenciamiento)
+        # -----------------------------------------------------------------
+        features = [
+            FeatureCode.HORSES,
+            FeatureCode.CLIENTS,
+            FeatureCode.LESSONS,
+        ]
+
+        session.add_all(
+            [StableFeature(stable_id=stable.id, feature=feature) for feature in features]
+        )
+        session.commit()
+
+        print(f"Features activadas para la stable {stable.id}: {features}")
 
         # -----------------------------------------------------------------
         # 2. Crear usuarios

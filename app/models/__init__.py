@@ -10,3 +10,7 @@ from .links import HorseLevelLink
 
 # Modelos que usan las relaciones
 from .horse import Horse
+
+
+from .feature import FeatureCode
+from .stable_feature import StableFeature
