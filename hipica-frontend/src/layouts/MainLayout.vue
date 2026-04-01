@@ -1,23 +1,18 @@
 <template>
   <v-app>
     <!-- Menu Lateral -->
-    <v-navigation-drawer v-model="drawer" app>
+    <v-navigation-drawer v-model="drawer" app color="primary" dark>
       <v-list density="comfortable" nav>
         <v-list-item
           v-for="item in navigation"
           :key="item.route"
           :to="item.route"
-          router
-          link
-        >
-          <template #prepend>
-            <v-icon :icon="item.icon" />
-          </template>
-
-          <v-list-item-title>
-            {{ t(item.titleKey) }}
-          </v-list-item-title>
-        </v-list-item>
+          :value="item.route"
+          :title="t(item.titleKey)"
+          :prepend-icon="item.icon"
+        />
+          
+        
       </v-list>
     </v-navigation-drawer>
     <!-- Barra superior -->
@@ -62,7 +57,7 @@ import type { NavItem } from "@/types/features";
 import { onMounted } from "vue";
 import { getAccessToken } from "@/auth/tokens";
 import { features, fetchFeatures } from "@/features/features";
-import { filterNavigationByFeatures } from "@/features/filter";
+import { filterNavigation } from "@/features/filter";
 
 const { t } = useI18n();
 const drawer = ref(true);
@@ -111,10 +106,9 @@ const brandingLogoUrl = computed(() => {
 /**
  * Creamos la navegación reactiva
  */
-const navigation = computed(() => {
-  const base = (branding?.navigation ?? []) as NavItem[];
-  return filterNavigationByFeatures(base, features.value);
-});
+const navigation = computed(() =>
+  filterNavigation(branding?.navigation ?? [], features.value)
+);
 
 /**
  * Detectar cliente igual que en index.html

@@ -1,19 +1,26 @@
 import type { FeatureCode, NavItem } from "@/types/api";
 
 /**
- * Filtra navegación según features activas.
+ * Filtra sin modificar la referencia original de los items.
+ * Esto mantiene el comportamiento de Vuetify navigation.
  */
-export function filterNavigationByFeatures(
-  navigation: NavItem[],
-  enabled: FeatureCode[]
+export function filterNavigation(
+  navigation: readonly NavItem[],
+  enabled: readonly FeatureCode[]
 ): NavItem[] {
-  return navigation.filter((item) => {
-    // Si el item no define feature → siempre visible
-    if (!item.feature) return true;
+  const result: NavItem[] = [];
 
-    // Si define feature → visible solo si está habilitada
-    return enabled.includes(item.feature);
-  });
+  for (const item of navigation) {
+    // si no requiere licencia → se deja pasar tal cual (MISMA referencia)
+    if (!item.feature) {
+      result.push(item);
+      continue;
+    }
+
+    if (enabled.includes(item.feature)) {
+      result.push(item);
+    }
+  }
+
+  return result;
 }
-
-
