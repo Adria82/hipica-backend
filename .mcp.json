@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://hipica:hipica@localhost:5432/hipica"
+      ]
+    },
+    "hipica": {
+      "command": "python",
+      "args": ["-m", "hipica_mcp.server"],
+      "cwd": "c:/abe/Hipica/app/hipica-backend"
+    }
+  }
+}
