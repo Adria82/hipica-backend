@@ -36,12 +36,15 @@ hipica-backend/
 │   └── src/
 │       ├── api/http.ts             # Axios con interceptors (auth + i18n)
 │       ├── auth/tokens.ts          # localStorage token management
+│       ├── branding/               # Assets y config de marca por cliente
 │       ├── features/features.ts    # Feature flags reactivos
+│       ├── layouts/                # Layouts base de la aplicación
+│       ├── plugins/                # Plugins Vuetify y otros
 │       ├── router/index.ts         # Rutas + guards
 │       ├── types/api.ts            # Interfaces TypeScript
 │       ├── views/                  # Páginas Vue (una por entidad/feature)
 │       ├── components/             # Componentes reutilizables
-│       └── i18n/messages.ts        # Traducciones (ca/es/en)
+│       └── i18n/                   # Traducciones (ca/es/en): index.ts, locale.ts, messages.ts
 ├── docker-compose.yml
 ├── .env
 └── .mcp.json
@@ -122,6 +125,7 @@ Stable (1) ──< Horse ──< HorseLevelLink >── Level
 Stable (1) ──< Client
 Stable (1) ──< Lesson ──< LessonHorseLink >── Horse
                        ──< LessonClientLink >── Client
+Stable (1) ──< StableFeature.feature → FeatureCode (enum)
 Lesson.instructor_id → User
 ```
 

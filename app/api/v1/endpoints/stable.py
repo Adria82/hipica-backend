@@ -7,19 +7,25 @@ from sqlmodel import Session, select
 
 from app.db.session import get_session
 from app.models.stable import Stable
+from app.dependencies import require_role
+from app.models import User
 from app.schemas.stable import StableCreate, StableRead, StableUpdate
 from app.core.i18n import t
 
 router = APIRouter(prefix="/stables", tags=["Stables"])
 
 
-@router.post("/", response_model=StableRead)
+@router.post("/", response_model=StableRead, status_code=201)
 def create_stable(
     stable: StableCreate,
+    request: Request,
     session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["app_admin"])),
 ):
     """
     Crear una nueva hípica.
+
+    Solo accesible para app_admin.
     """
     db_stable = Stable.model_validate(stable)
     session.add(db_stable)
@@ -30,10 +36,14 @@ def create_stable(
 
 @router.get("/", response_model=list[StableRead])
 def list_stables(
+    request: Request,
     session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["app_admin"])),
 ):
     """
     Listar todas las hípicas.
+
+    Solo accesible para app_admin.
     """
     return session.exec(select(Stable)).all()
 
@@ -43,13 +53,20 @@ def get_stable(
     stable_id: int,
     request: Request,
     session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["stable_admin", "app_admin"])),
 ):
     """
     Obtener una hípica por ID.
+
+    stable_admin solo puede consultar su propia hípica.
     """
     stable = session.get(Stable, stable_id)
     if not stable:
         raise HTTPException(status_code=404, detail=t(request, "stable.not_found"))
+
+    if current_user.role != "app_admin" and stable.id != current_user.stable_id:
+        raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
+
     return stable
 
 
@@ -59,9 +76,12 @@ def update_stable(
     stable_data: StableUpdate,
     request: Request,
     session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["app_admin"])),
 ):
     """
     Actualizar una hípica.
+
+    Solo accesible para app_admin.
     """
     stable = session.get(Stable, stable_id)
     if not stable:
@@ -81,9 +101,12 @@ def delete_stable(
     stable_id: int,
     request: Request,
     session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["app_admin"])),
 ):
     """
     Eliminar una hípica.
+
+    Solo accesible para app_admin.
     """
     stable = session.get(Stable, stable_id)
     if not stable:

@@ -12,6 +12,8 @@ from app.models.lesson import Lesson
 from app.models.client import Client
 from app.models.horse import Horse
 from app.models.links import LessonClientLink, LessonHorseLink
+from app.dependencies import require_role
+from app.models import User
 from app.schemas.client import ClientRead
 from app.schemas.horse import HorseRead
 from app.schemas.lesson import LessonCreate, LessonRead, LessonUpdate
@@ -19,15 +21,20 @@ from app.core.i18n import t
 
 router = APIRouter(prefix="/lessons", tags=["Lessons"])
 
-@router.post("/", response_model=LessonRead)
+@router.post("/", response_model=LessonRead, status_code=201)
 def create_lesson(
     lesson_data: LessonCreate,
     request: Request,
     session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["monitor", "stable_admin", "app_admin"])),
 ):
     """
     Crear una nueva lección/clase y asociar clientes y caballos.
+
+    El stable_id se fuerza al de la cuadra del usuario autenticado.
     """
+    if current_user.role != "app_admin":
+        lesson_data.stable_id = current_user.stable_id
 
     # Crear la lección
     lesson = Lesson(
@@ -71,13 +78,14 @@ def create_lesson(
 
     session.commit()
 
-    return get_lesson(lesson.id, request, session)
+    return _build_lesson_read(lesson.id, request, session)
 
 @router.get("/{lesson_id}", response_model=LessonRead)
 def get_lesson(
     lesson_id: int,
     request: Request,
     session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["monitor", "stable_admin", "app_admin"])),
 ):
     """
     Obtener una lección/clase con clientes y caballos.
@@ -86,19 +94,28 @@ def get_lesson(
     if not lesson:
         raise HTTPException(status_code=404, detail=t(request, "lesson.not_found"))
 
-    # Clientes
+    if current_user.role != "app_admin" and lesson.stable_id != current_user.stable_id:
+        raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
+
+    return _build_lesson_read(lesson_id, request, session)
+
+
+def _build_lesson_read(lesson_id: int, request: Request, session: Session) -> LessonRead:
+    """
+    Construye un LessonRead con clientes y caballos asociados.
+    """
+    lesson = session.get(Lesson, lesson_id)
+
     client_links = session.exec(
         select(LessonClientLink).where(LessonClientLink.lesson_id == lesson.id)
     ).all()
     clients = [ClientRead.model_validate(session.get(Client, cl.client_id)) for cl in client_links]
 
-    # Caballos
     horse_links = session.exec(
         select(LessonHorseLink).where(LessonHorseLink.lesson_id == lesson.id)
     ).all()
     horses = [HorseRead.model_validate(session.get(Horse, hl.horse_id)) for hl in horse_links]
 
-    # Devolver la lección completa
     return LessonRead(
         id=lesson.id,
         date_time=lesson.date_time,
@@ -109,26 +126,27 @@ def get_lesson(
     )
 
 
-
 # ----------------------------
 # Listar lecciones con filtros
 # ----------------------------
 @router.get("/", response_model=List[LessonRead])
 def list_lessons(
-    stable_id: Optional[int] = None,
+    request: Request,
     instructor_id: Optional[int] = None,
     session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["monitor", "stable_admin", "app_admin"])),
 ):
     """
-    Listar todas las lecciones.
+    Listar todas las lecciones de la cuadra del usuario autenticado.
+
+    app_admin ve lecciones de todas las cuadras.
 
     Filtros opcionales:
-    - stable_id: devuelve solo lecciones de esta hípica
     - instructor_id: devuelve solo lecciones de este instructor
     """
     query = select(Lesson)
-    if stable_id:
-        query = query.where(Lesson.stable_id == stable_id)
+    if current_user.role != "app_admin":
+        query = query.where(Lesson.stable_id == current_user.stable_id)
     if instructor_id:
         query = query.where(Lesson.instructor_id == instructor_id)
 
@@ -136,13 +154,11 @@ def list_lessons(
     result = []
 
     for lesson in lessons:
-        # Obtener clientes
         client_links = session.exec(
             select(LessonClientLink).where(LessonClientLink.lesson_id == lesson.id)
         ).all()
         clients = [session.get(Client, cl.client_id) for cl in client_links]
 
-        # Obtener caballos
         horse_links = session.exec(
             select(LessonHorseLink).where(LessonHorseLink.lesson_id == lesson.id)
         ).all()
@@ -169,13 +185,19 @@ def delete_lesson(
     lesson_id: int,
     request: Request,
     session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["monitor", "stable_admin", "app_admin"])),
 ):
     """
     Eliminar una lección y sus relaciones N:N.
+
+    Solo accesible para monitor, stable_admin y app_admin.
     """
     lesson = session.get(Lesson, lesson_id)
     if not lesson:
         raise HTTPException(status_code=404, detail=t(request, "lesson.not_found"))
+
+    if current_user.role != "app_admin" and lesson.stable_id != current_user.stable_id:
+        raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
 
     # Borrar relaciones N:N
     session.exec(
@@ -194,7 +216,8 @@ def update_lesson(
     lesson_id: int,
     lesson_update: LessonUpdate,
     request: Request,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["monitor", "stable_admin", "app_admin"])),
 ):
     """
     Actualiza una lección existente.
@@ -212,6 +235,9 @@ def update_lesson(
     if not lesson:
         raise HTTPException(status_code=404, detail=t(request, "lesson.not_found"))
 
+    if current_user.role != "app_admin" and lesson.stable_id != current_user.stable_id:
+        raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
+
     # Actualizar campos básicos
     if lesson_update.date_time is not None:
         lesson.date_time = lesson_update.date_time
@@ -225,14 +251,9 @@ def update_lesson(
 
     # Actualizar relaciones N:N
     if lesson_update.client_ids is not None:
-        # Borrar relaciones actuales
-        session.exec(
-            select(LessonClientLink).where(LessonClientLink.lesson_id == lesson.id)
-        ).all()
         session.exec(
             delete(LessonClientLink).where(LessonClientLink.lesson_id == lesson.id)
         )
-        # Añadir nuevas relaciones
         session.add_all([LessonClientLink(lesson_id=lesson.id, client_id=cid) for cid in lesson_update.client_ids])
 
     if lesson_update.horse_ids is not None:
@@ -256,7 +277,6 @@ def update_lesson(
         .where(LessonHorseLink.lesson_id == lesson.id)
     ).all()
 
-    # Preparar respuesta
     clients = [ClientRead.model_validate(c) for c in client_rows]
     horses = [HorseRead.model_validate(h) for h in horse_rows]
 

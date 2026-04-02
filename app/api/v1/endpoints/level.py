@@ -9,9 +9,10 @@ from sqlmodel import Session, select
 
 from app.db.session import get_session
 from app.models.level import Level
+from app.dependencies import require_role
+from app.models import User
 from app.schemas.level import LevelCreate, LevelRead
 from app.core.i18n import t
-# from app.dependencies import require_role  # activar cuando quieras auth
 
 router = APIRouter(prefix="/levels", tags=["levels"])
 
@@ -25,7 +26,7 @@ def create_level(
     level: LevelCreate,
     request: Request,
     session: Session = Depends(get_session),
-    # current_user = Depends(require_role(["app_admin"])),
+    current_user: User = Depends(require_role(["app_admin"])),
 ):
     """
     Crear un nuevo nivel de equitación.
@@ -89,7 +90,7 @@ def delete_level(
     level_id: int,
     request: Request,
     session: Session = Depends(get_session),
-    # current_user = Depends(require_role(["app_admin"])),
+    current_user: User = Depends(require_role(["app_admin"])),
 ):
     """
     Eliminar un nivel de equitación.
