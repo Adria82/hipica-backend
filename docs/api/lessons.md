@@ -4,19 +4,19 @@ Base URL: `/api/v1/lessons`
 
 Gestion de lecciones/clases de la hipica. Cada leccion tiene una fecha y hora, un instructor, una hipica de referencia, y esta asociada a multiples clientes y caballos mediante relaciones N:N.
 
-> **Alerta de seguridad:** Ningun endpoint de este recurso tiene control de acceso (`require_role`). Cualquier peticion puede ejecutarlos. Se recomienda revisar con `backend-dev`.
+**Multi-tenant:** El `stable_id` de la leccion se fuerza siempre al del usuario autenticado (salvo `app_admin`). El filtrado en el listado se aplica automaticamente desde el token; ya no existe un query param `stable_id`.
 
 ---
 
 ## Resumen de Endpoints
 
-| Metodo | Path | Descripcion | Rol requerido |
-|--------|------|-------------|---------------|
-| POST | `/` | Crear una leccion | Sin control (ver alerta) |
-| GET | `/` | Listar lecciones (con filtros opcionales) | Sin control (ver alerta) |
-| GET | `/{lesson_id}` | Obtener una leccion por ID | Sin control (ver alerta) |
-| PUT | `/{lesson_id}` | Actualizar una leccion | Sin control (ver alerta) |
-| DELETE | `/{lesson_id}` | Eliminar una leccion | Sin control (ver alerta) |
+| Metodo | Path | Descripcion | Rol minimo requerido |
+|--------|------|-------------|----------------------|
+| POST | `/` | Crear una leccion | `monitor` |
+| GET | `/` | Listar lecciones de la cuadra | `monitor` |
+| GET | `/{lesson_id}` | Obtener una leccion por ID | `monitor` |
+| PUT | `/{lesson_id}` | Actualizar una leccion | `monitor` |
+| DELETE | `/{lesson_id}` | Eliminar una leccion | `monitor` |
 
 ---
 
@@ -59,9 +59,9 @@ Gestion de lecciones/clases de la hipica. Cada leccion tiene una fecha y hora, u
 
 ### POST /api/v1/lessons/
 
-Crea una nueva leccion y asocia clientes y caballos. Si alguno de los IDs de clientes o caballos no existe, la peticion falla con 404.
+Crea una nueva leccion y asocia clientes y caballos. Si alguno de los IDs de clientes o caballos no existe, la peticion falla con 404. El `stable_id` se fuerza al del usuario autenticado; `app_admin` puede indicarlo en el cuerpo.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `monitor`, `stable_admin` o `app_admin`
 
 **Request Body:**
 ```json
@@ -77,17 +77,19 @@ Crea una nueva leccion y asocia clientes y caballos. Si alguno de los IDs de cli
 | Campo | Tipo | Requerido | Descripcion |
 |-------|------|-----------|-------------|
 | date_time | datetime (ISO 8601) | Si | Fecha y hora de la leccion |
-| stable_id | integer | Si | ID de la hipica |
+| stable_id | integer | Si | ID de la hipica. Ignorado para roles distintos de `app_admin` (se sobreescribe con el del token) |
 | instructor_id | integer | No | ID del usuario instructor |
 | client_ids | array[integer] | Si | Lista de IDs de clientes que asisten |
 | horse_ids | array[integer] | Si | Lista de IDs de caballos usados |
 
-**Response 200:** Objeto `LessonRead` completo (ver schema de referencia arriba).
+**Response 201:** Objeto `LessonRead` completo (ver schema de referencia arriba).
 
 **Errores posibles:**
 
 | Codigo | Causa |
 |--------|-------|
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente (requiere `monitor` o superior) |
 | 404 | Alguno de los `client_ids` o `horse_ids` no existe |
 | 422 | Datos de entrada invalidos o campos obligatorios ausentes |
 
@@ -95,20 +97,19 @@ Crea una nueva leccion y asocia clientes y caballos. Si alguno de los IDs de cli
 
 ### GET /api/v1/lessons/
 
-Lista todas las lecciones con filtros opcionales por hipica e instructor.
+Lista las lecciones de la cuadra del usuario autenticado. `app_admin` ve lecciones de todas las hipicas. El filtrado por hipica es automatico y no aceptable como query param.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `monitor`, `stable_admin` o `app_admin`
 
 **Query Parameters:**
 
 | Parametro | Tipo | Requerido | Descripcion |
 |-----------|------|-----------|-------------|
-| stable_id | integer | No | Filtra lecciones de una hipica concreta |
 | instructor_id | integer | No | Filtra lecciones de un instructor concreto |
 
-**Ejemplo de peticion con filtros:**
+**Ejemplo de peticion con filtro:**
 ```
-GET /api/v1/lessons/?stable_id=1&instructor_id=2
+GET /api/v1/lessons/?instructor_id=2
 ```
 
 **Response 200:** Array de objetos `LessonRead`.
@@ -130,15 +131,16 @@ GET /api/v1/lessons/?stable_id=1&instructor_id=2
 
 | Codigo | Causa |
 |--------|-------|
-| — | Este endpoint no produce errores conocidos |
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente (requiere `monitor` o superior) |
 
 ---
 
 ### GET /api/v1/lessons/{lesson_id}
 
-Obtiene una leccion por su ID, incluyendo la lista completa de clientes y caballos asociados.
+Obtiene una leccion por su ID, incluyendo la lista completa de clientes y caballos asociados. Si la leccion no pertenece a la hipica del usuario autenticado (y este no es `app_admin`), devuelve 403.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `monitor`, `stable_admin` o `app_admin`
 
 **Parametros de ruta:**
 
@@ -152,15 +154,17 @@ Obtiene una leccion por su ID, incluyendo la lista completa de clientes y caball
 
 | Codigo | Causa |
 |--------|-------|
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente o leccion de otra hipica |
 | 404 | No existe una leccion con el ID indicado |
 
 ---
 
 ### PUT /api/v1/lessons/{lesson_id}
 
-Actualiza una leccion existente. Todos los campos son opcionales; solo se actualizan los que se incluyan en el cuerpo. Si se proporcionan `client_ids` o `horse_ids`, las relaciones anteriores se eliminan y se reemplazan por las nuevas.
+Actualiza una leccion existente. Todos los campos son opcionales; solo se actualizan los que se incluyan en el cuerpo. Si se proporcionan `client_ids` o `horse_ids`, las relaciones anteriores se eliminan y se reemplazan por las nuevas. Si la leccion no pertenece a la hipica del usuario autenticado (y este no es `app_admin`), devuelve 403.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `monitor`, `stable_admin` o `app_admin`
 
 **Parametros de ruta:**
 
@@ -193,6 +197,8 @@ Actualiza una leccion existente. Todos los campos son opcionales; solo se actual
 
 | Codigo | Causa |
 |--------|-------|
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente o leccion de otra hipica |
 | 404 | No existe una leccion con el ID indicado |
 | 422 | Datos de entrada invalidos |
 
@@ -200,9 +206,9 @@ Actualiza una leccion existente. Todos los campos son opcionales; solo se actual
 
 ### DELETE /api/v1/lessons/{lesson_id}
 
-Elimina una leccion y todas sus relaciones N:N con clientes y caballos.
+Elimina una leccion y todas sus relaciones N:N con clientes y caballos. Si la leccion no pertenece a la hipica del usuario autenticado (y este no es `app_admin`), devuelve 403.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `monitor`, `stable_admin` o `app_admin`
 
 **Parametros de ruta:**
 
@@ -221,4 +227,6 @@ Elimina una leccion y todas sus relaciones N:N con clientes y caballos.
 
 | Codigo | Causa |
 |--------|-------|
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente o leccion de otra hipica |
 | 404 | No existe una leccion con el ID indicado |

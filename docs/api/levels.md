@@ -12,18 +12,16 @@ Los valores posibles del enum `NivelEquitacion` son:
 | `iniciado` | Personas con nociones basicas |
 | `experto` | Jinetes avanzados |
 
-> **Nota de seguridad:** Los endpoints `POST /` y `DELETE /{id}` tienen el control de rol comentado en el codigo (`# current_user = Depends(require_role(["app_admin"]))`). Actualmente son accesibles sin autenticacion. Se recomienda revisar con `backend-dev`.
-
 ---
 
 ## Resumen de Endpoints
 
 | Metodo | Path | Descripcion | Rol requerido |
 |--------|------|-------------|---------------|
-| POST | `/` | Crear un nivel | Sin control (ver nota) |
-| GET | `/` | Listar todos los niveles | Sin control |
-| GET | `/{level_id}` | Obtener un nivel por ID | Sin control |
-| DELETE | `/{level_id}` | Eliminar un nivel | Sin control (ver nota) |
+| POST | `/` | Crear un nivel | `app_admin` |
+| GET | `/` | Listar todos los niveles | Sin autenticacion |
+| GET | `/{level_id}` | Obtener un nivel por ID | Sin autenticacion |
+| DELETE | `/{level_id}` | Eliminar un nivel | `app_admin` |
 
 ---
 
@@ -33,7 +31,7 @@ Los valores posibles del enum `NivelEquitacion` son:
 
 Crea un nuevo nivel de equitacion en el catalogo. El nombre debe ser uno de los valores del enum `NivelEquitacion` y debe ser unico; no se permiten duplicados.
 
-**Rol requerido:** Sin control de acceso (deberia requerir `app_admin`)
+**Rol requerido:** `app_admin`
 
 **Request Body:**
 ```json
@@ -59,6 +57,8 @@ Crea un nuevo nivel de equitacion en el catalogo. El nombre debe ser uno de los 
 | Codigo | Causa |
 |--------|-------|
 | 400 | Ya existe un nivel con ese nombre |
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente (requiere `app_admin`) |
 | 422 | El valor de `name` no pertenece al enum `NivelEquitacion` |
 
 ---
@@ -67,7 +67,7 @@ Crea un nuevo nivel de equitacion en el catalogo. El nombre debe ser uno de los 
 
 Lista todos los niveles de equitacion registrados en el catalogo.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** Sin control de acceso (endpoint publico)
 
 **Response 200:**
 ```json
@@ -99,7 +99,7 @@ Lista todos los niveles de equitacion registrados en el catalogo.
 
 Obtiene un nivel de equitacion por su ID.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** Sin control de acceso (endpoint publico)
 
 **Parametros de ruta:**
 
@@ -127,7 +127,7 @@ Obtiene un nivel de equitacion por su ID.
 
 Elimina un nivel del catalogo. No se permite eliminar un nivel que este asociado a algun caballo.
 
-**Rol requerido:** Sin control de acceso (deberia requerir `app_admin`)
+**Rol requerido:** `app_admin`
 
 **Parametros de ruta:**
 
@@ -142,4 +142,6 @@ Elimina un nivel del catalogo. No se permite eliminar un nivel que este asociado
 | Codigo | Causa |
 |--------|-------|
 | 400 | El nivel tiene caballos asociados y no puede eliminarse |
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente (requiere `app_admin`) |
 | 404 | No existe un nivel con el ID indicado |

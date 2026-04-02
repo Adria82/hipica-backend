@@ -4,21 +4,19 @@ Base URL: `/api/v1/clients`
 
 Gestion de clientes (alumnos) de la hipica. Cada cliente pertenece a una hipica (`stable_id`) y puede estar asociado a multiples lecciones.
 
-> **Alerta de seguridad:** Ningun endpoint de este recurso tiene control de acceso (`require_role`). Cualquier peticion puede ejecutarlos. Se recomienda revisar con `backend-dev`.
-
-> **Nota arquitectonica:** Los endpoints `POST /` y `PUT /{id}` utilizan directamente el modelo ORM `Client` en lugar de los schemas `ClientCreate` / `ClientUpdate` definidos en `app/schemas/client.py`. Se recomienda corregir con `backend-dev`.
+**Multi-tenant:** `app_admin` ve y opera sobre clientes de todas las hipicas. El resto de roles solo accede a los clientes de su propia hipica (`stable_id` del token).
 
 ---
 
 ## Resumen de Endpoints
 
-| Metodo | Path | Descripcion | Rol requerido |
-|--------|------|-------------|---------------|
-| POST | `/` | Crear un cliente | Sin control (ver alerta) |
-| GET | `/` | Listar todos los clientes | Sin control (ver alerta) |
-| GET | `/{client_id}` | Obtener un cliente por ID | Sin control (ver alerta) |
-| PUT | `/{client_id}` | Actualizar un cliente | Sin control (ver alerta) |
-| DELETE | `/{client_id}` | Eliminar un cliente | Sin control (ver alerta) |
+| Metodo | Path | Descripcion | Rol minimo requerido |
+|--------|------|-------------|----------------------|
+| POST | `/` | Crear un cliente | `stable_admin` |
+| GET | `/` | Listar clientes de la cuadra | `monitor` |
+| GET | `/{client_id}` | Obtener un cliente por ID | `monitor` |
+| PUT | `/{client_id}` | Actualizar un cliente | `stable_admin` |
+| DELETE | `/{client_id}` | Eliminar un cliente | `stable_admin` |
 
 ---
 
@@ -26,9 +24,9 @@ Gestion de clientes (alumnos) de la hipica. Cada cliente pertenece a una hipica 
 
 ### POST /api/v1/clients/
 
-Crea un nuevo cliente en la hipica.
+Crea un nuevo cliente en la hipica. El `stable_id` se fuerza al de la cuadra del usuario autenticado; `app_admin` puede indicarlo explicitamente en el cuerpo.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `stable_admin` o `app_admin`
 
 **Request Body:**
 ```json
@@ -46,10 +44,10 @@ Crea un nuevo cliente en la hipica.
 | name | string | Si | Nombre completo del cliente |
 | email | string | No | Correo electronico |
 | phone | string | No | Numero de telefono |
-| stable_id | integer | Si | ID de la hipica a la que pertenece |
+| stable_id | integer | Si | ID de la hipica. Ignorado para `stable_admin` (se sobreescribe con el del token) |
 | is_active | boolean | No (default: `true`) | Si el cliente esta activo |
 
-**Response 200:**
+**Response 201:**
 ```json
 {
   "id": 3,
@@ -65,15 +63,17 @@ Crea un nuevo cliente en la hipica.
 
 | Codigo | Causa |
 |--------|-------|
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente (requiere `stable_admin` o `app_admin`) |
 | 422 | Datos de entrada invalidos o campos obligatorios ausentes |
 
 ---
 
 ### GET /api/v1/clients/
 
-Devuelve todos los clientes registrados en la base de datos, sin filtrar por hipica.
+Devuelve los clientes de la cuadra del usuario autenticado. `app_admin` recibe clientes de todas las hipicas.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `monitor`, `stable_admin` o `app_admin`
 
 **Response 200:**
 ```json
@@ -101,15 +101,16 @@ Devuelve todos los clientes registrados en la base de datos, sin filtrar por hip
 
 | Codigo | Causa |
 |--------|-------|
-| — | Este endpoint no produce errores conocidos |
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente (requiere `monitor` o superior) |
 
 ---
 
 ### GET /api/v1/clients/{client_id}
 
-Obtiene un cliente por su ID.
+Obtiene un cliente por su ID. Si el cliente no pertenece a la hipica del usuario autenticado (y este no es `app_admin`), devuelve 403.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `monitor`, `stable_admin` o `app_admin`
 
 **Parametros de ruta:**
 
@@ -133,15 +134,17 @@ Obtiene un cliente por su ID.
 
 | Codigo | Causa |
 |--------|-------|
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente o cliente de otra hipica |
 | 404 | No existe un cliente con el ID indicado |
 
 ---
 
 ### PUT /api/v1/clients/{client_id}
 
-Actualiza los datos de un cliente. La implementacion actual solo actualiza `name` y `email`; los demas campos se ignoran.
+Actualiza los datos de un cliente. Solo se modifican los campos incluidos en el cuerpo (`exclude_unset`). Si el cliente no pertenece a la hipica del usuario autenticado (y este no es `app_admin`), devuelve 403.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `stable_admin` o `app_admin`
 
 **Parametros de ruta:**
 
@@ -162,11 +165,11 @@ Actualiza los datos de un cliente. La implementacion actual solo actualiza `name
 
 | Campo | Tipo | Requerido | Descripcion |
 |-------|------|-----------|-------------|
-| name | string | Si | Nuevo nombre (aplicado) |
-| email | string | No | Nuevo email (aplicado) |
-| phone | string | No | Telefono (ignorado por la logica actual) |
-| stable_id | integer | Si | ID de la hipica (ignorado por la logica actual) |
-| is_active | boolean | No | Estado (ignorado por la logica actual) |
+| name | string | No | Nuevo nombre |
+| email | string | No | Nuevo email |
+| phone | string | No | Nuevo telefono |
+| stable_id | integer | No | Nueva hipica asignada |
+| is_active | boolean | No | Nuevo estado |
 
 **Response 200:**
 ```json
@@ -174,7 +177,7 @@ Actualiza los datos de un cliente. La implementacion actual solo actualiza `name
   "id": 1,
   "name": "Joan Puig Nou",
   "email": "joan_nou@example.com",
-  "phone": null,
+  "phone": "699000111",
   "stable_id": 1,
   "is_active": true
 }
@@ -184,6 +187,8 @@ Actualiza los datos de un cliente. La implementacion actual solo actualiza `name
 
 | Codigo | Causa |
 |--------|-------|
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente o cliente de otra hipica |
 | 404 | No existe un cliente con el ID indicado |
 | 422 | Datos de entrada invalidos |
 
@@ -191,9 +196,9 @@ Actualiza los datos de un cliente. La implementacion actual solo actualiza `name
 
 ### DELETE /api/v1/clients/{client_id}
 
-Elimina un cliente por su ID.
+Elimina un cliente por su ID. Si el cliente no pertenece a la hipica del usuario autenticado (y este no es `app_admin`), devuelve 403.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `stable_admin` o `app_admin`
 
 **Parametros de ruta:**
 
@@ -212,4 +217,6 @@ Elimina un cliente por su ID.
 
 | Codigo | Causa |
 |--------|-------|
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente o cliente de otra hipica |
 | 404 | No existe un cliente con el ID indicado |

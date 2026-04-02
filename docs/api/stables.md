@@ -4,19 +4,17 @@ Base URL: `/api/v1/stables`
 
 Gestion de hipicas. Una hipica (`Stable`) es la entidad raiz del modelo multi-tenant: todos los usuarios, caballos, clientes y lecciones pertenecen a una hipica.
 
-> **Alerta de seguridad:** Ningun endpoint de este recurso tiene control de acceso (`require_role`). Cualquier peticion puede crear, modificar o eliminar hipicas. Se recomienda proteger al menos `POST /`, `PATCH /{id}` y `DELETE /{id}` con el rol `app_admin`. Revisar con `backend-dev`.
-
 ---
 
 ## Resumen de Endpoints
 
 | Metodo | Path | Descripcion | Rol requerido |
 |--------|------|-------------|---------------|
-| POST | `/` | Crear una hipica | Sin control (ver alerta) |
-| GET | `/` | Listar todas las hipicas | Sin control (ver alerta) |
-| GET | `/{stable_id}` | Obtener una hipica por ID | Sin control (ver alerta) |
-| PATCH | `/{stable_id}` | Actualizar parcialmente una hipica | Sin control (ver alerta) |
-| DELETE | `/{stable_id}` | Eliminar una hipica | Sin control (ver alerta) |
+| POST | `/` | Crear una hipica | `app_admin` |
+| GET | `/` | Listar todas las hipicas | `app_admin` |
+| GET | `/{stable_id}` | Obtener una hipica por ID | `stable_admin` (solo la propia) o `app_admin` |
+| PATCH | `/{stable_id}` | Actualizar parcialmente una hipica | `app_admin` |
+| DELETE | `/{stable_id}` | Eliminar una hipica | `app_admin` |
 
 ---
 
@@ -26,7 +24,7 @@ Gestion de hipicas. Una hipica (`Stable`) es la entidad raiz del modelo multi-te
 
 Crea una nueva hipica.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `app_admin`
 
 **Request Body:**
 ```json
@@ -43,7 +41,7 @@ Crea una nueva hipica.
 | location | string | Si | Ubicacion o direccion |
 | is_active | boolean | No (default: `true`) | Si la hipica esta operativa |
 
-**Response 200:**
+**Response 201:**
 ```json
 {
   "id": 1,
@@ -57,15 +55,17 @@ Crea una nueva hipica.
 
 | Codigo | Causa |
 |--------|-------|
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente (requiere `app_admin`) |
 | 422 | Datos de entrada invalidos o campos obligatorios ausentes |
 
 ---
 
 ### GET /api/v1/stables/
 
-Lista todas las hipicas registradas.
+Lista todas las hipicas registradas. No filtra por hipica del usuario.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `app_admin`
 
 **Response 200:**
 ```json
@@ -89,7 +89,8 @@ Lista todas las hipicas registradas.
 
 | Codigo | Causa |
 |--------|-------|
-| — | Este endpoint no produce errores conocidos |
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente (requiere `app_admin`) |
 
 ---
 
@@ -97,7 +98,9 @@ Lista todas las hipicas registradas.
 
 Obtiene una hipica por su ID.
 
-**Rol requerido:** Sin control de acceso
+`stable_admin` puede consultar unicamente su propia hipica (aquella cuyo `id` coincide con su `stable_id`). Si intenta consultar otra hipica, recibe 403.
+
+**Rol requerido:** `stable_admin` (solo la propia) o `app_admin`
 
 **Parametros de ruta:**
 
@@ -119,6 +122,8 @@ Obtiene una hipica por su ID.
 
 | Codigo | Causa |
 |--------|-------|
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente o `stable_admin` intentando acceder a una hipica que no es la suya |
 | 404 | No existe una hipica con el ID indicado |
 
 ---
@@ -127,7 +132,7 @@ Obtiene una hipica por su ID.
 
 Actualiza parcialmente una hipica. Solo se modifican los campos incluidos en el cuerpo; los campos omitidos conservan su valor actual.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `app_admin`
 
 **Parametros de ruta:**
 
@@ -164,6 +169,8 @@ Actualiza parcialmente una hipica. Solo se modifican los campos incluidos en el 
 
 | Codigo | Causa |
 |--------|-------|
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente (requiere `app_admin`) |
 | 404 | No existe una hipica con el ID indicado |
 | 422 | Datos de entrada invalidos |
 
@@ -173,7 +180,7 @@ Actualiza parcialmente una hipica. Solo se modifican los campos incluidos en el 
 
 Elimina una hipica por su ID.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `app_admin`
 
 **Parametros de ruta:**
 
@@ -192,4 +199,6 @@ Elimina una hipica por su ID.
 
 | Codigo | Causa |
 |--------|-------|
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente (requiere `app_admin`) |
 | 404 | No existe una hipica con el ID indicado |

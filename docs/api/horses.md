@@ -4,20 +4,20 @@ Base URL: `/api/v1/horses`
 
 Gestion de caballos de la hipica. Cada caballo pertenece a una hipica (`stable_id`) y puede tener niveles de equitacion asignados.
 
-> **Alerta de seguridad:** Los endpoints `POST /`, `GET /`, `GET /{id}`, `PUT /{id}` y `DELETE /{id}` no tienen ningun control de acceso (`require_role`) en su implementacion actual. Cualquier peticion, autenticada o no, puede ejecutarlos. Se recomienda revisar con `backend-dev`.
+**Multi-tenant:** `app_admin` ve y opera sobre caballos de todas las hipicas. El resto de roles solo accede a los caballos de su propia hipica (`stable_id` del token).
 
 ---
 
 ## Resumen de Endpoints
 
-| Metodo | Path | Descripcion | Rol requerido |
-|--------|------|-------------|---------------|
-| POST | `/` | Crear un caballo | Sin control (ver alerta) |
-| GET | `/` | Listar todos los caballos | Sin control (ver alerta) |
-| GET | `/{horse_id}` | Obtener un caballo por ID | Sin control (ver alerta) |
-| PUT | `/{horse_id}` | Actualizar un caballo | Sin control (ver alerta) |
-| DELETE | `/{horse_id}` | Eliminar un caballo | Sin control (ver alerta) |
-| PUT | `/{horse_id}/levels` | Asignar niveles de equitacion | `stable_admin` o `app_admin` |
+| Metodo | Path | Descripcion | Rol minimo requerido |
+|--------|------|-------------|----------------------|
+| POST | `/` | Crear un caballo | `stable_admin` |
+| GET | `/` | Listar caballos de la cuadra | `monitor` |
+| GET | `/{horse_id}` | Obtener un caballo por ID | `monitor` |
+| PUT | `/{horse_id}` | Actualizar un caballo | `stable_admin` |
+| DELETE | `/{horse_id}` | Eliminar un caballo | `stable_admin` |
+| PUT | `/{horse_id}/levels` | Asignar niveles de equitacion | `stable_admin` |
 
 ---
 
@@ -25,9 +25,9 @@ Gestion de caballos de la hipica. Cada caballo pertenece a una hipica (`stable_i
 
 ### POST /api/v1/horses/
 
-Crea un nuevo caballo. El cuerpo de la peticion usa directamente el modelo ORM `Horse`.
+Crea un nuevo caballo. El `stable_id` se fuerza al de la cuadra del usuario autenticado; `app_admin` puede indicarlo explicitamente en el cuerpo.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `stable_admin` o `app_admin`
 
 **Request Body:**
 ```json
@@ -43,17 +43,18 @@ Crea un nuevo caballo. El cuerpo de la peticion usa directamente el modelo ORM `
 |-------|------|-----------|-------------|
 | name | string | Si | Nombre del caballo |
 | is_active | boolean | No (default: `true`) | Si el caballo esta disponible |
-| stable_id | integer | Si | ID de la hipica a la que pertenece |
+| stable_id | integer | Si | ID de la hipica. Ignorado para `stable_admin` (se sobreescribe con el del token) |
 | box | string | No | Numero o codigo del box |
 
-**Response 200:**
+**Response 201:**
 ```json
 {
   "id": 5,
   "name": "Tornado",
   "is_active": true,
   "stable_id": 1,
-  "box": "A3"
+  "box": "A3",
+  "levels": []
 }
 ```
 
@@ -61,15 +62,17 @@ Crea un nuevo caballo. El cuerpo de la peticion usa directamente el modelo ORM `
 
 | Codigo | Causa |
 |--------|-------|
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente (requiere `stable_admin` o `app_admin`) |
 | 422 | Datos de entrada invalidos o campos obligatorios ausentes |
 
 ---
 
 ### GET /api/v1/horses/
 
-Devuelve todos los caballos registrados en la base de datos, sin filtrar por hipica.
+Devuelve los caballos de la cuadra del usuario autenticado. `app_admin` recibe caballos de todas las hipicas.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `monitor`, `stable_admin` o `app_admin`
 
 **Response 200:**
 ```json
@@ -79,14 +82,16 @@ Devuelve todos los caballos registrados en la base de datos, sin filtrar por hip
     "name": "Relampago",
     "is_active": true,
     "stable_id": 1,
-    "box": "B1"
+    "box": "B1",
+    "levels": ["principiante"]
   },
   {
     "id": 2,
     "name": "Tornado",
     "is_active": false,
     "stable_id": 1,
-    "box": null
+    "box": null,
+    "levels": []
   }
 ]
 ```
@@ -95,15 +100,16 @@ Devuelve todos los caballos registrados en la base de datos, sin filtrar por hip
 
 | Codigo | Causa |
 |--------|-------|
-| — | Este endpoint no produce errores conocidos |
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente (requiere `monitor` o superior) |
 
 ---
 
 ### GET /api/v1/horses/{horse_id}
 
-Obtiene un caballo por su ID.
+Obtiene un caballo por su ID. Si el caballo no pertenece a la hipica del usuario autenticado (y este no es `app_admin`), devuelve 403.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `monitor`, `stable_admin` o `app_admin`
 
 **Parametros de ruta:**
 
@@ -118,7 +124,8 @@ Obtiene un caballo por su ID.
   "name": "Relampago",
   "is_active": true,
   "stable_id": 1,
-  "box": "B1"
+  "box": "B1",
+  "levels": ["principiante"]
 }
 ```
 
@@ -126,15 +133,17 @@ Obtiene un caballo por su ID.
 
 | Codigo | Causa |
 |--------|-------|
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente o caballo de otra hipica |
 | 404 | No existe un caballo con el ID indicado |
 
 ---
 
 ### PUT /api/v1/horses/{horse_id}
 
-Actualiza los datos de un caballo existente. Solo actualiza `name` y `stable_id`; el campo `box` no se actualiza por este endpoint.
+Actualiza los datos de un caballo existente. Si se incluye el campo `levels`, reemplaza completamente los niveles asociados. Si el caballo no pertenece a la hipica del usuario autenticado (y este no es `app_admin`), devuelve 403.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `stable_admin` o `app_admin`
 
 **Parametros de ruta:**
 
@@ -148,16 +157,18 @@ Actualiza los datos de un caballo existente. Solo actualiza `name` y `stable_id`
   "name": "Relampago II",
   "is_active": true,
   "stable_id": 2,
-  "box": "C4"
+  "box": "C4",
+  "levels": ["iniciado"]
 }
 ```
 
 | Campo | Tipo | Requerido | Descripcion |
 |-------|------|-----------|-------------|
-| name | string | Si | Nuevo nombre del caballo |
-| stable_id | integer | Si | ID de la hipica |
+| name | string | No | Nuevo nombre del caballo |
+| stable_id | integer | No | ID de la hipica |
 | is_active | boolean | No | Estado del caballo |
-| box | string | No | Box (ignorado por la logica actual del endpoint) |
+| box | string | No | Box asignado |
+| levels | array[string] | No | Lista de valores del enum `NivelEquitacion`. Si se incluye, reemplaza todos los niveles anteriores |
 
 **Response 200:**
 ```json
@@ -166,7 +177,8 @@ Actualiza los datos de un caballo existente. Solo actualiza `name` y `stable_id`
   "name": "Relampago II",
   "is_active": true,
   "stable_id": 2,
-  "box": "B1"
+  "box": "C4",
+  "levels": ["iniciado"]
 }
 ```
 
@@ -174,6 +186,9 @@ Actualiza los datos de un caballo existente. Solo actualiza `name` y `stable_id`
 
 | Codigo | Causa |
 |--------|-------|
+| 400 | Alguno de los niveles enviados no existe en el catalogo |
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente o caballo de otra hipica |
 | 404 | No existe un caballo con el ID indicado |
 | 422 | Datos de entrada invalidos |
 
@@ -181,9 +196,9 @@ Actualiza los datos de un caballo existente. Solo actualiza `name` y `stable_id`
 
 ### DELETE /api/v1/horses/{horse_id}
 
-Elimina un caballo por su ID.
+Elimina un caballo por su ID. Si el caballo no pertenece a la hipica del usuario autenticado (y este no es `app_admin`), devuelve 403.
 
-**Rol requerido:** Sin control de acceso
+**Rol requerido:** `stable_admin` o `app_admin`
 
 **Parametros de ruta:**
 
@@ -202,13 +217,15 @@ Elimina un caballo por su ID.
 
 | Codigo | Causa |
 |--------|-------|
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente o caballo de otra hipica |
 | 404 | No existe un caballo con el ID indicado |
 
 ---
 
 ### PUT /api/v1/horses/{horse_id}/levels
 
-Asigna o reemplaza los niveles de equitacion de un caballo. La lista enviada sustituye completamente los niveles anteriores.
+Asigna o reemplaza los niveles de equitacion de un caballo. La lista enviada sustituye completamente los niveles anteriores. Si el caballo no pertenece a la hipica del usuario autenticado (y este no es `app_admin`), devuelve 403.
 
 **Rol requerido:** `stable_admin` o `app_admin`
 
@@ -241,7 +258,8 @@ Valores posibles del enum:
   "name": "Relampago",
   "is_active": true,
   "stable_id": 1,
-  "box": "B1"
+  "box": "B1",
+  "levels": ["principiante", "iniciado"]
 }
 ```
 
@@ -251,6 +269,6 @@ Valores posibles del enum:
 |--------|-------|
 | 400 | Alguno de los niveles enviados no existe en el catalogo |
 | 401 | Token ausente o invalido |
-| 403 | Rol insuficiente (requiere `stable_admin` o `app_admin`) |
+| 403 | Rol insuficiente o caballo de otra hipica |
 | 404 | No existe un caballo con el ID indicado |
 | 422 | Formato del cuerpo invalido |
