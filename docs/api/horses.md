@@ -34,8 +34,7 @@ Crea un nuevo caballo. El `stable_id` se fuerza al de la cuadra del usuario aute
 {
   "name": "Tornado",
   "is_active": true,
-  "stable_id": 1,
-  "box": "A3"
+  "stable_id": 1
 }
 ```
 
@@ -44,7 +43,6 @@ Crea un nuevo caballo. El `stable_id` se fuerza al de la cuadra del usuario aute
 | name | string | Si | Nombre del caballo |
 | is_active | boolean | No (default: `true`) | Si el caballo esta disponible |
 | stable_id | integer | Si | ID de la hipica. Ignorado para `stable_admin` (se sobreescribe con el del token) |
-| box | string | No | Numero o codigo del box |
 
 **Response 201:**
 ```json
@@ -53,7 +51,8 @@ Crea un nuevo caballo. El `stable_id` se fuerza al de la cuadra del usuario aute
   "name": "Tornado",
   "is_active": true,
   "stable_id": 1,
-  "box": "A3",
+  "box_id": null,
+  "box_name": null,
   "levels": []
 }
 ```
@@ -82,7 +81,8 @@ Devuelve los caballos de la cuadra del usuario autenticado. `app_admin` recibe c
     "name": "Relampago",
     "is_active": true,
     "stable_id": 1,
-    "box": "B1",
+    "box_id": 3,
+    "box_name": "B1",
     "levels": ["principiante"]
   },
   {
@@ -90,7 +90,8 @@ Devuelve los caballos de la cuadra del usuario autenticado. `app_admin` recibe c
     "name": "Tornado",
     "is_active": false,
     "stable_id": 1,
-    "box": null,
+    "box_id": null,
+    "box_name": null,
     "levels": []
   }
 ]
@@ -124,7 +125,8 @@ Obtiene un caballo por su ID. Si el caballo no pertenece a la hipica del usuario
   "name": "Relampago",
   "is_active": true,
   "stable_id": 1,
-  "box": "B1",
+  "box_id": 3,
+  "box_name": "B1",
   "levels": ["principiante"]
 }
 ```
@@ -157,7 +159,7 @@ Actualiza los datos de un caballo existente. Si se incluye el campo `levels`, re
   "name": "Relampago II",
   "is_active": true,
   "stable_id": 2,
-  "box": "C4",
+  "box_id": 5,
   "levels": ["iniciado"]
 }
 ```
@@ -167,7 +169,7 @@ Actualiza los datos de un caballo existente. Si se incluye el campo `levels`, re
 | name | string | No | Nuevo nombre del caballo |
 | stable_id | integer | No | ID de la hipica |
 | is_active | boolean | No | Estado del caballo |
-| box | string | No | Box asignado |
+| box_id | integer | No | ID del box asignado (ver `/api/v1/boxes`) |
 | levels | array[string] | No | Lista de valores del enum `NivelEquitacion`. Si se incluye, reemplaza todos los niveles anteriores |
 
 **Response 200:**
@@ -177,7 +179,8 @@ Actualiza los datos de un caballo existente. Si se incluye el campo `levels`, re
   "name": "Relampago II",
   "is_active": true,
   "stable_id": 2,
-  "box": "C4",
+  "box_id": 5,
+  "box_name": "C4",
   "levels": ["iniciado"]
 }
 ```
@@ -258,7 +261,8 @@ Valores posibles del enum:
   "name": "Relampago",
   "is_active": true,
   "stable_id": 1,
-  "box": "B1",
+  "box_id": 3,
+  "box_name": "B1",
   "levels": ["principiante", "iniciado"]
 }
 ```
