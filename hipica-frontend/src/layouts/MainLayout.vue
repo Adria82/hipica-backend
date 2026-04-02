@@ -35,8 +35,13 @@
 
       <v-spacer />
 
-      <!-- aquí luego pondremos usuario/logout -->
       <language-selector />
+      <v-btn
+        icon="mdi-logout"
+        variant="text"
+        :title="t('layout.logout')"
+        @click="logout"
+      />
     </v-app-bar>
 
     <!-- Aquí irán vistas hijas -->
@@ -55,12 +60,19 @@ import LanguageSelector from "@/components/LanguageSelector.vue";
 import type { NavItem } from "@/types/features";
 
 import { onMounted } from "vue";
-import { getAccessToken } from "@/auth/tokens";
+import { useRouter } from "vue-router";
+import { getAccessToken, clearTokens } from "@/auth/tokens";
 import { features, fetchFeatures } from "@/features/features";
 import { filterNavigation } from "@/features/filter";
 
 const { t } = useI18n();
+const router = useRouter();
 const drawer = ref(true);
+
+function logout() {
+  clearTokens();
+  router.push({ name: "login" });
+}
 
 onMounted(async () => {
   // Si no hay token, no cargamos features (estás en login / público)

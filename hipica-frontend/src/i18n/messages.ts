@@ -19,10 +19,12 @@ const messages = {
     horses: {
       title: "Caballos",
       logout: "Salir",
-      reload: "Recargar",
+      reload: "Recargar tabla",
       loading: "Cargando...",
       empty: "No hay caballos.",
       error: "Error cargando caballos",
+      search: "Buscar por nombre o box...",
+      exportExcel: "Exportar a Excel",
       table: {
         id: "ID",
         name: "Nombre",
@@ -30,6 +32,9 @@ const messages = {
         active: "Activo",
         stable: "Hípica",
       },
+    },
+    layout: {
+      logout: "Cerrar sesión",
     },
     menu: {
       horses: "Caballos"
@@ -55,10 +60,12 @@ const messages = {
     horses: {
       title: "Cavalls",
       logout: "Sortir",
-      reload: "Recarregar",
+      reload: "Recarregar taula",
       loading: "Carregant...",
       empty: "No hi ha cavalls.",
       error: "Error carregant cavalls",
+      search: "Cerca per nom o box...",
+      exportExcel: "Exportar a Excel",
       table: {
         id: "ID",
         name: "Nom",
@@ -66,6 +73,9 @@ const messages = {
         active: "Actiu",
         stable: "Hípica",
       },
+    },
+    layout: {
+      logout: "Tancar sessió",
     },
     menu: {
       horses: "Cavalls"
@@ -91,10 +101,12 @@ const messages = {
     horses: {
       title: "Horses",
       logout: "Log out",
-      reload: "Reload",
+      reload: "Reload table",
       loading: "Loading...",
       empty: "No horses found.",
       error: "Error loading horses",
+      search: "Search by name or box...",
+      exportExcel: "Export to Excel",
       table: {
         id: "ID",
         name: "Name",
@@ -102,6 +114,9 @@ const messages = {
         active: "Active",
         stable: "Stable",
       },
+    },
+    layout: {
+      logout: "Log out",
     },
     menu: {
       horses: "Horses"

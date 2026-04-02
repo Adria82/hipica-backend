@@ -1,17 +1,26 @@
 <template>
-  <div style="max-width: 900px; margin: 40px auto; font-family: system-ui;">
-    <div style="display:flex; justify-content: space-between; align-items:center;">
-      <h2>{{ t("horses.title") }}</h2>
-      <button @click="logout" style="padding: 8px 10px;">{{ t("horses.logout") }}</button>
-    </div>
+  <v-container>
+    <h2 class="text-h5 mb-4">{{ t("horses.title") }}</h2>
 
-    <button @click="load" :disabled="loading" style="padding: 10px; margin: 10px 0;">
-      {{ loading ? t("horses.loading") : t("horses.reload") }}
-    </button>
+    <v-alert v-if="error" type="error" class="mb-4" closable @click:close="error = ''">
+      {{ error }}
+    </v-alert>
 
-    <p v-if="error" style="color:#b00020;">{{ error }}</p>
+    <!-- Buscador -->
+    <v-text-field
+      v-model="search"
+      :placeholder="t('horses.search')"
+      prepend-inner-icon="mdi-magnify"
+      variant="outlined"
+      density="compact"
+      clearable
+      @click:clear="search = ''"
+      hide-details
+      class="mb-4"
+    />
 
-    <table v-if="horses.length" border="1" cellpadding="8" cellspacing="0" style="width:100%;">
+    <!-- Tabla -->
+    <v-table v-if="filteredHorses.length || loading" hover>
       <thead>
         <tr>
           <th>{{ t("horses.table.id") }}</th>
@@ -22,34 +31,73 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="h in horses" :key="h.id">
+        <tr v-if="loading">
+          <td colspan="5" class="text-center py-6">
+            <v-progress-circular indeterminate color="primary" size="28" />
+          </td>
+        </tr>
+        <tr v-else v-for="h in filteredHorses" :key="h.id">
           <td>{{ h.id }}</td>
           <td>{{ h.name }}</td>
           <td>{{ h.box ?? "-" }}</td>
-          <td>{{ h.is_active }}</td>
+          <td>
+            <v-icon :color="h.is_active ? 'success' : 'error'" size="20">
+              {{ h.is_active ? "mdi-check-circle" : "mdi-close-circle" }}
+            </v-icon>
+          </td>
           <td>{{ h.stable_id }}</td>
         </tr>
       </tbody>
-    </table>
+    </v-table>
 
-    <p v-else-if="!loading">{{ t("horses.empty") }}</p>
-  </div>
+    <v-alert v-else-if="!loading" type="warning" variant="tonal" class="mt-4">
+      {{ t("horses.empty") }}
+    </v-alert>
+
+    <!-- Acciones bajo la tabla -->
+    <div class="d-flex justify-end ga-2 mt-4">
+      <v-btn
+        icon="mdi-file-excel"
+        color="success"
+        variant="tonal"
+        :disabled="!filteredHorses.length"
+        :title="t('horses.exportExcel')"
+        @click="exportToExcel"
+      />
+      <v-btn
+        icon="mdi-refresh"
+        color="primary"
+        variant="tonal"
+        :loading="loading"
+        :title="t('horses.reload')"
+        @click="load"
+      />
+    </div>
+  </v-container>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { onMounted, ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
+import * as XLSX from "xlsx";
 import { http } from "../api/http";
-import { clearTokens } from "../auth/tokens";
 import type { Horse } from "../types/api";
-import LanguageSelector from "../components/LanguageSelector.vue";
 
-const router = useRouter();
 const { t } = useI18n();
 const horses = ref<Horse[]>([]);
 const loading = ref(false);
 const error = ref("");
+const search = ref("");
+
+const filteredHorses = computed(() => {
+  const q = (search.value ?? "").trim().toLowerCase();
+  if (!q) return horses.value;
+  return horses.value.filter(
+    (h) =>
+      h.name.toLowerCase().includes(q) ||
+      (h.box ?? "").toString().toLowerCase().includes(q)
+  );
+});
 
 async function load() {
   loading.value = true;
@@ -64,9 +112,18 @@ async function load() {
   }
 }
 
-function logout() {
-  clearTokens();
-  router.push({ name: "login" });
+function exportToExcel() {
+  const rows = filteredHorses.value.map((h) => ({
+    [t("horses.table.id")]: h.id,
+    [t("horses.table.name")]: h.name,
+    [t("horses.table.box")]: h.box ?? "-",
+    [t("horses.table.active")]: h.is_active ? "✓" : "✗",
+    [t("horses.table.stable")]: h.stable_id,
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, t("horses.title"));
+  XLSX.writeFile(wb, `${t("horses.title").toLowerCase()}.xlsx`);
 }
 
 onMounted(load);
