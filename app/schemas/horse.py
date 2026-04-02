@@ -43,6 +43,7 @@ class HorseUpdate(SQLModel):
     """
     name: Optional[str] = None
     breed: Optional[str] = None
+    box: Optional[str] = None
     is_active: Optional[bool] = None
     stable_id: Optional[int] = None
     levels: Optional[List[NivelEquitacion]] = None

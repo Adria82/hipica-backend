@@ -42,6 +42,7 @@ export type Horse = {
   box?: string | null;
   is_active: boolean;
   stable_id: number;
+  levels: string[];
 };
 
 export type FeatureCode =
