@@ -6,73 +6,76 @@
       {{ error }}
     </v-alert>
 
-    <!-- Buscador -->
-    <v-text-field
-      v-model="search"
-      :placeholder="t('horses.search')"
-      prepend-inner-icon="mdi-magnify"
-      variant="outlined"
-      density="compact"
-      clearable
-      @click:clear="search = ''"
-      hide-details
-      class="mb-4"
-    />
+    <v-data-table
+      :headers="headers"
+      :items="horses"
+      :search="search"
+      :loading="loading"
+      hover
+    >
+      <!-- Buscador encima de la tabla -->
+      <template #top>
+        <v-text-field
+          v-model="search"
+          :placeholder="t('horses.search')"
+          prepend-inner-icon="mdi-magnify"
+          variant="outlined"
+          density="compact"
+          clearable
+          @click:clear="search = ''"
+          hide-details
+          class="ma-3"
+        />
+      </template>
 
-    <!-- Tabla -->
-    <v-table v-if="filteredHorses.length || loading" hover>
-      <thead>
-        <tr>
-          <th>{{ t("horses.table.id") }}</th>
-          <th>{{ t("horses.table.name") }}</th>
-          <th>{{ t("horses.table.box") }}</th>
-          <th>{{ t("horses.table.active") }}</th>
-          <th>{{ t("horses.table.stable") }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-if="loading">
-          <td colspan="5" class="text-center py-6">
-            <v-progress-circular indeterminate color="primary" size="28" />
-          </td>
-        </tr>
-        <tr v-else v-for="h in filteredHorses" :key="h.id">
-          <td>{{ h.id }}</td>
-          <td>{{ h.name }}</td>
-          <td>{{ h.box ?? "-" }}</td>
-          <td>
-            <v-icon :color="h.is_active ? 'success' : 'error'" size="20">
-              {{ h.is_active ? "mdi-check-circle" : "mdi-close-circle" }}
-            </v-icon>
-          </td>
-          <td>{{ h.stable_id }}</td>
-        </tr>
-      </tbody>
-    </v-table>
+      <!-- Columna box: null → "-" -->
+      <template #[`item.box`]="{ item }">
+        {{ item.box ?? "-" }}
+      </template>
 
-    <v-alert v-else-if="!loading" type="warning" variant="tonal" class="mt-4">
-      {{ t("horses.empty") }}
-    </v-alert>
+      <!-- Columna activo: icono coloreado -->
+      <template #[`item.is_active`]="{ item }">
+        <v-icon :color="item.is_active ? 'success' : 'error'" size="20">
+          {{ item.is_active ? "mdi-check-circle" : "mdi-close-circle" }}
+        </v-icon>
+      </template>
 
-    <!-- Acciones bajo la tabla -->
-    <div class="d-flex justify-end ga-2 mt-4">
-      <v-btn
-        icon="mdi-file-excel"
-        color="success"
-        variant="tonal"
-        :disabled="!filteredHorses.length"
-        :title="t('horses.exportExcel')"
-        @click="exportToExcel"
-      />
-      <v-btn
-        icon="mdi-refresh"
-        color="primary"
-        variant="tonal"
-        :loading="loading"
-        :title="t('horses.reload')"
-        @click="load"
-      />
-    </div>
+      <!-- Sin resultados (búsqueda sin coincidencias) -->
+      <template #no-results>
+        <v-alert type="warning" variant="tonal" class="ma-4">
+          {{ t("horses.empty") }}
+        </v-alert>
+      </template>
+
+      <!-- Sin datos (lista vacía) -->
+      <template #no-data>
+        <v-alert type="warning" variant="tonal" class="ma-4">
+          {{ t("horses.empty") }}
+        </v-alert>
+      </template>
+
+      <!-- Botones de acción en el footer, a la derecha -->
+      <template #bottom>
+        <div class="d-flex justify-end ga-2 pa-2">
+          <v-btn
+            icon="mdi-file-excel"
+            color="success"
+            variant="tonal"
+            :disabled="!horses.length"
+            :title="t('horses.exportExcel')"
+            @click="exportToExcel"
+          />
+          <v-btn
+            icon="mdi-refresh"
+            color="primary"
+            variant="tonal"
+            :loading="loading"
+            :title="t('horses.reload')"
+            @click="load"
+          />
+        </div>
+      </template>
+    </v-data-table>
   </v-container>
 </template>
 
@@ -89,6 +92,15 @@ const loading = ref(false);
 const error = ref("");
 const search = ref("");
 
+const headers = computed(() => [
+  { title: t("horses.table.id"),     key: "id",        sortable: true },
+  { title: t("horses.table.name"),   key: "name",      sortable: true },
+  { title: t("horses.table.box"),    key: "box",       sortable: true },
+  { title: t("horses.table.active"), key: "is_active", sortable: true },
+  { title: t("horses.table.stable"), key: "stable_id", sortable: true },
+]);
+
+// Usada solo para el export (respeta el filtro de búsqueda)
 const filteredHorses = computed(() => {
   const q = (search.value ?? "").trim().toLowerCase();
   if (!q) return horses.value;
@@ -114,9 +126,9 @@ async function load() {
 
 function exportToExcel() {
   const rows = filteredHorses.value.map((h) => ({
-    [t("horses.table.id")]: h.id,
-    [t("horses.table.name")]: h.name,
-    [t("horses.table.box")]: h.box ?? "-",
+    [t("horses.table.id")]:     h.id,
+    [t("horses.table.name")]:   h.name,
+    [t("horses.table.box")]:    h.box ?? "-",
     [t("horses.table.active")]: h.is_active ? "✓" : "✗",
     [t("horses.table.stable")]: h.stable_id,
   }));
