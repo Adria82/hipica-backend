@@ -116,7 +116,6 @@ def create_horse_entity(session, stable_id, name="Horse 1"):
     horse = Horse(
         name=name,
         stable_id=stable_id,
-        box="A1",
         is_active=True,
     )
     session.add(horse)

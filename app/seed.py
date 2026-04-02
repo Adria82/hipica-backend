@@ -29,6 +29,7 @@ from app.models.lesson import Lesson
 from app.models.links import HorseLevelLink, LessonHorseLink, LessonClientLink
 from app.models.stable_feature import StableFeature
 from app.models.feature import FeatureCode
+from app.models.box import Box
 
 
 def seed_db() -> None:
@@ -136,15 +137,30 @@ def seed_db() -> None:
         print(f"Niveles de equitación creados: {[l.name for l in levels]}")
         
         # -----------------------------------------------------------------
+        # 2.8 Crear boxes
+        # -----------------------------------------------------------------
+        box1 = Box(name="Box 1", capacity=1, stable_id=stable.id)
+        box2 = Box(name="Box 2", capacity=1, stable_id=stable.id)
+        box3 = Box(name="Box 3", capacity=2, stable_id=stable.id)
+
+        session.add_all([box1, box2, box3])
+        session.commit()
+        session.refresh(box1)
+        session.refresh(box2)
+        session.refresh(box3)
+        print(f"Boxes creados: {box1}, {box2}, {box3}")
+
+        # -----------------------------------------------------------------
         # 3. Crear caballos
         # -----------------------------------------------------------------
-        horse1 = Horse(name="Trueno", box="A1", stable_id=stable.id)
-        horse2 = Horse(name="Rayo", box="B2", stable_id=stable.id)
-        horse3 = Horse(name="Estrella", box="C3", stable_id=stable.id)
+        horse1 = Horse(name="Trueno", stable_id=stable.id, box_id=box1.id)
+        horse2 = Horse(name="Rayo", stable_id=stable.id, box_id=box2.id)
+        horse3 = Horse(name="Estrella", stable_id=stable.id, box_id=box3.id)
+        horse4 = Horse(name="Viento", stable_id=stable.id, box_id=box3.id)
 
-        session.add_all([horse1, horse2, horse3])
+        session.add_all([horse1, horse2, horse3, horse4])
         session.commit()
-        print(f"Caballos creados: {horse1}, {horse2}, {horse3}")
+        print(f"Caballos creados: {horse1}, {horse2}, {horse3}, {horse4}")
 
         # -----------------------------------------------------------------
         # 3.1 Asignar niveles a caballos
@@ -164,6 +180,11 @@ def seed_db() -> None:
         # Estrella: solo experto
         session.add(
             HorseLevelLink(horse_id=horse3.id, level_id=levels[2].id)
+        )
+
+        # Viento: principiante
+        session.add(
+            HorseLevelLink(horse_id=horse4.id, level_id=levels[0].id)
         )
 
         session.commit()

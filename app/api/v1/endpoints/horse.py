@@ -7,6 +7,7 @@ from sqlmodel import Session, select
 
 from app.db.session import get_session
 from app.models.horse import Horse
+from app.models.box import Box
 from app.dependencies import get_current_user, require_role
 from app.models import User
 from app.models.level import NivelEquitacion, Level
@@ -14,6 +15,17 @@ from app.schemas.horse import HorseCreate, HorseRead, HorseUpdate
 from app.core.i18n import t
 
 router = APIRouter(prefix="/horses", tags=["Horses"])
+
+
+def _check_box_capacity(session: Session, box_id: int, exclude_horse_id: int | None = None) -> Box:
+    """Verifica que el box existe y tiene capacidad disponible. Lanza ValueError si está lleno."""
+    box = session.get(Box, box_id)
+    if not box:
+        raise ValueError("box.not_found")
+    occupied = sum(1 for h in box.horses if h.id != exclude_horse_id)
+    if occupied >= box.capacity:
+        raise ValueError("box.full")
+    return box
 
 
 def _horse_to_read(horse: Horse) -> HorseRead:
@@ -45,6 +57,12 @@ def create_horse(
     """
     if current_user.role != "app_admin":
         horse_in.stable_id = current_user.stable_id
+
+    if horse_in.box_id is not None:
+        try:
+            _check_box_capacity(session, horse_in.box_id)
+        except ValueError as e:
+            raise HTTPException(status_code=409, detail=t(request, str(e)))
 
     horse = Horse(**horse_in.model_dump())
     session.add(horse)
@@ -110,6 +128,13 @@ def update_horse(
         raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
 
     update_data = horse_data.model_dump(exclude_unset=True, exclude={"levels"})
+
+    if "box_id" in update_data and update_data["box_id"] is not None:
+        try:
+            _check_box_capacity(session, update_data["box_id"], exclude_horse_id=horse.id)
+        except ValueError as e:
+            raise HTTPException(status_code=409, detail=t(request, str(e)))
+
     for field, value in update_data.items():
         setattr(horse, field, value)
 

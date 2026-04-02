@@ -35,6 +35,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "lesson.not_found": "Lección no encontrada",
         "box.not_found": "Box no encontrado",
         "box.has_horses": "No se puede eliminar un box que tiene caballos asignados",
+        "box.full": "El box no tiene capacidad disponible",
     },
     "ca": {
         "api.running": "API Hípica en marxa",
@@ -56,6 +57,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "lesson.not_found": "Lliçó no trobada",
         "box.not_found": "Box no trobat",
         "box.has_horses": "No es pot eliminar un box que té cavalls assignats",
+        "box.full": "El box no té capacitat disponible",
     },
     "en": {
         "api.running": "Hipica API is running",
@@ -77,6 +79,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "lesson.not_found": "Lesson not found",
         "box.not_found": "Box not found",
         "box.has_horses": "Cannot delete a box that has horses assigned",
+        "box.full": "The box has no available capacity",
     },
 }
 

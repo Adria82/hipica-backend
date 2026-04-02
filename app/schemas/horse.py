@@ -31,7 +31,7 @@ class HorseCreate(HorseBase):
     """
     Esquema para crear un nuevo caballo.
     """
-    pass
+    box_id: Optional[int] = None
 
 
 class HorseUpdate(SQLModel):
