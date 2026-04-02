@@ -76,6 +76,7 @@ import { getAppLocale } from "@/i18n";
 import type { TokenResponse } from "@/types/api";
 import LanguageSelector from "@/components/LanguageSelector.vue";
 import { fetchFeatures } from "@/features/features";
+import { fetchProfile } from "@/auth/profile";
 
 const branding = (window as any).__APP_BRANDING__ ?? {};
 
@@ -140,8 +141,8 @@ async function onSubmit() {
     // Guardar tokens en localStorage
     setTokens(res.data);
 
-    // cargar licencias antes de entrar
-    await fetchFeatures();
+    // cargar licencias y perfil antes de entrar
+    await Promise.all([fetchFeatures(), fetchProfile()]);
 
     // Redirigir a la app
     router.push({ name: "horses" });

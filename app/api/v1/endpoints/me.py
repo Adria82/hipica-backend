@@ -20,6 +20,24 @@ from app.models.feature import FeatureCode
 router = APIRouter(prefix="/me", tags=["Me"])
 
 
+@router.get("/profile")
+def get_my_profile(
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Devuelve el perfil básico del usuario autenticado.
+
+    Returns:
+        dict: { "id", "email", "role", "stable_id" }
+    """
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "role": current_user.role,
+        "stable_id": current_user.stable_id,
+    }
+
+
 @router.get("/features")
 def get_my_features(
     current_user: User = Depends(get_current_user),

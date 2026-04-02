@@ -28,9 +28,12 @@ class BoxBase(SQLModel):
 class BoxCreate(BoxBase):
     """
     Esquema para crear un nuevo box.
+
+    stable_id es opcional aquí porque el endpoint lo fuerza
+    al stable_id del usuario autenticado (salvo app_admin).
     """
 
-    pass
+    stable_id: Optional[int] = None
 
 
 class BoxUpdate(SQLModel):

@@ -45,38 +45,64 @@
 
       <!-- Botones de acción en el footer -->
       <template #bottom>
-        <div class="d-flex justify-end ga-2 pa-2">
+        <div class="d-flex justify-space-between align-center ga-2 pa-2">
+          <!-- Botón añadir (solo admin) -->
           <v-btn
-            icon="mdi-file-excel"
-            color="success"
-            variant="tonal"
-            :disabled="!boxes.length"
-            :title="t('boxes.exportExcel')"
-            @click="exportToExcel"
-          />
-          <v-btn
-            icon="mdi-refresh"
+            v-if="canManage"
             color="primary"
             variant="tonal"
-            :loading="loading"
-            :title="t('boxes.reload')"
-            @click="load"
-          />
+            prepend-icon="mdi-plus"
+            @click="openCreateDialog"
+          >
+            {{ t("boxes.addButton") }}
+          </v-btn>
+          <div v-else />
+
+          <div class="d-flex ga-2">
+            <v-btn
+              icon="mdi-file-excel"
+              color="success"
+              variant="tonal"
+              :disabled="!boxes.length"
+              :title="t('boxes.exportExcel')"
+              @click="exportToExcel"
+            />
+            <v-btn
+              icon="mdi-refresh"
+              color="primary"
+              variant="tonal"
+              :loading="loading"
+              :title="t('boxes.reload')"
+              @click="load"
+            />
+          </div>
         </div>
       </template>
     </v-data-table>
 
-    <!-- Diálogo de edición -->
+    <!-- Diálogo de edición / creación -->
     <v-dialog v-model="dialog" max-width="480" persistent>
       <v-card>
         <v-card-title class="text-h6 pa-4">
-          {{ t("boxes.dialog.title") }}
+          {{ editingId ? t("boxes.dialog.titleEdit") : t("boxes.dialog.titleCreate") }}
         </v-card-title>
 
         <v-divider />
 
         <v-card-text class="pa-4">
           <v-row dense>
+            <v-col v-if="isAppAdmin" cols="12">
+              <v-select
+                v-model="form.stable_id"
+                :label="t('boxes.dialog.stable')"
+                :items="stables"
+                item-title="name"
+                item-value="id"
+                variant="outlined"
+                density="compact"
+                required
+              />
+            </v-col>
             <v-col cols="12">
               <v-text-field
                 v-model="form.name"
@@ -110,10 +136,21 @@
         <v-divider />
 
         <v-card-actions class="pa-4">
+          <!-- Botón eliminar (solo al editar, solo admin) -->
+          <v-btn
+            v-if="editingId && canManage"
+            color="error"
+            variant="text"
+            :disabled="saving || deleting"
+            @click="confirmDeleteDialog = true"
+          >
+            {{ t("boxes.dialog.delete") }}
+          </v-btn>
+
           <v-spacer />
           <v-btn
             variant="text"
-            :disabled="saving"
+            :disabled="saving || deleting"
             @click="dialog = false"
           >
             {{ t("boxes.dialog.cancel") }}
@@ -122,9 +159,27 @@
             color="primary"
             variant="flat"
             :loading="saving"
+            :disabled="deleting"
             @click="save"
           >
             {{ t("boxes.dialog.save") }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Diálogo de confirmación de eliminación -->
+    <v-dialog v-model="confirmDeleteDialog" max-width="400" persistent>
+      <v-card>
+        <v-card-title class="text-h6 pa-4">{{ t("boxes.dialog.delete") }}</v-card-title>
+        <v-card-text class="pa-4">{{ t("boxes.dialog.confirmDelete") }}</v-card-text>
+        <v-card-actions class="pa-4">
+          <v-spacer />
+          <v-btn variant="text" :disabled="deleting" @click="confirmDeleteDialog = false">
+            {{ t("boxes.dialog.cancel") }}
+          </v-btn>
+          <v-btn color="error" variant="flat" :loading="deleting" @click="deleteBox">
+            {{ t("boxes.dialog.delete") }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -142,10 +197,12 @@ import { onMounted, ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import * as XLSX from "xlsx";
 import { http } from "../api/http";
-import type { Box } from "../types/api";
+import type { Box, Stable } from "../types/api";
+import { canManage, isAppAdmin } from "../auth/profile";
 
 const { t } = useI18n();
 const boxes = ref<Box[]>([]);
+const stables = ref<Stable[]>([]);
 const loading = ref(false);
 const error = ref("");
 const search = ref("");
@@ -153,8 +210,12 @@ const search = ref("");
 // Diálogo
 const dialog = ref(false);
 const saving = ref(false);
+const deleting = ref(false);
 const editingId = ref<number | null>(null);
-const form = ref({ name: "", capacity: 1, is_active: true });
+const form = ref({ name: "", capacity: 1, is_active: true, stable_id: null as number | null });
+
+// Confirmación de eliminación
+const confirmDeleteDialog = ref(false);
 
 // Snackbar
 const snackbar = ref(false);
@@ -181,8 +242,11 @@ async function load() {
   loading.value = true;
   error.value = "";
   try {
-    const res = await http.get<Box[]>("/api/v1/boxes");
-    boxes.value = res.data;
+    const requests: Promise<any>[] = [http.get<Box[]>("/api/v1/boxes")];
+    if (isAppAdmin.value) requests.push(http.get<Stable[]>("/api/v1/stables"));
+    const [boxesRes, stablesRes] = await Promise.all(requests);
+    boxes.value = boxesRes.data;
+    if (stablesRes) stables.value = stablesRes.data;
   } catch (e: any) {
     error.value = e?.response?.data?.detail || t("boxes.error");
   } finally {
@@ -191,36 +255,71 @@ async function load() {
 }
 
 function onRowClick(_event: Event, row: { item: Box }) {
-  openDialog(row.item);
+  openEditDialog(row.item);
 }
 
-function openDialog(box: Box) {
+function openCreateDialog() {
+  editingId.value = null;
+  form.value = { name: "", capacity: 1, is_active: true, stable_id: null };
+  dialog.value = true;
+}
+
+function openEditDialog(box: Box) {
   editingId.value = box.id;
   form.value = {
     name:      box.name,
     capacity:  box.capacity,
     is_active: box.is_active,
+    stable_id: box.stable_id,
   };
   dialog.value = true;
 }
 
 async function save() {
-  if (!editingId.value) return;
   saving.value = true;
   try {
-    const res = await http.put<Box>(`/api/v1/boxes/${editingId.value}`, {
+    const payload: Record<string, any> = {
       name:      form.value.name,
       capacity:  form.value.capacity,
       is_active: form.value.is_active,
-    });
-    const idx = boxes.value.findIndex((b) => b.id === editingId.value);
-    if (idx !== -1) boxes.value[idx] = res.data;
+    };
+    if (isAppAdmin.value && form.value.stable_id) {
+      payload.stable_id = form.value.stable_id;
+    }
+
+    if (editingId.value) {
+      const res = await http.put<Box>(`/api/v1/boxes/${editingId.value}`, payload);
+      const idx = boxes.value.findIndex((b) => b.id === editingId.value);
+      if (idx !== -1) boxes.value[idx] = res.data;
+    } else {
+      const res = await http.post<Box>("/api/v1/boxes/", payload);
+      boxes.value.push(res.data);
+    }
+
     dialog.value = false;
     showSnackbar(t("boxes.saveSuccess"), "success");
   } catch (e: any) {
     showSnackbar(e?.response?.data?.detail || t("boxes.saveError"), "error");
   } finally {
     saving.value = false;
+  }
+}
+
+async function deleteBox() {
+  if (!editingId.value) return;
+  deleting.value = true;
+  try {
+    await http.delete(`/api/v1/boxes/${editingId.value}`);
+    boxes.value = boxes.value.filter((b) => b.id !== editingId.value);
+    confirmDeleteDialog.value = false;
+    dialog.value = false;
+    showSnackbar(t("boxes.dialog.deleteSuccess"), "success");
+  } catch (e: any) {
+    confirmDeleteDialog.value = false;
+    // El backend devuelve el mensaje con los nombres de caballos, lo mostramos directamente
+    showSnackbar(e?.response?.data?.detail || t("boxes.dialog.deleteError"), "error");
+  } finally {
+    deleting.value = false;
   }
 }
 

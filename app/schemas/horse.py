@@ -30,7 +30,11 @@ class HorseBase(SQLModel):
 class HorseCreate(HorseBase):
     """
     Esquema para crear un nuevo caballo.
+
+    stable_id es opcional aquí porque el endpoint lo fuerza
+    al stable_id del usuario autenticado (salvo app_admin).
     """
+    stable_id: Optional[int] = None
     box_id: Optional[int] = None
 
 

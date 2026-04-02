@@ -61,6 +61,28 @@ export type Horse = {
   levels: string[];
 };
 
+/**
+ * Entidad Stable (hípica).
+ */
+export type Stable = {
+  id: number;
+  name: string;
+  location: string;
+  is_active: boolean;
+};
+
+/**
+ * Perfil del usuario autenticado.
+ *
+ * Devuelto por GET /api/v1/me/profile.
+ */
+export type UserProfile = {
+  id: number;
+  email: string;
+  role: string;
+  stable_id: number | null;
+};
+
 export type FeatureCode =
   | "HORSES"
   | "CLIENTS"

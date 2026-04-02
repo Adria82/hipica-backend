@@ -27,6 +27,7 @@ const messages = {
       exportExcel: "Exportar a Excel",
       saveSuccess: "Caballo guardado correctamente",
       saveError: "Error al guardar el caballo",
+      addButton: "Añadir caballo",
       table: {
         id: "ID",
         name: "Nombre",
@@ -36,10 +37,15 @@ const messages = {
         levels: "Niveles",
       },
       dialog: {
-        title: "Editar caballo",
+        titleEdit: "Editar caballo",
+        titleCreate: "Añadir caballo",
         save: "Guardar",
         cancel: "Cancelar",
         saving: "Guardando...",
+        delete: "Eliminar",
+        confirmDelete: "¿Seguro que quieres eliminar este caballo? Esta acción no se puede deshacer.",
+        deleteSuccess: "Caballo eliminado correctamente",
+        deleteError: "Error al eliminar el caballo",
       },
       levels: {
         principiante: "Principiante",
@@ -54,6 +60,7 @@ const messages = {
       error: "Error cargando boxes",
       saveSuccess: "Box guardado correctamente",
       saveError: "Error al guardar el box",
+      addButton: "Añadir box",
       exportExcel: "Exportar a Excel",
       reload: "Recargar tabla",
       table: {
@@ -65,9 +72,15 @@ const messages = {
         horsesCount: "Caballos asignados",
       },
       dialog: {
-        title: "Editar box",
+        titleEdit: "Editar box",
+        titleCreate: "Añadir box",
         save: "Guardar",
         cancel: "Cancelar",
+        delete: "Eliminar",
+        confirmDelete: "¿Seguro que quieres eliminar este box? Esta acción no se puede deshacer.",
+        deleteSuccess: "Box eliminado correctamente",
+        deleteError: "Error al eliminar el box",
+        stable: "Hípica",
       },
       errors: {
         hasHorses: "No se puede eliminar un box que tiene caballos asignados",
@@ -109,6 +122,7 @@ const messages = {
       exportExcel: "Exportar a Excel",
       saveSuccess: "Cavall desat correctament",
       saveError: "Error en desar el cavall",
+      addButton: "Afegir cavall",
       table: {
         id: "ID",
         name: "Nom",
@@ -118,10 +132,16 @@ const messages = {
         levels: "Nivells",
       },
       dialog: {
-        title: "Editar cavall",
+        titleEdit: "Editar cavall",
+        titleCreate: "Afegir cavall",
         save: "Desar",
         cancel: "Cancel·lar",
         saving: "Desant...",
+        delete: "Eliminar",
+        confirmDelete: "Segur que vols eliminar aquest cavall? Aquesta acció no es pot desfer.",
+        deleteSuccess: "Cavall eliminat correctament",
+        deleteError: "Error en eliminar el cavall",
+        stable: "Hípica",
       },
       levels: {
         principiante: "Principiant",
@@ -136,6 +156,7 @@ const messages = {
       error: "Error carregant boxes",
       saveSuccess: "Box desat correctament",
       saveError: "Error en desar el box",
+      addButton: "Afegir box",
       exportExcel: "Exportar a Excel",
       reload: "Recarregar taula",
       table: {
@@ -147,9 +168,15 @@ const messages = {
         horsesCount: "Cavalls assignats",
       },
       dialog: {
-        title: "Editar box",
+        titleEdit: "Editar box",
+        titleCreate: "Afegir box",
         save: "Desar",
         cancel: "Cancel·lar",
+        delete: "Eliminar",
+        confirmDelete: "Segur que vols eliminar aquest box? Aquesta acció no es pot desfer.",
+        deleteSuccess: "Box eliminat correctament",
+        deleteError: "Error en eliminar el box",
+        stable: "Hípica",
       },
       errors: {
         hasHorses: "No es pot eliminar un box que té cavalls assignats",
@@ -191,6 +218,7 @@ const messages = {
       exportExcel: "Export to Excel",
       saveSuccess: "Horse saved successfully",
       saveError: "Error saving horse",
+      addButton: "Add horse",
       table: {
         id: "ID",
         name: "Name",
@@ -200,10 +228,16 @@ const messages = {
         levels: "Levels",
       },
       dialog: {
-        title: "Edit horse",
+        titleEdit: "Edit horse",
+        titleCreate: "Add horse",
         save: "Save",
         cancel: "Cancel",
         saving: "Saving...",
+        delete: "Delete",
+        confirmDelete: "Are you sure you want to delete this horse? This action cannot be undone.",
+        deleteSuccess: "Horse deleted successfully",
+        deleteError: "Error deleting horse",
+        stable: "Stable",
       },
       levels: {
         principiante: "Beginner",
@@ -218,6 +252,7 @@ const messages = {
       error: "Error loading boxes",
       saveSuccess: "Box saved successfully",
       saveError: "Error saving box",
+      addButton: "Add box",
       exportExcel: "Export to Excel",
       reload: "Reload table",
       table: {
@@ -229,9 +264,15 @@ const messages = {
         horsesCount: "Assigned horses",
       },
       dialog: {
-        title: "Edit box",
+        titleEdit: "Edit box",
+        titleCreate: "Add box",
         save: "Save",
         cancel: "Cancel",
+        delete: "Delete",
+        confirmDelete: "Are you sure you want to delete this box? This action cannot be undone.",
+        deleteSuccess: "Box deleted successfully",
+        deleteError: "Error deleting box",
+        stable: "Stable",
       },
       errors: {
         hasHorses: "Cannot delete a box that has horses assigned",

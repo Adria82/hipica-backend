@@ -63,6 +63,7 @@ import { onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { getAccessToken, clearTokens } from "@/auth/tokens";
 import { features, fetchFeatures } from "@/features/features";
+import { fetchProfile, clearProfile } from "@/auth/profile";
 import { filterNavigation } from "@/features/filter";
 
 const { t } = useI18n();
@@ -71,6 +72,7 @@ const drawer = ref(true);
 
 function logout() {
   clearTokens();
+  clearProfile();
   router.push({ name: "login" });
 }
 
@@ -79,10 +81,10 @@ onMounted(async () => {
   if (!getAccessToken()) return;
 
   try {
-    await fetchFeatures();
+    await Promise.all([fetchFeatures(), fetchProfile()]);
   } catch (e) {
     // Si falla, seguimos con lo cacheado (si hubiese), sin romper UI
-    console.warn("No se pudieron cargar features:", e);
+    console.warn("No se pudieron cargar features/profile:", e);
   }
 });
 

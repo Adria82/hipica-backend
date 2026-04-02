@@ -17,14 +17,24 @@ from app.core.i18n import t
 router = APIRouter(prefix="/horses", tags=["Horses"])
 
 
+class BoxFullError(Exception):
+    """Se lanza cuando un box no tiene capacidad disponible."""
+    def __init__(self, box: Box, exclude_horse_id: int | None = None):
+        self.box_name = box.name
+        self.capacity = box.capacity
+        self.horse_names = ", ".join(
+            h.name for h in box.horses if h.id != exclude_horse_id
+        )
+
+
 def _check_box_capacity(session: Session, box_id: int, exclude_horse_id: int | None = None) -> Box:
-    """Verifica que el box existe y tiene capacidad disponible. Lanza ValueError si está lleno."""
+    """Verifica que el box existe y tiene capacidad disponible. Lanza excepciones si no."""
     box = session.get(Box, box_id)
     if not box:
         raise ValueError("box.not_found")
     occupied = sum(1 for h in box.horses if h.id != exclude_horse_id)
     if occupied >= box.capacity:
-        raise ValueError("box.full")
+        raise BoxFullError(box, exclude_horse_id)
     return box
 
 
@@ -61,6 +71,11 @@ def create_horse(
     if horse_in.box_id is not None:
         try:
             _check_box_capacity(session, horse_in.box_id)
+        except BoxFullError as e:
+            raise HTTPException(status_code=409, detail=t(
+                request, "box.full",
+                box_name=e.box_name, capacity=e.capacity, horse_names=e.horse_names,
+            ))
         except ValueError as e:
             raise HTTPException(status_code=409, detail=t(request, str(e)))
 
@@ -132,6 +147,11 @@ def update_horse(
     if "box_id" in update_data and update_data["box_id"] is not None:
         try:
             _check_box_capacity(session, update_data["box_id"], exclude_horse_id=horse.id)
+        except BoxFullError as e:
+            raise HTTPException(status_code=409, detail=t(
+                request, "box.full",
+                box_name=e.box_name, capacity=e.capacity, horse_names=e.horse_names,
+            ))
         except ValueError as e:
             raise HTTPException(status_code=409, detail=t(request, str(e)))
 

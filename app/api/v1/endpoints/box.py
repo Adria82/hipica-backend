@@ -147,7 +147,8 @@ def delete_box(
         raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
 
     if box.horses:
-        raise HTTPException(status_code=409, detail=t(request, "box.has_horses"))
+        horse_names = ", ".join(h.name for h in box.horses)
+        raise HTTPException(status_code=409, detail=t(request, "box.has_horses", horse_names=horse_names))
 
     session.delete(box)
     session.commit()

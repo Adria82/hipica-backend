@@ -26,6 +26,7 @@ os.environ["DATABASE_URL"] = "sqlite://"
 
 from app.main import app
 from app.db.session import get_session
+from app.models.box import Box
 from app.models.client import Client
 from app.models.horse import Horse
 from app.models.stable import Stable
@@ -521,3 +522,307 @@ def test_unauthenticated_returns_401(client):
 
     response = test_client.get("/api/v1/horses/")
     assert response.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Helpers adicionales
+# ---------------------------------------------------------------------------
+
+def create_box_entity(session, stable_id, name="Box 1", capacity=2):
+    """Crea un box de prueba y lo asocia a una hípica."""
+    box = Box(name=name, capacity=capacity, stable_id=stable_id, is_active=True)
+    session.add(box)
+    session.commit()
+    session.refresh(box)
+    return box
+
+
+# ---------------------------------------------------------------------------
+# Tests de Box
+# ---------------------------------------------------------------------------
+
+def test_box_crud(client):
+    """Valida el CRUD completo de boxes (stable_admin)."""
+    test_client, engine = client
+
+    with Session(engine) as session:
+        stable = create_stable(session)
+        admin = create_user(
+            session,
+            stable.id,
+            email="admin_box@example.com",
+            password="secret",
+            role="stable_admin",
+        )
+        stable_id = stable.id
+        admin_email = admin.email
+
+    token = login(test_client, admin_email)
+    hdrs = auth_headers(token)
+
+    # Crear sin stable_id (el endpoint lo inyecta del usuario)
+    response = test_client.post(
+        "/api/v1/boxes/",
+        json={"name": "Box 1", "capacity": 3, "is_active": True},
+        headers=hdrs,
+    )
+    assert response.status_code == 201
+    box_data = response.json()
+    assert box_data["name"] == "Box 1"
+    assert box_data["capacity"] == 3
+    assert box_data["stable_id"] == stable_id
+    assert box_data["horses_count"] == 0
+
+    # Listar
+    response = test_client.get("/api/v1/boxes/", headers=hdrs)
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+
+    # Obtener por id
+    response = test_client.get(f"/api/v1/boxes/{box_data['id']}", headers=hdrs)
+    assert response.status_code == 200
+
+    # Actualizar
+    response = test_client.put(
+        f"/api/v1/boxes/{box_data['id']}",
+        json={"name": "Box Actualizado", "capacity": 5, "is_active": True},
+        headers=hdrs,
+    )
+    assert response.status_code == 200
+    assert response.json()["name"] == "Box Actualizado"
+    assert response.json()["capacity"] == 5
+
+    # Eliminar (sin caballos → debe funcionar)
+    response = test_client.delete(f"/api/v1/boxes/{box_data['id']}", headers=hdrs)
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+
+
+def test_box_delete_with_horses_returns_409(client):
+    """Verifica que eliminar un box con caballos asignados devuelve 409 con los nombres."""
+    test_client, engine = client
+
+    with Session(engine) as session:
+        stable = create_stable(session)
+        admin = create_user(
+            session,
+            stable.id,
+            email="admin_box_del@example.com",
+            password="secret",
+            role="stable_admin",
+        )
+        box = create_box_entity(session, stable.id, name="Box Ocupado", capacity=3)
+        horse_a = Horse(name="Trueno", stable_id=stable.id, box_id=box.id, is_active=True)
+        horse_b = Horse(name="Ventisca", stable_id=stable.id, box_id=box.id, is_active=True)
+        session.add_all([horse_a, horse_b])
+        session.commit()
+        box_id = box.id
+        admin_email = admin.email
+
+    token = login(test_client, admin_email)
+    hdrs = auth_headers(token)
+
+    response = test_client.delete(f"/api/v1/boxes/{box_id}", headers=hdrs)
+    assert response.status_code == 409
+    detail = response.json()["detail"]
+    assert "Trueno" in detail
+    assert "Ventisca" in detail
+
+
+def test_box_create_monitor_forbidden(client):
+    """Verifica que un monitor no puede crear boxes (403)."""
+    test_client, engine = client
+
+    with Session(engine) as session:
+        stable = create_stable(session)
+        monitor = create_user(
+            session,
+            stable.id,
+            email="monitor_box@example.com",
+            role="monitor",
+        )
+        monitor_email = monitor.email
+
+    token = login(test_client, monitor_email)
+    hdrs = auth_headers(token)
+
+    response = test_client.post(
+        "/api/v1/boxes/",
+        json={"name": "Box Prohibido", "capacity": 1, "is_active": True},
+        headers=hdrs,
+    )
+    assert response.status_code == 403
+
+
+def test_box_delete_not_found(client):
+    """Verifica que eliminar un box inexistente devuelve 404."""
+    test_client, engine = client
+
+    with Session(engine) as session:
+        stable = create_stable(session)
+        admin = create_user(
+            session,
+            stable.id,
+            email="admin_box_404@example.com",
+            role="stable_admin",
+        )
+        admin_email = admin.email
+
+    token = login(test_client, admin_email)
+    response = test_client.delete("/api/v1/boxes/9999", headers=auth_headers(token))
+    assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Tests de Horse — creación sin stable_id y eliminación
+# ---------------------------------------------------------------------------
+
+def test_horse_create_without_stable_id(client):
+    """Verifica que stable_admin puede crear un caballo sin enviar stable_id."""
+    test_client, engine = client
+
+    with Session(engine) as session:
+        stable = create_stable(session)
+        admin = create_user(
+            session,
+            stable.id,
+            email="admin_horse_create@example.com",
+            role="stable_admin",
+        )
+        stable_id = stable.id
+        admin_email = admin.email
+
+    token = login(test_client, admin_email)
+    hdrs = auth_headers(token)
+
+    response = test_client.post(
+        "/api/v1/horses/",
+        json={"name": "Relámpago", "is_active": True},
+        headers=hdrs,
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["name"] == "Relámpago"
+    assert data["stable_id"] == stable_id
+
+
+def test_horse_delete(client):
+    """Verifica que stable_admin puede eliminar un caballo."""
+    test_client, engine = client
+
+    with Session(engine) as session:
+        stable = create_stable(session)
+        admin = create_user(
+            session,
+            stable.id,
+            email="admin_horse_del@example.com",
+            role="stable_admin",
+        )
+        horse = create_horse_entity(session, stable.id, name="Borrable")
+        horse_id = horse.id
+        admin_email = admin.email
+
+    token = login(test_client, admin_email)
+    hdrs = auth_headers(token)
+
+    response = test_client.delete(f"/api/v1/horses/{horse_id}", headers=hdrs)
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+
+    response = test_client.get(f"/api/v1/horses/{horse_id}", headers=hdrs)
+    assert response.status_code == 404
+
+
+def test_horse_delete_not_found(client):
+    """Verifica que eliminar un caballo inexistente devuelve 404."""
+    test_client, engine = client
+
+    with Session(engine) as session:
+        stable = create_stable(session)
+        admin = create_user(
+            session,
+            stable.id,
+            email="admin_horse_404@example.com",
+            role="stable_admin",
+        )
+        admin_email = admin.email
+
+    token = login(test_client, admin_email)
+    response = test_client.delete("/api/v1/horses/9999", headers=auth_headers(token))
+    assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Tests de /me/profile
+# ---------------------------------------------------------------------------
+
+def test_me_profile(client):
+    """Verifica que /me/profile devuelve el perfil del usuario autenticado."""
+    test_client, engine = client
+
+    with Session(engine) as session:
+        stable = create_stable(session)
+        admin = create_user(
+            session,
+            stable.id,
+            email="admin_profile@example.com",
+            role="stable_admin",
+        )
+        stable_id = stable.id
+        admin_email = admin.email
+
+    token = login(test_client, admin_email)
+    response = test_client.get("/api/v1/me/profile", headers=auth_headers(token))
+    assert response.status_code == 200
+    data = response.json()
+    assert data["email"] == admin_email
+    assert data["role"] == "stable_admin"
+    assert data["stable_id"] == stable_id
+
+
+def test_me_profile_unauthenticated(client):
+    """Verifica que /me/profile sin token devuelve 401."""
+    test_client, _ = client
+
+    response = test_client.get("/api/v1/me/profile")
+    assert response.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Tests de capacidad de box
+# ---------------------------------------------------------------------------
+
+def test_box_capacity_exceeded(client):
+    """Verifica que asignar un caballo a un box lleno devuelve 409."""
+    test_client, engine = client
+
+    with Session(engine) as session:
+        stable = create_stable(session)
+        admin = create_user(
+            session,
+            stable.id,
+            email="admin_capacity@example.com",
+            role="stable_admin",
+        )
+        # Box con capacidad 1
+        box = create_box_entity(session, stable.id, name="Box Pequeño", capacity=1)
+        # Caballo que ya ocupa el box
+        occupant = Horse(name="Ocupante", stable_id=stable.id, box_id=box.id, is_active=True)
+        session.add(occupant)
+        session.commit()
+        box_id = box.id
+        admin_email = admin.email
+
+    token = login(test_client, admin_email)
+    hdrs = auth_headers(token)
+
+    response = test_client.post(
+        "/api/v1/horses/",
+        json={"name": "Intruso", "is_active": True, "box_id": box_id},
+        headers=hdrs,
+    )
+    assert response.status_code == 409
+    detail = response.json()["detail"]
+    assert "Box Pequeño" in detail
+    assert "1" in detail          # capacidad
+    assert "Ocupante" in detail   # caballo que ya está dentro
