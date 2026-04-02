@@ -33,6 +33,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "lesson.client_not_found": "Cliente {client_id} no encontrado",
         "lesson.horse_not_found": "Caballo {horse_id} no encontrado",
         "lesson.not_found": "Lección no encontrada",
+        "box.not_found": "Box no encontrado",
+        "box.has_horses": "No se puede eliminar un box que tiene caballos asignados",
     },
     "ca": {
         "api.running": "API Hípica en marxa",
@@ -52,6 +54,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "lesson.client_not_found": "Client {client_id} no trobat",
         "lesson.horse_not_found": "Cavall {horse_id} no trobat",
         "lesson.not_found": "Lliçó no trobada",
+        "box.not_found": "Box no trobat",
+        "box.has_horses": "No es pot eliminar un box que té cavalls assignats",
     },
     "en": {
         "api.running": "Hipica API is running",
@@ -71,6 +75,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "lesson.client_not_found": "Client {client_id} not found",
         "lesson.horse_not_found": "Horse {horse_id} not found",
         "lesson.not_found": "Lesson not found",
+        "box.not_found": "Box not found",
+        "box.has_horses": "Cannot delete a box that has horses assigned",
     },
 }
 

@@ -8,6 +8,9 @@ from .level import Level, NivelEquitacion
 from .links import LessonHorseLink
 from .links import HorseLevelLink
 
+# Box debe importarse antes que Horse (Horse tiene FK a Box)
+from .box import Box
+
 # Modelos que usan las relaciones
 from .horse import Horse
 

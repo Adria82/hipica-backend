@@ -7,11 +7,12 @@ Proyecto: Gestión de Hípica
 """
 
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, level, stable, horse, client, lesson, user, me
+from app.api.v1.endpoints import auth, level, stable, horse, client, lesson, user, me, box
 
 api_router = APIRouter()
 
 api_router.include_router(stable.router)
+api_router.include_router(box.router)
 api_router.include_router(horse.router)
 api_router.include_router(client.router)
 api_router.include_router(me.router)

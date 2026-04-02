@@ -39,11 +39,11 @@ class HorseUpdate(SQLModel):
     Esquema para actualizar parcialmente un caballo.
 
     Puede ser utilizado por administradores para modificar
-    los niveles de equitación asignados.
+    los niveles de equitación asignados o el box asignado.
     """
     name: Optional[str] = None
     breed: Optional[str] = None
-    box: Optional[str] = None
+    box_id: Optional[int] = None
     is_active: Optional[bool] = None
     stable_id: Optional[int] = None
     levels: Optional[List[NivelEquitacion]] = None
@@ -54,7 +54,8 @@ class HorseRead(SQLModel):
     """
     id: int
     name: str
-    box: Optional[str] = None
+    box_id: Optional[int] = None
+    box_name: Optional[str] = None
     is_active: bool
     stable_id: int
     levels: List[NivelEquitacion]

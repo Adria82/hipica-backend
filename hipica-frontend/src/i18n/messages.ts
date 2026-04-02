@@ -47,12 +47,39 @@ const messages = {
         experto: "Experto",
       },
     },
+    boxes: {
+      title: "Boxes",
+      search: "Buscar por nombre...",
+      empty: "No hay boxes.",
+      error: "Error cargando boxes",
+      saveSuccess: "Box guardado correctamente",
+      saveError: "Error al guardar el box",
+      exportExcel: "Exportar a Excel",
+      reload: "Recargar tabla",
+      table: {
+        id: "ID",
+        name: "Nombre",
+        capacity: "Capacidad",
+        active: "Activo",
+        stable: "Hípica",
+        horsesCount: "Caballos asignados",
+      },
+      dialog: {
+        title: "Editar box",
+        save: "Guardar",
+        cancel: "Cancelar",
+      },
+      errors: {
+        hasHorses: "No se puede eliminar un box que tiene caballos asignados",
+      },
+    },
     layout: {
       logout: "Cerrar sesión",
     },
     menu: {
-      horses: "Caballos"
-    }
+      horses: "Caballos",
+      boxes: "Boxes",
+    },
   },
   ca: {
     language: {
@@ -102,12 +129,39 @@ const messages = {
         experto: "Expert",
       },
     },
+    boxes: {
+      title: "Boxes",
+      search: "Cerca per nom...",
+      empty: "No hi ha boxes.",
+      error: "Error carregant boxes",
+      saveSuccess: "Box desat correctament",
+      saveError: "Error en desar el box",
+      exportExcel: "Exportar a Excel",
+      reload: "Recarregar taula",
+      table: {
+        id: "ID",
+        name: "Nom",
+        capacity: "Capacitat",
+        active: "Actiu",
+        stable: "Hípica",
+        horsesCount: "Cavalls assignats",
+      },
+      dialog: {
+        title: "Editar box",
+        save: "Desar",
+        cancel: "Cancel·lar",
+      },
+      errors: {
+        hasHorses: "No es pot eliminar un box que té cavalls assignats",
+      },
+    },
     layout: {
       logout: "Tancar sessió",
     },
     menu: {
-      horses: "Cavalls"
-    }
+      horses: "Cavalls",
+      boxes: "Boxes",
+    },
   },
   en: {
     language: {
@@ -157,12 +211,39 @@ const messages = {
         experto: "Expert",
       },
     },
+    boxes: {
+      title: "Boxes",
+      search: "Search by name...",
+      empty: "No boxes found.",
+      error: "Error loading boxes",
+      saveSuccess: "Box saved successfully",
+      saveError: "Error saving box",
+      exportExcel: "Export to Excel",
+      reload: "Reload table",
+      table: {
+        id: "ID",
+        name: "Name",
+        capacity: "Capacity",
+        active: "Active",
+        stable: "Stable",
+        horsesCount: "Assigned horses",
+      },
+      dialog: {
+        title: "Edit box",
+        save: "Save",
+        cancel: "Cancel",
+      },
+      errors: {
+        hasHorses: "Cannot delete a box that has horses assigned",
+      },
+    },
     layout: {
       logout: "Log out",
     },
     menu: {
-      horses: "Horses"
-    }
+      horses: "Horses",
+      boxes: "Boxes",
+    },
   },
 };
 

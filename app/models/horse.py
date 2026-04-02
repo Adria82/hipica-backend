@@ -22,13 +22,16 @@ class Horse(SQLModel, table=True):
         name (str): Nombre del caballo.
         is_active (bool): Si el caballo está disponible.
         stable_id (int): Id de la hípica a la que pertenece.
-        box (Optional[str]): Número de box/cuadra del caballo.
+        box_id (Optional[int]): Id del box asignado al caballo, si lo tiene.
     """
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(nullable=False)
     is_active: bool = Field(default=True)
     stable_id: int = Field(foreign_key="stable.id")
-    box: Optional[str]
+    box_id: Optional[int] = Field(default=None, foreign_key="box.id")
+
+    # Relación con Box
+    box: Optional["Box"] = Relationship(back_populates="horses")
 
     # Relación N:N con Lesson usando string -> evita circular import
     lessons: List["Lesson"] = Relationship(
@@ -38,5 +41,3 @@ class Horse(SQLModel, table=True):
     levels: List["Level"] = Relationship(
         back_populates="horses",
         link_model=HorseLevelLink)
-
-

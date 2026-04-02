@@ -31,6 +31,21 @@ export type RefreshRequest = {
 };
 
 /**
+ * Entidad Box.
+ *
+ * Representa un box físico de una hípica donde se alojan caballos.
+ * Se corresponde con el modelo Box del backend.
+ */
+export type Box = {
+  id: number;
+  name: string;
+  capacity: number;
+  stable_id: number;
+  is_active: boolean;
+  horses_count: number;
+};
+
+/**
  * Entidad Horse.
  *
  * Representa un caballo dentro de una hípica.
@@ -39,7 +54,8 @@ export type RefreshRequest = {
 export type Horse = {
   id: number;
   name: string;
-  box?: string | null;
+  box_id: number | null;
+  box_name: string | null;
   is_active: boolean;
   stable_id: number;
   levels: string[];

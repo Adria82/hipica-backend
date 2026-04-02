@@ -1,6 +1,6 @@
 <template>
   <v-container>
-    <h2 class="text-h5 mb-4">{{ t("horses.title") }}</h2>
+    <h2 class="text-h5 mb-4">{{ t("boxes.title") }}</h2>
 
     <v-alert v-if="error" type="error" class="mb-4" closable @click:close="error = ''">
       {{ error }}
@@ -8,7 +8,7 @@
 
     <v-data-table
       :headers="headers"
-      :items="horses"
+      :items="boxes"
       :search="search"
       :loading="loading"
       hover
@@ -18,7 +18,7 @@
       <template #top>
         <v-text-field
           v-model="search"
-          :placeholder="t('horses.search')"
+          :placeholder="t('boxes.search')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
           density="compact"
@@ -29,11 +29,6 @@
         />
       </template>
 
-      <!-- Columna box: muestra box_name o "-" -->
-      <template #[`item.box_name`]="{ item }">
-        {{ item.box_name ?? "-" }}
-      </template>
-
       <!-- Columna activo: icono coloreado -->
       <template #[`item.is_active`]="{ item }">
         <v-icon :color="item.is_active ? 'success' : 'error'" size="20">
@@ -41,22 +36,10 @@
         </v-icon>
       </template>
 
-      <!-- Columna niveles: chips -->
-      <template #[`item.levels`]="{ item }">
-        <v-chip
-          v-for="lvl in item.levels"
-          :key="lvl"
-          size="x-small"
-          class="mr-1"
-        >
-          {{ t(`horses.levels.${lvl}`) }}
-        </v-chip>
-      </template>
-
       <!-- Sin datos -->
       <template #no-data>
         <v-alert type="warning" variant="tonal" class="ma-4">
-          {{ t("horses.empty") }}
+          {{ t("boxes.empty") }}
         </v-alert>
       </template>
 
@@ -67,8 +50,8 @@
             icon="mdi-file-excel"
             color="success"
             variant="tonal"
-            :disabled="!horses.length"
-            :title="t('horses.exportExcel')"
+            :disabled="!boxes.length"
+            :title="t('boxes.exportExcel')"
             @click="exportToExcel"
           />
           <v-btn
@@ -76,7 +59,7 @@
             color="primary"
             variant="tonal"
             :loading="loading"
-            :title="t('horses.reload')"
+            :title="t('boxes.reload')"
             @click="load"
           />
         </div>
@@ -84,10 +67,10 @@
     </v-data-table>
 
     <!-- Diálogo de edición -->
-    <v-dialog v-model="dialog" max-width="520" persistent>
+    <v-dialog v-model="dialog" max-width="480" persistent>
       <v-card>
         <v-card-title class="text-h6 pa-4">
-          {{ t("horses.dialog.title") }}
+          {{ t("boxes.dialog.title") }}
         </v-card-title>
 
         <v-divider />
@@ -97,40 +80,26 @@
             <v-col cols="12">
               <v-text-field
                 v-model="form.name"
-                :label="t('horses.table.name')"
+                :label="t('boxes.table.name')"
                 variant="outlined"
                 density="compact"
                 required
               />
             </v-col>
             <v-col cols="12">
-              <v-select
-                v-model="form.box_id"
-                :label="t('horses.table.box')"
-                :items="boxOptions"
-                item-title="name"
-                item-value="id"
+              <v-text-field
+                v-model.number="form.capacity"
+                :label="t('boxes.table.capacity')"
                 variant="outlined"
                 density="compact"
-                clearable
-              />
-            </v-col>
-            <v-col cols="12">
-              <v-select
-                v-model="form.levels"
-                :label="t('horses.table.levels')"
-                :items="levelOptions"
-                variant="outlined"
-                density="compact"
-                multiple
-                chips
-                closable-chips
+                type="number"
+                :min="1"
               />
             </v-col>
             <v-col cols="12">
               <v-switch
                 v-model="form.is_active"
-                :label="t('horses.table.active')"
+                :label="t('boxes.table.active')"
                 color="success"
                 hide-details
               />
@@ -147,7 +116,7 @@
             :disabled="saving"
             @click="dialog = false"
           >
-            {{ t("horses.dialog.cancel") }}
+            {{ t("boxes.dialog.cancel") }}
           </v-btn>
           <v-btn
             color="primary"
@@ -155,7 +124,7 @@
             :loading="saving"
             @click="save"
           >
-            {{ t("horses.dialog.save") }}
+            {{ t("boxes.dialog.save") }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -173,10 +142,9 @@ import { onMounted, ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import * as XLSX from "xlsx";
 import { http } from "../api/http";
-import type { Horse, Box } from "../types/api";
+import type { Box } from "../types/api";
 
 const { t } = useI18n();
-const horses = ref<Horse[]>([]);
 const boxes = ref<Box[]>([]);
 const loading = ref(false);
 const error = ref("");
@@ -186,72 +154,52 @@ const search = ref("");
 const dialog = ref(false);
 const saving = ref(false);
 const editingId = ref<number | null>(null);
-const form = ref({ name: "", box_id: null as number | null, is_active: true, levels: [] as string[] });
+const form = ref({ name: "", capacity: 1, is_active: true });
 
 // Snackbar
 const snackbar = ref(false);
 const snackbarText = ref("");
 const snackbarColor = ref("success");
 
-const levelOptions = computed(() => [
-  { title: t("horses.levels.principiante"), value: "principiante" },
-  { title: t("horses.levels.iniciado"),     value: "iniciado" },
-  { title: t("horses.levels.experto"),      value: "experto" },
-]);
-
-// Opciones de boxes activos para el select del diálogo
-const boxOptions = computed(() =>
-  boxes.value.filter((b) => b.is_active)
-);
-
 const headers = computed(() => [
-  { title: t("horses.table.id"),     key: "id",        sortable: true  },
-  { title: t("horses.table.name"),   key: "name",      sortable: true  },
-  { title: t("horses.table.box"),    key: "box_name",  sortable: true  },
-  { title: t("horses.table.levels"), key: "levels",    sortable: false },
-  { title: t("horses.table.active"), key: "is_active", sortable: true  },
-  { title: t("horses.table.stable"), key: "stable_id", sortable: true  },
+  { title: t("boxes.table.id"),          key: "id",           sortable: true  },
+  { title: t("boxes.table.name"),        key: "name",         sortable: true  },
+  { title: t("boxes.table.capacity"),    key: "capacity",     sortable: true  },
+  { title: t("boxes.table.horsesCount"), key: "horses_count", sortable: true  },
+  { title: t("boxes.table.active"),      key: "is_active",    sortable: true  },
+  { title: t("boxes.table.stable"),      key: "stable_id",    sortable: true  },
 ]);
 
 // Para export respetando el filtro de búsqueda
-const filteredHorses = computed(() => {
+const filteredBoxes = computed(() => {
   const q = (search.value ?? "").trim().toLowerCase();
-  if (!q) return horses.value;
-  return horses.value.filter(
-    (h) =>
-      h.name.toLowerCase().includes(q) ||
-      (h.box_name ?? "").toLowerCase().includes(q)
-  );
+  if (!q) return boxes.value;
+  return boxes.value.filter((b) => b.name.toLowerCase().includes(q));
 });
 
 async function load() {
   loading.value = true;
   error.value = "";
   try {
-    const [horsesRes, boxesRes] = await Promise.all([
-      http.get<Horse[]>("/api/v1/horses"),
-      http.get<Box[]>("/api/v1/boxes"),
-    ]);
-    horses.value = horsesRes.data;
-    boxes.value = boxesRes.data;
+    const res = await http.get<Box[]>("/api/v1/boxes");
+    boxes.value = res.data;
   } catch (e: any) {
-    error.value = e?.response?.data?.detail || t("horses.error");
+    error.value = e?.response?.data?.detail || t("boxes.error");
   } finally {
     loading.value = false;
   }
 }
 
-function onRowClick(_event: Event, row: { item: Horse }) {
+function onRowClick(_event: Event, row: { item: Box }) {
   openDialog(row.item);
 }
 
-function openDialog(horse: Horse) {
-  editingId.value = horse.id;
+function openDialog(box: Box) {
+  editingId.value = box.id;
   form.value = {
-    name:      horse.name,
-    box_id:    horse.box_id,
-    is_active: horse.is_active,
-    levels:    [...horse.levels],
+    name:      box.name,
+    capacity:  box.capacity,
+    is_active: box.is_active,
   };
   dialog.value = true;
 }
@@ -260,19 +208,17 @@ async function save() {
   if (!editingId.value) return;
   saving.value = true;
   try {
-    const res = await http.put<Horse>(`/api/v1/horses/${editingId.value}`, {
+    const res = await http.put<Box>(`/api/v1/boxes/${editingId.value}`, {
       name:      form.value.name,
-      box_id:    form.value.box_id ?? null,
+      capacity:  form.value.capacity,
       is_active: form.value.is_active,
-      levels:    form.value.levels,
     });
-    // Actualizar el registro en la lista local sin recargar
-    const idx = horses.value.findIndex((h) => h.id === editingId.value);
-    if (idx !== -1) horses.value[idx] = res.data;
+    const idx = boxes.value.findIndex((b) => b.id === editingId.value);
+    if (idx !== -1) boxes.value[idx] = res.data;
     dialog.value = false;
-    showSnackbar(t("horses.saveSuccess"), "success");
+    showSnackbar(t("boxes.saveSuccess"), "success");
   } catch (e: any) {
-    showSnackbar(e?.response?.data?.detail || t("horses.saveError"), "error");
+    showSnackbar(e?.response?.data?.detail || t("boxes.saveError"), "error");
   } finally {
     saving.value = false;
   }
@@ -285,18 +231,18 @@ function showSnackbar(text: string, color: string) {
 }
 
 function exportToExcel() {
-  const rows = filteredHorses.value.map((h) => ({
-    [t("horses.table.id")]:     h.id,
-    [t("horses.table.name")]:   h.name,
-    [t("horses.table.box")]:    h.box_name ?? "-",
-    [t("horses.table.levels")]: h.levels.map((l) => t(`horses.levels.${l}`)).join(", "),
-    [t("horses.table.active")]: h.is_active ? "✓" : "✗",
-    [t("horses.table.stable")]: h.stable_id,
+  const rows = filteredBoxes.value.map((b) => ({
+    [t("boxes.table.id")]:          b.id,
+    [t("boxes.table.name")]:        b.name,
+    [t("boxes.table.capacity")]:    b.capacity,
+    [t("boxes.table.horsesCount")]: b.horses_count,
+    [t("boxes.table.active")]:      b.is_active ? "✓" : "✗",
+    [t("boxes.table.stable")]:      b.stable_id,
   }));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, t("horses.title"));
-  XLSX.writeFile(wb, `${t("horses.title").toLowerCase()}.xlsx`);
+  XLSX.utils.book_append_sheet(wb, ws, t("boxes.title"));
+  XLSX.writeFile(wb, `${t("boxes.title").toLowerCase()}.xlsx`);
 }
 
 onMounted(load);
