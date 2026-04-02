@@ -18,6 +18,12 @@
       "icon": "mdi-horse",
       "route": "/horses",
       "feature": "HORSES"
+    },
+    {
+      "titleKey": "menu.boxes",
+      "icon": "mdi-door",
+      "route": "/boxes",
+      "feature": "HORSES"
     }
   ]
 }

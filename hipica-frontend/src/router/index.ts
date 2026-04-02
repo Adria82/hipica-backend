@@ -15,6 +15,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 import Login from "../views/Login.vue";
 import Horses from "../views/Horses.vue";
+import Boxes from "../views/Boxes.vue";
 import { isLoggedIn } from "../auth/tokens";
 import MainLayout from "../layouts/MainLayout.vue";
 
@@ -45,6 +46,11 @@ const routes: RouteRecordRaw[] = [
         path: "horses",
         name: "horses",
         component: Horses,
+      },
+      {
+        path: "boxes",
+        name: "boxes",
+        component: Boxes,
       },
     ],
   },
