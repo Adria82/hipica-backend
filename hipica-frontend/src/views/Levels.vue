@@ -153,7 +153,6 @@ const headers = computed(() => [
 ]);
 
 function localeName(level: Level): string {
-  console.log("[Levels] item:", JSON.stringify(level));
   if (!level?.names) return `??${level?.id}`;
   const lang = locale.value;
   if (lang === "es") return level.names.es || level.names.ca || level.names.en || "";

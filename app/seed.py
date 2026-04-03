@@ -2,10 +2,9 @@
 Script para insertar datos de prueba en la base de datos de la hípica.
 
 - Crea una hípica (Stable)
-- Crea usuarios (admin y monitor) con contraseñas hasheadas
+- Crea usuarios (admin, monitor y clientes) con contraseñas hasheadas
 - Crea caballos
-- Crea clientes
-- Crea lecciones con relaciones N:N entre caballos y clientes
+- Crea lecciones con relaciones N:N entre caballos y alumnos (usuarios)
 
 Autor: Adrià Bofill
 Fecha: 31/01/2026
@@ -24,12 +23,13 @@ from app.security import hash_password
 from app.models.stable import Stable
 from app.models.user import User
 from app.models.horse import Horse
-from app.models.client import Client
 from app.models.lesson import Lesson
-from app.models.links import HorseLevelLink, LessonHorseLink, LessonClientLink
+from app.models.links import HorseLevelLink, LessonHorseLink, LessonUserLink
 from app.models.stable_feature import StableFeature
 from app.models.feature import FeatureCode
 from app.models.box import Box
+from app.models.client_profile import ClientProfile
+from app.models.monitor_profile import MonitorProfile
 
 
 def seed_db() -> None:
@@ -78,13 +78,12 @@ def seed_db() -> None:
         print(f"Features activadas para la stable {stable.id}: {features}")
 
         # -----------------------------------------------------------------
-        # 2. Crear usuarios
+        # 2. Crear usuarios staff
         # -----------------------------------------------------------------
         superAdmin = User(
             name="ABE",
             email="abe@hipica.com",
             role="app_admin",
-            #stable_id=stable.id,
             hashed_password=hash_password("qwerty"),
             is_active=True,
             created_at=now,
@@ -110,7 +109,7 @@ def seed_db() -> None:
             created_at=now,
         )
 
-        client = User(
+        client_user = User(
             name="Cliente Ana",
             email="ana@hipica.com",
             role="client",
@@ -120,9 +119,50 @@ def seed_db() -> None:
             created_at=now,
         )
 
-        session.add_all([superAdmin, admin, monitor, client])
+        session.add_all([superAdmin, admin, monitor, client_user])
         session.commit()
-        print(f"Usuarios creados: {superAdmin}, {admin}, {monitor}, {client}")
+        print(f"Usuarios staff creados: {superAdmin}, {admin}, {monitor}, {client_user}")
+
+        # -----------------------------------------------------------------
+        # 2.1 Crear alumnos (role=client, ex-tabla client)
+        # -----------------------------------------------------------------
+        client1 = User(
+            name="Carlos",
+            email="carlos@gmail.com",
+            phone="600111222",
+            role="client",
+            stable_id=stable.id,
+            hashed_password=hash_password("changeme"),
+            is_active=True,
+            created_at=now,
+        )
+        client2 = User(
+            name="Ana",
+            email="ana@gmail.com",
+            phone="600333444",
+            role="client",
+            stable_id=stable.id,
+            hashed_password=hash_password("changeme"),
+            is_active=True,
+            created_at=now,
+        )
+        client3 = User(
+            name="Lucía",
+            email="lucia@gmail.com",
+            phone="600555666",
+            role="client",
+            stable_id=stable.id,
+            hashed_password=hash_password("changeme"),
+            is_active=True,
+            created_at=now,
+        )
+
+        session.add_all([client1, client2, client3])
+        session.commit()
+        session.refresh(client1)
+        session.refresh(client2)
+        session.refresh(client3)
+        print(f"Alumnos creados: {client1}, {client2}, {client3}")
 
         # -----------------------------------------------------------------
         # 2.5 Crear niveles de equitación (catálogo, multiidioma)
@@ -142,7 +182,7 @@ def seed_db() -> None:
 
         session.commit()
         print(f"Niveles de equitación creados: {[l.names.get('es') for l in levels]}")
-        
+
         # -----------------------------------------------------------------
         # 2.8 Crear boxes
         # -----------------------------------------------------------------
@@ -198,33 +238,7 @@ def seed_db() -> None:
         print("Niveles asignados a los caballos.")
 
         # -----------------------------------------------------------------
-        # 4. Crear clientes
-        # -----------------------------------------------------------------
-        client1 = Client(
-            name="Carlos",
-            email="carlos@gmail.com",
-            phone="600111222",
-            stable_id=stable.id,
-        )
-        client2 = Client(
-            name="Ana",
-            email="ana@gmail.com",
-            phone="600333444",
-            stable_id=stable.id,
-        )
-        client3 = Client(
-            name="Lucía",
-            email="lucia@gmail.com",
-            phone="600555666",
-            stable_id=stable.id,
-        )
-
-        session.add_all([client1, client2, client3])
-        session.commit()
-        print(f"Clientes creados: {client1}, {client2}, {client3}")
-
-        # -----------------------------------------------------------------
-        # 5. Crear lecciones
+        # 4. Crear lecciones
         # -----------------------------------------------------------------
         lesson1 = Lesson(
             date_time=datetime(2026, 2, 1, 10, 0, tzinfo=timezone.utc),
@@ -243,20 +257,20 @@ def seed_db() -> None:
         session.refresh(lesson2)
 
         # -----------------------------------------------------------------
-        # 6. Relaciones N:N (lecciones ↔ caballos / clientes)
+        # 5. Relaciones N:N (lecciones ↔ caballos / alumnos)
         # -----------------------------------------------------------------
         session.add_all([
             # Lesson 1
             LessonHorseLink(lesson_id=lesson1.id, horse_id=horse1.id),
             LessonHorseLink(lesson_id=lesson1.id, horse_id=horse2.id),
-            LessonClientLink(lesson_id=lesson1.id, client_id=client1.id),
-            LessonClientLink(lesson_id=lesson1.id, client_id=client2.id),
+            LessonUserLink(lesson_id=lesson1.id, user_id=client1.id),
+            LessonUserLink(lesson_id=lesson1.id, user_id=client2.id),
 
             # Lesson 2
             LessonHorseLink(lesson_id=lesson2.id, horse_id=horse2.id),
             LessonHorseLink(lesson_id=lesson2.id, horse_id=horse3.id),
-            LessonClientLink(lesson_id=lesson2.id, client_id=client2.id),
-            LessonClientLink(lesson_id=lesson2.id, client_id=client3.id),
+            LessonUserLink(lesson_id=lesson2.id, user_id=client2.id),
+            LessonUserLink(lesson_id=lesson2.id, user_id=client3.id),
         ])
 
         session.commit()

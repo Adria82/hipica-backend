@@ -3,7 +3,7 @@ Modelo de la entidad Lesson (clase/lección).
 
 Representa una lección de equitación que involucra:
 - Varios caballos
-- Varios clientes
+- Varios usuarios (alumnos, role='client')
 - Un monitor/instructor (User)
 - Un ayudante opcional (User)
 - Una pista opcional (Track)
@@ -16,10 +16,11 @@ Proyecto: Gestión de Hípica
 from sqlmodel import SQLModel, Field, Relationship
 from typing import List, Optional, TYPE_CHECKING
 from datetime import datetime
-from app.models.links import LessonHorseLink, LessonClientLink
+from app.models.links import LessonHorseLink, LessonUserLink
 
 if TYPE_CHECKING:
     from app.models.track import Track
+    from app.models.user import User
 
 
 class Lesson(SQLModel, table=True):
@@ -36,7 +37,7 @@ class Lesson(SQLModel, table=True):
         description (str | None): Descripción o notas adicionales.
         stable_id (int): Id de la hípica a la que pertenece.
         horses (List[Horse]): Caballos asignados a la lección.
-        clients (List[Client]): Clientes participantes en la lección.
+        students (List[User]): Usuarios alumnos participantes en la lección.
     """
     id: Optional[int] = Field(default=None, primary_key=True)
     date_time: datetime = Field(nullable=False)
@@ -52,9 +53,8 @@ class Lesson(SQLModel, table=True):
         back_populates="lessons",
         link_model=LessonHorseLink
     )
-    clients: List["Client"] = Relationship(
-        back_populates="lessons",
-        link_model=LessonClientLink
+    students: List["User"] = Relationship(
+        link_model=LessonUserLink
     )
 
     # Relación con Track

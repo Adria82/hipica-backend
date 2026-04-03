@@ -6,7 +6,6 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router"
 import Login from "../views/Login.vue";
 import Horses from "../views/Horses.vue";
 import Boxes from "../views/Boxes.vue";
-import Clients from "../views/Clients.vue";
 import Lessons from "../views/Lessons.vue";
 import Reports from "../views/Reports.vue";
 import Stables from "../views/Stables.vue";
@@ -33,7 +32,6 @@ const routes: RouteRecordRaw[] = [
       // Operativa
       { path: "horses",  name: "horses",  component: Horses  },
       { path: "boxes",   name: "boxes",   component: Boxes   },
-      { path: "clients", name: "clients", component: Clients },
       { path: "lessons", name: "lessons", component: Lessons },
 
       // Administración (solo app_admin / stable_admin)

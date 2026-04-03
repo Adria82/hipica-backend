@@ -65,18 +65,6 @@ export type Horse = {
   level_ids: number[];    // IDs de niveles asignados (para formularios)
 };
 
-/**
- * Entidad Client (cliente de una hípica).
- */
-export type Client = {
-  id: number;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  is_active: boolean;
-  stable_id: number;
-  stable_name: string | null;
-};
 
 /**
  * Entidad Level (nivel de equitación).
@@ -173,7 +161,7 @@ export type Lesson = {
   description: string | null;
   stable_id: number;
   horse_names: string[];
-  client_names: string[];
+  student_names: string[];
 };
 
 /**
@@ -187,7 +175,7 @@ export type LessonCreate = {
   track_id?: number | null;
   description?: string | null;
   horse_ids: number[];
-  client_ids: number[];
+  student_ids: number[];
 };
 
 /**
@@ -212,7 +200,7 @@ export type HelperHours = {
 };
 
 export type StudentClasses = {
-  client_id: number;
+  user_id: number;
   name: string;
   class_count: number;
 };
@@ -242,6 +230,7 @@ export type UserRead = {
   name: string;
   email: string;
   role: string;
+  phone: string | null;
   stable_id: number | null;
   is_active: boolean;
 };

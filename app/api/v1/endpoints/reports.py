@@ -12,9 +12,8 @@ from datetime import datetime, date
 
 from app.db.session import get_session
 from app.models.lesson import Lesson
-from app.models.client import Client
 from app.models.horse import Horse
-from app.models.links import LessonClientLink, LessonHorseLink
+from app.models.links import LessonUserLink, LessonHorseLink
 from app.dependencies import require_role
 from app.models import User
 from sqlmodel import SQLModel
@@ -41,8 +40,8 @@ class HelperHours(SQLModel):
 
 
 class StudentClasses(SQLModel):
-    """Número de clases asistidas por un cliente en el rango de fechas."""
-    client_id: int
+    """Número de clases asistidas por un alumno (usuario) en el rango de fechas."""
+    user_id: int
     name: str
     class_count: int
 
@@ -106,7 +105,7 @@ def lessons_report(
     # Aggregations
     instructor_map: dict[int, float] = {}
     helper_map: dict[int, float] = {}
-    client_map: dict[int, int] = {}
+    student_map: dict[int, int] = {}
     horse_map: dict[int, float] = {}
 
     for lesson in lessons:
@@ -120,11 +119,11 @@ def lessons_report(
             helper_map[lesson.helper_id] = helper_map.get(lesson.helper_id, 0) + duration
 
         # Student classes
-        client_links = session.exec(
-            select(LessonClientLink).where(LessonClientLink.lesson_id == lesson.id)
+        student_links = session.exec(
+            select(LessonUserLink).where(LessonUserLink.lesson_id == lesson.id)
         ).all()
-        for cl in client_links:
-            client_map[cl.client_id] = client_map.get(cl.client_id, 0) + 1
+        for sl in student_links:
+            student_map[sl.user_id] = student_map.get(sl.user_id, 0) + 1
 
         # Horse hours
         horse_links = session.exec(
@@ -147,10 +146,10 @@ def lessons_report(
             helper_hours.append(HelperHours(user_id=user_id, email=user.email, hours=round(hours, 2)))
 
     student_classes: list[StudentClasses] = []
-    for client_id, count in client_map.items():
-        client = session.get(Client, client_id)
-        if client:
-            student_classes.append(StudentClasses(client_id=client_id, name=client.name, class_count=count))
+    for user_id, count in student_map.items():
+        student = session.get(User, user_id)
+        if student:
+            student_classes.append(StudentClasses(user_id=user_id, name=student.name, class_count=count))
 
     horse_hours: list[HorseHours] = []
     for horse_id, hours in horse_map.items():

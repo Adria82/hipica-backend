@@ -11,9 +11,14 @@ Proyecto: Gestión de Hípica
 """
 
 from datetime import datetime, timezone
-from sqlmodel import Field, SQLModel,  Relationship
-from typing import Optional
+from sqlmodel import Field, SQLModel, Relationship
+from typing import Optional, TYPE_CHECKING
 from app.models.stable import Stable
+
+if TYPE_CHECKING:
+    from app.models.client_profile import ClientProfile
+    from app.models.monitor_profile import MonitorProfile
+
 
 class User(SQLModel, table=True):
     """
@@ -24,19 +29,26 @@ class User(SQLModel, table=True):
         name (str): Nombre del usuario.
         email (str): Correo electrónico único.
         hashed_password (str): Contraseña hasheada del usuario.
-        role (str): Rol del usuario ('app_admin', 'stable_admin', 'monitor', 'cliente').
+        role (str): Rol del usuario ('app_admin', 'stable_admin', 'monitor', 'assistant', 'client').
+        phone (Optional[str]): Número de teléfono del usuario.
         stable_id (Optional[int]): Id de la hípica a la que pertenece. None si es 'app_admin'.
         stable (Optional[Stable]): Objeto de la hípica asociada, accesible desde ORM.
         is_active (bool): Indica si el usuario está activo.
         created_at (datetime): Fecha de creación del usuario.
+        client_profile (Optional[ClientProfile]): Perfil extendido para clientes.
+        monitor_profile (Optional[MonitorProfile]): Perfil extendido para monitores.
     """
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(nullable=False)
     email: str = Field(nullable=False, index=True, unique=True)
     hashed_password: str = Field(nullable=False)
-    role: str = Field(nullable=False, default="cliente")  # 'app_admin', 'stable_admin', 'monitor', 'cliente'
+    role: str = Field(nullable=False, default="client")  # 'app_admin', 'stable_admin', 'monitor', 'assistant', 'client'
+    phone: Optional[str] = Field(default=None)
     stable_id: Optional[int] = Field(default=None, foreign_key="stable.id")  # None para app_admin
     stable: Optional[Stable] = Relationship(back_populates="users")
     is_active: bool = Field(default=True)
     avatar: Optional[str] = Field(default=None)  # base64 data URL o URL externa
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    client_profile: Optional["ClientProfile"] = Relationship(back_populates="user")
+    monitor_profile: Optional["MonitorProfile"] = Relationship(back_populates="user")

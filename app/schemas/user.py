@@ -25,6 +25,7 @@ class UserBase(SQLModel):
     name: str
     email: str
     role: str = "client"
+    phone: Optional[str] = None
     stable_id: Optional[int] = None
     is_active: bool = True
 

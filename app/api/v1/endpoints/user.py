@@ -8,6 +8,7 @@ Proyecto: Gestión de Hípica
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session, select
+from typing import Optional
 
 from app.db.session import get_session
 from app.models.user import User
@@ -71,6 +72,7 @@ def create_user(
 @router.get("/", response_model=list[UserRead])
 def list_users(
     request: Request,
+    role: Optional[str] = None,
     session: Session = Depends(get_session),
     current_user: User = Depends(require_role(["stable_admin", "app_admin"])),
 ):
@@ -79,10 +81,15 @@ def list_users(
 
     - app_admin ve todos los usuarios de todas las cuadras.
     - stable_admin ve solo los usuarios de su cuadra.
+
+    Filtros opcionales:
+    - role: filtra por rol (ej. 'client', 'monitor', 'assistant')
     """
     query = select(User)
     if current_user.role != "app_admin":
         query = query.where(User.stable_id == current_user.stable_id)
+    if role:
+        query = query.where(User.role == role)
 
     return session.exec(query).all()
 

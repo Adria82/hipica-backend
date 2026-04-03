@@ -27,7 +27,6 @@ os.environ["DATABASE_URL"] = "sqlite://"
 from app.main import app
 from app.db.session import get_session
 from app.models.box import Box
-from app.models.client import Client
 from app.models.horse import Horse
 from app.models.stable import Stable
 from app.models.user import User
@@ -97,19 +96,21 @@ def create_user(
     return user
 
 
-def create_client_entity(session, stable_id, name="Client 1", email="client@example.com"):
-    """Crea un cliente de prueba y lo asocia a una hípica."""
-    c = Client(
+def create_client_user(session, stable_id, name="Client 1", email="client@example.com"):
+    """Crea un usuario con role=client y lo asocia a una hípica."""
+    u = User(
         name=name,
         email=email,
         phone="123",
+        role="client",
         stable_id=stable_id,
         is_active=True,
+        hashed_password=hash_password("changeme"),
     )
-    session.add(c)
+    session.add(u)
     session.commit()
-    session.refresh(c)
-    return c
+    session.refresh(u)
+    return u
 
 
 def create_horse_entity(session, stable_id, name="Horse 1"):
@@ -236,8 +237,8 @@ def test_stable_crud(client):
     assert response.json()["ok"] is True
 
 
-def test_client_crud(client):
-    """Valida el CRUD completo de clients (stable_admin)."""
+def test_list_users_by_role(client):
+    """Valida el filtro ?role= en GET /api/v1/users/."""
     test_client, engine = client
 
     with Session(engine) as session:
@@ -245,51 +246,37 @@ def test_client_crud(client):
         admin = create_user(
             session,
             stable.id,
-            email="admin_client@example.com",
+            email="admin_role@example.com",
             password="secret",
             role="stable_admin",
         )
-        stable_id = stable.id
+        admin_email = admin.email
+        create_client_user(session, stable.id, name="Alumno 1", email="alumno1@example.com")
+        create_client_user(session, stable.id, name="Alumno 2", email="alumno2@example.com")
+        create_user(session, stable.id, email="mon@example.com", role="monitor")
 
-    token = login(test_client, admin.email)
+    token = login(test_client, admin_email)
     hdrs = auth_headers(token)
 
-    payload = {
-        "name": "Ana",
-        "email": "ana@example.com",
-        "phone": "600123456",
-        "stable_id": stable_id,
-        "is_active": True,
-    }
-    response = test_client.post("/api/v1/clients/", json=payload, headers=hdrs)
-    assert response.status_code == 201
-    client_data = response.json()
-    assert client_data["email"] == payload["email"]
-
-    response = test_client.get("/api/v1/clients/", headers=hdrs)
+    # Sin filtro: devuelve todos los usuarios de la cuadra
+    response = test_client.get("/api/v1/users/", headers=hdrs)
     assert response.status_code == 200
-    assert len(response.json()) == 1
+    all_users = response.json()
+    assert len(all_users) >= 4
 
-    response = test_client.get(f"/api/v1/clients/{client_data['id']}", headers=hdrs)
+    # Con ?role=client: solo los alumnos
+    response = test_client.get("/api/v1/users/?role=client", headers=hdrs)
     assert response.status_code == 200
+    clients_only = response.json()
+    assert len(clients_only) == 2
+    assert all(u["role"] == "client" for u in clients_only)
 
-    response = test_client.put(
-        f"/api/v1/clients/{client_data['id']}",
-        json={
-            "name": "Ana Updated",
-            "email": "ana2@example.com",
-            "phone": "600000000",
-            "stable_id": stable_id,
-            "is_active": True,
-        },
-        headers=hdrs,
-    )
+    # Con ?role=monitor
+    response = test_client.get("/api/v1/users/?role=monitor", headers=hdrs)
     assert response.status_code == 200
-    assert response.json()["name"] == "Ana Updated"
-
-    response = test_client.delete(f"/api/v1/clients/{client_data['id']}", headers=hdrs)
-    assert response.status_code == 200
-    assert response.json()["ok"] is True
+    monitors = response.json()
+    assert len(monitors) == 1
+    assert monitors[0]["role"] == "monitor"
 
 
 def test_horse_crud(client):
@@ -430,39 +417,38 @@ def test_lesson_crud(client):
             role="monitor",
         )
         instructor_id = instructor.id
-        client_a_id = create_client_entity(
-            session, stable_id, name="Client A", email="a@example.com"
+        student_a_id = create_client_user(
+            session, stable_id, name="Student A", email="a@example.com"
         ).id
         horse_a_id = create_horse_entity(session, stable_id, name="Horse A").id
-        client_b_id = create_client_entity(
-            session, stable_id, name="Client B", email="b@example.com"
+        student_b_id = create_client_user(
+            session, stable_id, name="Student B", email="b@example.com"
         ).id
         horse_b_id = create_horse_entity(session, stable_id, name="Horse B").id
 
-        # Monitor puede crear/gestionar clases
-        monitor = create_user(
+        admin = create_user(
             session,
             stable_id,
-            email="monitor_lesson@example.com",
-            role="monitor",
+            email="admin_lesson@example.com",
+            role="stable_admin",
         )
 
-    token = login(test_client, monitor.email)
+    token = login(test_client, admin.email)
     hdrs = auth_headers(token)
 
     payload = {
         "date_time": datetime(2026, 2, 2, 10, 0, tzinfo=timezone.utc).isoformat(),
         "stable_id": stable_id,
         "instructor_id": instructor_id,
-        "client_ids": [client_a_id],
+        "student_ids": [student_a_id],
         "horse_ids": [horse_a_id],
     }
     response = test_client.post("/api/v1/lessons/", json=payload, headers=hdrs)
     assert response.status_code == 201
     lesson_data = response.json()
     assert lesson_data["stable_id"] == stable_id
-    assert len(lesson_data["clients"]) == 1
-    assert len(lesson_data["horses"]) == 1
+    assert len(lesson_data["student_names"]) == 1
+    assert len(lesson_data["horse_names"]) == 1
 
     response = test_client.get(f"/api/v1/lessons/{lesson_data['id']}", headers=hdrs)
     assert response.status_code == 200
@@ -472,7 +458,7 @@ def test_lesson_crud(client):
     assert len(response.json()) == 1
 
     update_payload = {
-        "client_ids": [client_b_id],
+        "student_ids": [student_b_id],
         "horse_ids": [horse_b_id],
     }
     response = test_client.put(
@@ -482,8 +468,8 @@ def test_lesson_crud(client):
     )
     assert response.status_code == 200
     updated = response.json()
-    assert updated["clients"][0]["id"] == client_b_id
-    assert updated["horses"][0]["id"] == horse_b_id
+    assert "Student B" in updated["student_names"]
+    assert "Horse B" in updated["horse_names"]
 
     response = test_client.delete(f"/api/v1/lessons/{lesson_data['id']}", headers=hdrs)
     assert response.status_code == 200

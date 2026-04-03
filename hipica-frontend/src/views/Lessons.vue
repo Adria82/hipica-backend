@@ -1,22 +1,30 @@
 <template>
   <v-container fluid>
     <!-- Header -->
-    <div class="d-flex align-center justify-space-between mb-4 flex-wrap gap-2">
-      <h2 class="text-h5">{{ t("lessons.title") }}</h2>
-      <div class="d-flex align-center gap-2 flex-wrap">
+    <div class="d-flex align-center mb-4 flex-wrap">
+
+      <!-- IZQUIERDA -->
+      <div class="flex-grow-1">
+        <h2 class="text-h5">{{ t("lessons.title") }}</h2>
+      </div>
+
+      <!-- CENTRO -->
+      <div class="d-flex align-center gap-2 justify-center">
         <v-btn variant="tonal" size="small" prepend-icon="mdi-chevron-left" @click="prevWeek">
           {{ t("lessons.prevWeek") }}
         </v-btn>
+
         <v-btn variant="tonal" size="small" @click="goToday">
           {{ t("lessons.today") }}
         </v-btn>
+
         <v-btn variant="tonal" size="small" append-icon="mdi-chevron-right" @click="nextWeek">
           {{ t("lessons.nextWeek") }}
         </v-btn>
-        <span class="text-body-2 text-medium-emphasis ml-2">
-          {{ t("lessons.weekOf") }} {{ weekLabel }}
-        </span>
-        <v-spacer />
+      </div>
+
+      <!-- DERECHA -->
+      <div class="flex-grow-1 d-flex justify-end">
         <v-btn
           v-if="canManage"
           color="primary"
@@ -26,6 +34,7 @@
           {{ t("lessons.addButton") }}
         </v-btn>
       </div>
+
     </div>
 
     <!-- Error -->
@@ -164,11 +173,11 @@
 
             <v-col cols="12">
               <v-select
-                v-model="form.client_ids"
-                :items="clientOptions"
+                v-model="form.student_ids"
+                :items="studentOptions"
                 item-title="name"
                 item-value="id"
-                :label="t('lessons.dialog.clients')"
+                :label="t('lessons.dialog.students')"
                 variant="outlined"
                 density="compact"
                 multiple
@@ -239,7 +248,7 @@ import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { http } from "@/api/http";
 import { canManage } from "@/auth/profile";
-import type { Lesson, LessonCreate, LessonUpdate, Track, Horse, Client, UserRead } from "@/types/api";
+import type { Lesson, LessonCreate, LessonUpdate, Track, Horse, UserRead } from "@/types/api";
 
 const { t } = useI18n();
 
@@ -249,7 +258,7 @@ const { t } = useI18n();
 const lessons = ref<Lesson[]>([]);
 const tracks = ref<Track[]>([]);
 const horses = ref<Horse[]>([]);
-const clients = ref<Client[]>([]);
+const students = ref<UserRead[]>([]);
 const users = ref<UserRead[]>([]);
 
 const loading = ref(false);
@@ -295,11 +304,6 @@ const weekDays = computed(() => {
   });
 });
 
-const weekLabel = computed(() => {
-  const start = weekDays.value[0]!;
-  const end = weekDays.value[6]!;
-  return `${start.iso} — ${end.iso}`;
-});
 
 function prevWeek() {
   const d = new Date(weekStart.value);
@@ -332,7 +336,7 @@ const userOptions = computed(() => users.value);
 const userOptionsWithNone = computed(() => users.value);
 const trackOptionsWithNone = computed(() => tracks.value.filter((tr) => tr.is_active));
 const horseOptions = computed(() => horses.value.filter((h) => h.is_active));
-const clientOptions = computed(() => clients.value.filter((c) => c.is_active));
+const studentOptions = computed(() => students.value.filter((s) => s.is_active));
 
 // ---------------------------------------------------------------------------
 // Form
@@ -344,7 +348,7 @@ interface LessonForm {
   helper_id: number | null;
   track_id: number | null;
   horse_ids: number[];
-  client_ids: number[];
+  student_ids: number[];
   description: string;
 }
 
@@ -357,7 +361,7 @@ function emptyForm(dateIso?: string | null): LessonForm {
     helper_id: null,
     track_id: null,
     horse_ids: [],
-    client_ids: [],
+    student_ids: [],
     description: "",
   };
 }
@@ -381,9 +385,9 @@ function openEditDialog(lesson: Lesson) {
     horse_ids: horses.value
       .filter((h) => lesson.horse_names.includes(h.name))
       .map((h) => h.id),
-    client_ids: clients.value
-      .filter((c) => lesson.client_names.includes(c.name))
-      .map((c) => c.id),
+    student_ids: students.value
+      .filter((s) => lesson.student_names.includes(s.name))
+      .map((s) => s.id),
     description: lesson.description ?? "",
   };
   dialog.value = true;
@@ -396,17 +400,17 @@ async function loadAll() {
   loading.value = true;
   error.value = null;
   try {
-    const [lessonsRes, tracksRes, horsesRes, clientsRes, usersRes] = await Promise.all([
+    const [lessonsRes, tracksRes, horsesRes, studentsRes, usersRes] = await Promise.all([
       http.get<Lesson[]>("/api/v1/lessons"),
       http.get<Track[]>("/api/v1/tracks"),
       http.get<Horse[]>("/api/v1/horses"),
-      http.get<Client[]>("/api/v1/clients"),
+      http.get<UserRead[]>("/api/v1/users?role=client"),
       http.get<UserRead[]>("/api/v1/users"),
     ]);
     lessons.value = lessonsRes.data;
     tracks.value = tracksRes.data;
     horses.value = horsesRes.data;
-    clients.value = clientsRes.data;
+    students.value = studentsRes.data;
     users.value = usersRes.data;
   } catch (e: any) {
     error.value = e?.response?.data?.detail || t("lessons.error");
@@ -428,7 +432,7 @@ async function save() {
         track_id: form.value.track_id,
         description: form.value.description || null,
         horse_ids: form.value.horse_ids,
-        client_ids: form.value.client_ids,
+        student_ids: form.value.student_ids,
       };
       await http.put(`/api/v1/lessons/${editingLesson.value.id}`, payload);
     } else {
@@ -440,7 +444,7 @@ async function save() {
         track_id: form.value.track_id,
         description: form.value.description || null,
         horse_ids: form.value.horse_ids,
-        client_ids: form.value.client_ids,
+        student_ids: form.value.student_ids,
       };
       await http.post("/api/v1/lessons/", payload);
     }

@@ -15,7 +15,7 @@ class LessonCreate(SQLModel):
     """
     Datos necesarios para crear una lección/clase.
 
-    - client_ids: IDs de los clientes que asisten
+    - student_ids: IDs de los usuarios (role=client) que asisten
     - horse_ids: IDs de los caballos usados
     - helper_id: ID del monitor ayudante (opcional)
     - track_id: ID de la pista (opcional)
@@ -28,7 +28,7 @@ class LessonCreate(SQLModel):
     track_id: Optional[int] = None
     description: Optional[str] = None
     stable_id: Optional[int] = None  # el endpoint lo fuerza al del usuario
-    client_ids: List[int] = []
+    student_ids: List[int] = []
     horse_ids: List[int] = []
 
 
@@ -49,7 +49,7 @@ class LessonRead(SQLModel):
     description: Optional[str] = None
     stable_id: int
     horse_names: List[str] = []
-    client_names: List[str] = []
+    student_names: List[str] = []
 
 
 class LessonUpdate(SQLModel):
@@ -61,5 +61,5 @@ class LessonUpdate(SQLModel):
     track_id: Optional[int] = None
     description: Optional[str] = None
     stable_id: Optional[int] = None
-    client_ids: Optional[List[int]] = None
+    student_ids: Optional[List[int]] = None
     horse_ids: Optional[List[int]] = None

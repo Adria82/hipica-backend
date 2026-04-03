@@ -12,8 +12,10 @@ from sqlmodel import SQLModel
 from app.models.stable import Stable
 from app.models.user import User
 from app.models.horse import Horse
-from app.models.client import Client
-from app.models.lesson import Lesson, LessonHorseLink, LessonClientLink
+from app.models.client_profile import ClientProfile
+from app.models.monitor_profile import MonitorProfile
+from app.models.lesson import Lesson
+from app.models.links import LessonHorseLink, LessonUserLink, HorseLevelLink
 from app.db.session import engine
 
 def init_db():
