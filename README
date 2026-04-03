@@ -21,6 +21,22 @@ Llamar a un .py
 Correr tests:
     PYTHONPATH=. python -m pytest
 
+Migraciones con Alembic (ejecutar desde la raíz del proyecto):
+    # Ver estado actual
+    PYTHONPATH=. DATABASE_URL="postgresql://hipica:hipica@localhost:5432/hipica" python -m alembic current
+
+    # Crear nueva migración (después de cambiar modelos)
+    PYTHONPATH=. DATABASE_URL="postgresql://hipica:hipica@localhost:5432/hipica" python -m alembic revision --autogenerate -m "descripcion_del_cambio"
+
+    # Aplicar migraciones pendientes
+    PYTHONPATH=. DATABASE_URL="postgresql://hipica:hipica@localhost:5432/hipica" python -m alembic upgrade head
+
+    # Revertir última migración
+    PYTHONPATH=. DATABASE_URL="postgresql://hipica:hipica@localhost:5432/hipica" python -m alembic downgrade -1
+
+    # Dentro del contenedor Docker (la URL se lee de las variables de entorno):
+    docker-compose exec api python -m alembic upgrade head
+
 Usando psql dentro del contenedor:
     Entra en el contenedor de la base de datos: docker-compose exec db bash
     Conéctate a PostgreSQL usando psql:

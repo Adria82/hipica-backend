@@ -99,6 +99,16 @@
               />
             </v-col>
             <v-col cols="12">
+              <v-text-field
+                v-model="form.theme"
+                :label="t('stables.dialog.theme')"
+                :placeholder="t('stables.dialog.themePlaceholder')"
+                variant="outlined"
+                density="compact"
+                clearable
+              />
+            </v-col>
+            <v-col cols="12">
               <v-switch
                 v-model="form.is_active"
                 :label="t('stables.dialog.active')"
@@ -170,7 +180,7 @@ const dialog = ref(false);
 const saving = ref(false);
 const deleting = ref(false);
 const editingId = ref<number | null>(null);
-const form = ref({ name: "", location: "", is_active: true });
+const form = ref({ name: "", location: "", is_active: true, theme: "" });
 
 const confirmDeleteDialog = ref(false);
 const snackbar = ref(false);
@@ -181,6 +191,7 @@ const headers = computed(() => [
   { title: t("stables.table.id"),       key: "id",        sortable: true },
   { title: t("stables.table.name"),     key: "name",      sortable: true },
   { title: t("stables.table.location"), key: "location",  sortable: true },
+  { title: t("stables.table.theme"),    key: "theme",     sortable: true },
   { title: t("stables.table.active"),   key: "is_active", sortable: true },
 ]);
 
@@ -205,13 +216,13 @@ async function load() {
 
 function onRowClick(_event: Event, row: { item: Stable }) {
   editingId.value = row.item.id;
-  form.value = { name: row.item.name, location: row.item.location, is_active: row.item.is_active };
+  form.value = { name: row.item.name, location: row.item.location, is_active: row.item.is_active, theme: row.item.theme ?? "" };
   dialog.value = true;
 }
 
 function openCreateDialog() {
   editingId.value = null;
-  form.value = { name: "", location: "", is_active: true };
+  form.value = { name: "", location: "", is_active: true, theme: "" };
   dialog.value = true;
 }
 
@@ -223,6 +234,7 @@ async function save() {
         name: form.value.name,
         location: form.value.location,
         is_active: form.value.is_active,
+        theme: form.value.theme || null,
       });
       const idx = stables.value.findIndex((s) => s.id === editingId.value);
       if (idx !== -1) stables.value[idx] = res.data;
@@ -231,6 +243,7 @@ async function save() {
         name: form.value.name,
         location: form.value.location,
         is_active: form.value.is_active,
+        theme: form.value.theme || null,
       });
       stables.value.push(res.data);
     }
@@ -271,6 +284,7 @@ function exportToExcel() {
     [t("stables.table.id")]:       s.id,
     [t("stables.table.name")]:     s.name,
     [t("stables.table.location")]: s.location,
+    [t("stables.table.theme")]:    s.theme ?? "-",
     [t("stables.table.active")]:   s.is_active ? "✓" : "✗",
   }));
   const ws = XLSX.utils.json_to_sheet(rows);

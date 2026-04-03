@@ -14,6 +14,7 @@ from .box import Box
 
 # Modelos que usan las relaciones
 from .horse import Horse
+from .client import Client
 
 # Lesson depende de Horse, Client, Track y links
 from .lesson import Lesson

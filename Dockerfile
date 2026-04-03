@@ -14,6 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiamos el código de la aplicación
 COPY app ./app
+COPY alembic ./alembic
+COPY alembic.ini .
 
 # Comando de arranque del contenedor
 # - uvicorn: servidor ASGI

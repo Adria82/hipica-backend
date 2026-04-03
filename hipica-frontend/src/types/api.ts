@@ -92,6 +92,7 @@ export type Stable = {
   name: string;
   location: string;
   is_active: boolean;
+  theme: string | null;
 };
 
 /**
