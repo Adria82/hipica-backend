@@ -15,6 +15,7 @@ import Features from "../views/Features.vue";
 import Profile from "../views/Profile.vue";
 import { isLoggedIn } from "../auth/tokens";
 import MainLayout from "../layouts/MainLayout.vue";
+import Users from "../views/Users.vue";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -36,6 +37,7 @@ const routes: RouteRecordRaw[] = [
       { path: "lessons", name: "lessons", component: Lessons },
 
       // Administración (solo app_admin / stable_admin)
+      { path: "users",    name: "users",    component: Users    },
       { path: "stables",  name: "stables",  component: Stables  },
       { path: "levels",   name: "levels",   component: Levels   },
       { path: "features", name: "features", component: Features },

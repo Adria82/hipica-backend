@@ -229,11 +229,15 @@ export type LessonReport = {
 };
 
 /**
- * Entidad User (usuario de la hípica) — versión pública para selectores.
+ * Entidad User (usuario de la hípica).
+ *
+ * Devuelto por GET /api/v1/users y endpoints relacionados.
  */
 export type UserRead = {
   id: number;
+  name: string;
   email: string;
   role: string;
   stable_id: number | null;
+  is_active: boolean;
 };

@@ -115,6 +115,7 @@ const brandingLogoUrl = computed(() => {
 // ---------------------------------------------------------------------------
 
 const ADMIN_ITEMS: NavItem[] = [
+  { titleKey: "menu.users",    icon: "mdi-account-multiple",  route: "/users"    },
   { titleKey: "menu.stables",  icon: "mdi-home-group",        route: "/stables"  },
   { titleKey: "menu.levels",   icon: "mdi-stairs",            route: "/levels"   },
   { titleKey: "menu.features", icon: "mdi-toggle-switch",     route: "/features" },
