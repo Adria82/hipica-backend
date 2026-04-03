@@ -10,12 +10,15 @@ Los roles disponibles son:
 |-----|-------------|
 | `app_admin` | Administrador global. Puede gestionar todas las hipicas |
 | `stable_admin` | Administrador de una hipica concreta |
-| `monitor` | Monitor/instructor. Acceso de lectura avanzado |
-| `client` | Cliente/alumno. Acceso minimo |
+| `monitor` | Monitor/instructor principal |
+| `assistant` | Ayudante de monitor |
+| `client` | Alumno de la hipica (antes tabla separada `client`) |
 
 **Multi-tenant:** `app_admin` ve y opera sobre usuarios de todas las hipicas. `stable_admin` solo ve y gestiona usuarios de su propia hipica.
 
 **Restriccion de roles elevados:** `stable_admin` no puede crear ni modificar usuarios con rol `app_admin` o `stable_admin`. Intentarlo devuelve 403.
+
+**Nota de arquitectura:** A partir del refactor de unificacion Client → User, los alumnos ya no tienen tabla propia. Se representan como `User` con `role="client"` y se consultan usando el parametro `?role=client`. Ver `docs/features/unificacion-client-user.md`.
 
 ---
 
@@ -23,8 +26,8 @@ Los roles disponibles son:
 
 | Metodo | Path | Descripcion | Rol requerido |
 |--------|------|-------------|---------------|
-| POST | `/` | Crear un usuario | `stable_admin` (solo roles `monitor`/`client`) o `app_admin` |
-| GET | `/` | Listar usuarios | `stable_admin` (propia cuadra) o `app_admin` |
+| POST | `/` | Crear un usuario | `stable_admin` (solo roles `monitor`/`assistant`/`client`) o `app_admin` |
+| GET | `/` | Listar usuarios (con filtro opcional `?role=`) | `stable_admin` (propia cuadra) o `app_admin` |
 | GET | `/{user_id}` | Obtener un usuario por ID | `stable_admin` (propia cuadra) o `app_admin` |
 | PUT | `/{user_id}` | Actualizar un usuario | `stable_admin` (sin escalar roles) o `app_admin` |
 | DELETE | `/{user_id}` | Eliminar un usuario | `app_admin` |
@@ -48,7 +51,8 @@ Crea un nuevo usuario. La contrasena se almacena como hash bcrypt; nunca se guar
   "name": "Adria Bofill",
   "email": "adria@hipica.com",
   "password": "contrasena_segura",
-  "role": "stable_admin",
+  "role": "monitor",
+  "phone": "600123456",
   "stable_id": 1,
   "is_active": true
 }
@@ -59,7 +63,8 @@ Crea un nuevo usuario. La contrasena se almacena como hash bcrypt; nunca se guar
 | name | string | Si | Nombre completo del usuario |
 | email | string | Si | Correo electronico (unico en el sistema) |
 | password | string | Si | Contrasena en texto plano (se hashea internamente) |
-| role | string | No (default: `"client"`) | Rol del usuario: `app_admin`, `stable_admin`, `monitor`, `client`. `stable_admin` solo puede asignar `monitor` o `client` |
+| role | string | No (default: `"client"`) | Rol del usuario: `app_admin`, `stable_admin`, `monitor`, `assistant`, `client`. `stable_admin` solo puede asignar `monitor`, `assistant` o `client` |
+| phone | string | No | Numero de telefono |
 | stable_id | integer | No | ID de la hipica. Ignorado para `stable_admin` (se sobreescribe con el del token). Puede ser `null` para `app_admin` global |
 | is_active | boolean | No (default: `true`) | Si el usuario puede autenticarse |
 
@@ -69,7 +74,8 @@ Crea un nuevo usuario. La contrasena se almacena como hash bcrypt; nunca se guar
   "id": 4,
   "name": "Adria Bofill",
   "email": "adria@hipica.com",
-  "role": "stable_admin",
+  "role": "monitor",
+  "phone": "600123456",
   "stable_id": 1,
   "is_active": true
 }
@@ -92,7 +98,23 @@ La contrasena nunca se incluye en la respuesta.
 
 Lista usuarios del sistema. `stable_admin` ve solo los usuarios de su propia hipica. `app_admin` ve todos.
 
+Acepta un parametro opcional `?role=` para filtrar por rol. Esto es la forma canonica de obtener alumnos (`role=client`) o monitores (`role=monitor`) desde el frontend.
+
 **Rol requerido:** `stable_admin` o `app_admin`
+
+**Query Parameters:**
+
+| Parametro | Tipo | Requerido | Descripcion |
+|-----------|------|-----------|-------------|
+| role | string | No | Filtra por rol: `client`, `monitor`, `assistant`, `stable_admin`, `app_admin` |
+
+**Ejemplos de uso frecuente:**
+
+```
+GET /api/v1/users?role=client    → lista de alumnos (sustituye al antiguo GET /clients/)
+GET /api/v1/users?role=monitor   → lista de monitores
+GET /api/v1/users                → todos los usuarios de la cuadra
+```
 
 **Response 200:**
 ```json
@@ -102,14 +124,16 @@ Lista usuarios del sistema. `stable_admin` ve solo los usuarios de su propia hip
     "name": "Admin Global",
     "email": "admin@hipica.com",
     "role": "app_admin",
+    "phone": null,
     "stable_id": null,
     "is_active": true
   },
   {
-    "id": 2,
-    "name": "Monitor Joan",
-    "email": "joan@hipica.com",
-    "role": "monitor",
+    "id": 3,
+    "name": "Carlos",
+    "email": "carlos@gmail.com",
+    "role": "client",
+    "phone": "600111222",
     "stable_id": 1,
     "is_active": true
   }
@@ -144,6 +168,7 @@ Obtiene un usuario por su ID. `stable_admin` solo puede consultar usuarios de su
   "name": "Monitor Joan",
   "email": "joan@hipica.com",
   "role": "monitor",
+  "phone": null,
   "stable_id": 1,
   "is_active": true
 }
