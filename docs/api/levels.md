@@ -2,15 +2,7 @@
 
 Base URL: `/api/v1/levels`
 
-Gestion del catalogo de niveles de equitacion disponibles en la plataforma. Los niveles se asignan a caballos mediante el endpoint `PUT /horses/{id}/levels`.
-
-Los valores posibles del enum `NivelEquitacion` son:
-
-| Valor | Descripcion |
-|-------|-------------|
-| `principiante` | Personas sin experiencia previa |
-| `iniciado` | Personas con nociones basicas |
-| `experto` | Jinetes avanzados |
+Gestion del catalogo de niveles de equitacion disponibles en la plataforma. Los niveles son textos libres definidos por el `app_admin`; no estan limitados a un enum predefinido. Se asignan a caballos mediante el endpoint `PUT /horses/{id}/levels`.
 
 ---
 
@@ -21,6 +13,7 @@ Los valores posibles del enum `NivelEquitacion` son:
 | POST | `/` | Crear un nivel | `app_admin` |
 | GET | `/` | Listar todos los niveles | Sin autenticacion |
 | GET | `/{level_id}` | Obtener un nivel por ID | Sin autenticacion |
+| PUT | `/{level_id}` | Renombrar un nivel | `app_admin` |
 | DELETE | `/{level_id}` | Eliminar un nivel | `app_admin` |
 
 ---
@@ -29,20 +22,20 @@ Los valores posibles del enum `NivelEquitacion` son:
 
 ### POST /api/v1/levels/
 
-Crea un nuevo nivel de equitacion en el catalogo. El nombre debe ser uno de los valores del enum `NivelEquitacion` y debe ser unico; no se permiten duplicados.
+Crea un nuevo nivel de equitacion en el catalogo. El nombre es texto libre y debe ser unico; no se permiten duplicados.
 
 **Rol requerido:** `app_admin`
 
 **Request Body:**
 ```json
 {
-  "name": "principiante"
+  "name": "Nivel Basico"
 }
 ```
 
 | Campo | Tipo | Requerido | Descripcion |
 |-------|------|-----------|-------------|
-| name | string (enum) | Si | Valor del enum: `principiante`, `iniciado` o `experto` |
+| name | string | Si | Nombre libre del nivel. Unico en el sistema. |
 
 **Response 201:**
 ```json
@@ -59,7 +52,7 @@ Crea un nuevo nivel de equitacion en el catalogo. El nombre debe ser uno de los 
 | 400 | Ya existe un nivel con ese nombre |
 | 401 | Token ausente o invalido |
 | 403 | Rol insuficiente (requiere `app_admin`) |
-| 422 | El valor de `name` no pertenece al enum `NivelEquitacion` |
+| 422 | Datos de entrada invalidos |
 
 ---
 
@@ -119,6 +112,48 @@ Obtiene un nivel de equitacion por su ID.
 
 | Codigo | Causa |
 |--------|-------|
+| 404 | No existe un nivel con el ID indicado |
+
+---
+
+### PUT /api/v1/levels/{level_id}
+
+Renombra un nivel existente. Comprueba que el nuevo nombre no este ya en uso por otro nivel.
+
+**Rol requerido:** `app_admin`
+
+**Parametros de ruta:**
+
+| Parametro | Tipo | Descripcion |
+|-----------|------|-------------|
+| level_id | integer | ID del nivel a renombrar |
+
+**Request Body:**
+```json
+{
+  "name": "Nivel Avanzado"
+}
+```
+
+| Campo | Tipo | Requerido | Descripcion |
+|-------|------|-----------|-------------|
+| name | string | No | Nuevo nombre del nivel |
+
+**Response 200:**
+```json
+{
+  "id": 2,
+  "name": "Nivel Avanzado"
+}
+```
+
+**Errores posibles:**
+
+| Codigo | Causa |
+|--------|-------|
+| 400 | Ya existe otro nivel con el nombre indicado |
+| 401 | Token ausente o invalido |
+| 403 | Rol insuficiente (requiere `app_admin`) |
 | 404 | No existe un nivel con el ID indicado |
 
 ---

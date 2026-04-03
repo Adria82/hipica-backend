@@ -2,7 +2,7 @@
 
 Base URL: `/api/v1/me`
 
-Endpoints relacionados con el usuario autenticado. Permiten al frontend obtener informacion de contexto del usuario actual, como las funcionalidades activas para su hipica.
+Endpoints relacionados con el usuario autenticado. Permiten al frontend obtener informacion de contexto del usuario actual, gestionar su perfil y consultar las funcionalidades activas para su hipica.
 
 ---
 
@@ -10,11 +10,84 @@ Endpoints relacionados con el usuario autenticado. Permiten al frontend obtener 
 
 | Metodo | Path | Descripcion | Rol requerido |
 |--------|------|-------------|---------------|
+| GET | `/profile` | Obtener perfil del usuario autenticado | Cualquier usuario autenticado |
+| PUT | `/profile` | Actualizar email y/o avatar del usuario | Cualquier usuario autenticado |
 | GET | `/features` | Listar funcionalidades activas de la hipica del usuario | Cualquier usuario autenticado |
 
 ---
 
 ## Detalle de Endpoints
+
+### GET /api/v1/me/profile
+
+Devuelve el perfil completo del usuario autenticado, incluyendo datos de su hipica y avatar.
+
+**Autenticacion requerida:** Si. Token Bearer en la cabecera `Authorization`.
+
+**Rol requerido:** Cualquier usuario autenticado.
+
+**Response 200:**
+```json
+{
+  "id": 3,
+  "email": "monitor@hipica.com",
+  "role": "monitor",
+  "stable_id": 1,
+  "stable_name": "Hipica Can Bofill",
+  "stable_theme": "default",
+  "avatar": "data:image/png;base64,iVBORw0KGgo..."
+}
+```
+
+| Campo | Tipo | Descripcion |
+|-------|------|-------------|
+| `id` | integer | ID del usuario |
+| `email` | string | Email del usuario |
+| `role` | string | Rol del usuario (`app_admin`, `stable_admin`, `monitor`, `client`) |
+| `stable_id` | integer \| null | ID de la hipica asociada. `null` para `app_admin` sin hipica. |
+| `stable_name` | string \| null | Nombre legible de la hipica. `null` si no tiene hipica asociada. |
+| `stable_theme` | string | Identificador del tema de branding. Default: `"default"`. |
+| `avatar` | string \| null | Data URL base64 del avatar o `null` si no se ha subido ninguno. |
+
+**Errores posibles:**
+
+| Codigo | Causa |
+|--------|-------|
+| 401 | Token ausente, invalido o expirado |
+
+---
+
+### PUT /api/v1/me/profile
+
+Actualiza el perfil del usuario autenticado. Solo se modifican los campos enviados; los omitidos conservan su valor.
+
+**Autenticacion requerida:** Si. Token Bearer en la cabecera `Authorization`.
+
+**Rol requerido:** Cualquier usuario autenticado.
+
+**Request Body (todos los campos son opcionales):**
+```json
+{
+  "email": "nuevo@ejemplo.com",
+  "avatar": "data:image/jpeg;base64,/9j/4AAQ..."
+}
+```
+
+| Campo | Tipo | Requerido | Descripcion |
+|-------|------|-----------|-------------|
+| `email` | string | No | Nuevo email. Debe ser unico en el sistema. |
+| `avatar` | string | No | Data URL en base64 de la imagen de perfil. |
+
+**Response 200:** Misma estructura que `GET /me/profile` con los datos actualizados.
+
+**Errores posibles:**
+
+| Codigo | Causa |
+|--------|-------|
+| 401 | Token ausente, invalido o expirado |
+| 409 | El email indicado ya esta en uso por otro usuario (`detail: "email.taken"`) |
+
+---
 
 ### GET /api/v1/me/features
 

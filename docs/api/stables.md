@@ -4,6 +4,8 @@ Base URL: `/api/v1/stables`
 
 Gestion de hipicas. Una hipica (`Stable`) es la entidad raiz del modelo multi-tenant: todos los usuarios, caballos, clientes y lecciones pertenecen a una hipica.
 
+El campo `theme` determina que carpeta de branding usa el frontend para esta hipica (logo, assets). Ver `docs/features/branding-por-tema.md`.
+
 ---
 
 ## Resumen de Endpoints
@@ -31,7 +33,8 @@ Crea una nueva hipica.
 {
   "name": "Hipica Can Bofill",
   "location": "Barcelona",
-  "is_active": true
+  "is_active": true,
+  "theme": "default"
 }
 ```
 
@@ -40,6 +43,7 @@ Crea una nueva hipica.
 | name | string | Si | Nombre de la hipica |
 | location | string | Si | Ubicacion o direccion |
 | is_active | boolean | No (default: `true`) | Si la hipica esta operativa |
+| theme | string | No (default: `"default"`) | Identificador de carpeta de branding |
 
 **Response 201:**
 ```json
@@ -47,7 +51,8 @@ Crea una nueva hipica.
   "id": 1,
   "name": "Hipica Can Bofill",
   "location": "Barcelona",
-  "is_active": true
+  "is_active": true,
+  "theme": "default"
 }
 ```
 
@@ -74,13 +79,15 @@ Lista todas las hipicas registradas. No filtra por hipica del usuario.
     "id": 1,
     "name": "Hipica Can Bofill",
     "location": "Barcelona",
-    "is_active": true
+    "is_active": true,
+    "theme": "default"
   },
   {
     "id": 2,
     "name": "Centre Equestre Garraf",
     "location": "Vilanova i la Geltru",
-    "is_active": true
+    "is_active": true,
+    "theme": "garraf"
   }
 ]
 ```
@@ -145,7 +152,8 @@ Actualiza parcialmente una hipica. Solo se modifican los campos incluidos en el 
 {
   "name": "Hipica Can Bofill Renovada",
   "location": "Badalona",
-  "is_active": false
+  "is_active": false,
+  "theme": "bofill"
 }
 ```
 
@@ -154,6 +162,7 @@ Actualiza parcialmente una hipica. Solo se modifican los campos incluidos en el 
 | name | string | No | Nuevo nombre |
 | location | string | No | Nueva ubicacion |
 | is_active | boolean | No | Nuevo estado operativo |
+| theme | string | No | Identificador de carpeta de branding |
 
 **Response 200:**
 ```json
@@ -161,7 +170,8 @@ Actualiza parcialmente una hipica. Solo se modifican los campos incluidos en el 
   "id": 1,
   "name": "Hipica Can Bofill Renovada",
   "location": "Badalona",
-  "is_active": false
+  "is_active": false,
+  "theme": "bofill"
 }
 ```
 
