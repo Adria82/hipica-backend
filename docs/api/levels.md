@@ -2,7 +2,7 @@
 
 Base URL: `/api/v1/levels`
 
-Gestion del catalogo de niveles de equitacion disponibles en la plataforma. Los niveles son textos libres definidos por el `app_admin`; no estan limitados a un enum predefinido. Se asignan a caballos mediante el endpoint `PUT /horses/{id}/levels`.
+Gestion del catalogo de niveles de equitacion. Cada nivel almacena su nombre en tres idiomas (`es`, `en`, `ca`) mediante una columna JSON. Los niveles son gestionados por `app_admin` y se asignan a caballos mediante sus IDs.
 
 ---
 
@@ -13,8 +13,28 @@ Gestion del catalogo de niveles de equitacion disponibles en la plataforma. Los 
 | POST | `/` | Crear un nivel | `app_admin` |
 | GET | `/` | Listar todos los niveles | Sin autenticacion |
 | GET | `/{level_id}` | Obtener un nivel por ID | Sin autenticacion |
-| PUT | `/{level_id}` | Renombrar un nivel | `app_admin` |
+| PUT | `/{level_id}` | Actualizar nombres de un nivel | `app_admin` |
 | DELETE | `/{level_id}` | Eliminar un nivel | `app_admin` |
+
+---
+
+## Esquema LevelRead
+
+```json
+{
+  "id": 1,
+  "names": {
+    "es": "Principiante",
+    "en": "Beginner",
+    "ca": "Principiant"
+  }
+}
+```
+
+| Campo | Tipo | Descripcion |
+|-------|------|-------------|
+| `id` | integer | Identificador unico |
+| `names` | object | Nombre del nivel en cada idioma soportado (`es`, `en`, `ca`) |
 
 ---
 
@@ -22,34 +42,31 @@ Gestion del catalogo de niveles de equitacion disponibles en la plataforma. Los 
 
 ### POST /api/v1/levels/
 
-Crea un nuevo nivel de equitacion en el catalogo. El nombre es texto libre y debe ser unico; no se permiten duplicados.
+Crea un nuevo nivel de equitacion con nombres en los tres idiomas.
 
 **Rol requerido:** `app_admin`
 
 **Request Body:**
 ```json
 {
-  "name": "Nivel Basico"
+  "names": {
+    "es": "Avanzado",
+    "en": "Advanced",
+    "ca": "Avançat"
+  }
 }
 ```
 
 | Campo | Tipo | Requerido | Descripcion |
 |-------|------|-----------|-------------|
-| name | string | Si | Nombre libre del nivel. Unico en el sistema. |
+| names | object | Si | Nombres del nivel. Debe incluir al menos `es`. |
 
-**Response 201:**
-```json
-{
-  "id": 1,
-  "name": "principiante"
-}
-```
+**Response 201:** Objeto `LevelRead`.
 
 **Errores posibles:**
 
 | Codigo | Causa |
 |--------|-------|
-| 400 | Ya existe un nivel con ese nombre |
 | 401 | Token ausente o invalido |
 | 403 | Rol insuficiente (requiere `app_admin`) |
 | 422 | Datos de entrada invalidos |
@@ -58,55 +75,19 @@ Crea un nuevo nivel de equitacion en el catalogo. El nombre es texto libre y deb
 
 ### GET /api/v1/levels/
 
-Lista todos los niveles de equitacion registrados en el catalogo.
+Lista todos los niveles del catalogo.
 
-**Rol requerido:** Sin control de acceso (endpoint publico)
+**Rol requerido:** Sin control de acceso.
 
-**Response 200:**
-```json
-[
-  {
-    "id": 1,
-    "name": "principiante"
-  },
-  {
-    "id": 2,
-    "name": "iniciado"
-  },
-  {
-    "id": 3,
-    "name": "experto"
-  }
-]
-```
-
-**Errores posibles:**
-
-| Codigo | Causa |
-|--------|-------|
-| — | Este endpoint no produce errores conocidos |
+**Response 200:** Array de `LevelRead`.
 
 ---
 
 ### GET /api/v1/levels/{level_id}
 
-Obtiene un nivel de equitacion por su ID.
+Obtiene un nivel por su ID.
 
-**Rol requerido:** Sin control de acceso (endpoint publico)
-
-**Parametros de ruta:**
-
-| Parametro | Tipo | Descripcion |
-|-----------|------|-------------|
-| level_id | integer | ID del nivel |
-
-**Response 200:**
-```json
-{
-  "id": 2,
-  "name": "iniciado"
-}
-```
+**Response 200:** Objeto `LevelRead`.
 
 **Errores posibles:**
 
@@ -118,57 +99,38 @@ Obtiene un nivel de equitacion por su ID.
 
 ### PUT /api/v1/levels/{level_id}
 
-Renombra un nivel existente. Comprueba que el nuevo nombre no este ya en uso por otro nivel.
+Actualiza los nombres de un nivel existente.
 
 **Rol requerido:** `app_admin`
-
-**Parametros de ruta:**
-
-| Parametro | Tipo | Descripcion |
-|-----------|------|-------------|
-| level_id | integer | ID del nivel a renombrar |
 
 **Request Body:**
 ```json
 {
-  "name": "Nivel Avanzado"
+  "names": {
+    "es": "Experto",
+    "en": "Expert",
+    "ca": "Expert"
+  }
 }
 ```
 
-| Campo | Tipo | Requerido | Descripcion |
-|-------|------|-----------|-------------|
-| name | string | No | Nuevo nombre del nivel |
-
-**Response 200:**
-```json
-{
-  "id": 2,
-  "name": "Nivel Avanzado"
-}
-```
+**Response 200:** Objeto `LevelRead` actualizado.
 
 **Errores posibles:**
 
 | Codigo | Causa |
 |--------|-------|
-| 400 | Ya existe otro nivel con el nombre indicado |
 | 401 | Token ausente o invalido |
-| 403 | Rol insuficiente (requiere `app_admin`) |
+| 403 | Rol insuficiente |
 | 404 | No existe un nivel con el ID indicado |
 
 ---
 
 ### DELETE /api/v1/levels/{level_id}
 
-Elimina un nivel del catalogo. No se permite eliminar un nivel que este asociado a algun caballo.
+Elimina un nivel. No se permite si tiene caballos asociados.
 
 **Rol requerido:** `app_admin`
-
-**Parametros de ruta:**
-
-| Parametro | Tipo | Descripcion |
-|-----------|------|-------------|
-| level_id | integer | ID del nivel a eliminar |
 
 **Response 204:** Sin contenido.
 
@@ -176,7 +138,7 @@ Elimina un nivel del catalogo. No se permite eliminar un nivel que este asociado
 
 | Codigo | Causa |
 |--------|-------|
-| 400 | El nivel tiene caballos asociados y no puede eliminarse |
+| 400 | El nivel tiene caballos asociados |
 | 401 | Token ausente o invalido |
-| 403 | Rol insuficiente (requiere `app_admin`) |
+| 403 | Rol insuficiente |
 | 404 | No existe un nivel con el ID indicado |

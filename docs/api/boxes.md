@@ -2,7 +2,7 @@
 
 Base URL: `/api/v1/boxes`
 
-Gestion de boxes (cuadras/compartimentos) de la hipica. Cada box pertenece a una hipica (`stable_id`) y puede tener caballos asignados.
+Gestion de boxes (cuadras/compartimentos) de la hipica. Cada box pertenece a una hipica (`stable_id`) y puede tener caballos asignados hasta su capacidad maxima.
 
 **Multi-tenant:** `app_admin` ve y opera sobre boxes de todas las hipicas. El resto de roles solo accede a los boxes de su propia hipica (`stable_id` del token).
 
@@ -20,11 +20,39 @@ Gestion de boxes (cuadras/compartimentos) de la hipica. Cada box pertenece a una
 
 ---
 
+## Esquema BoxRead
+
+```json
+{
+  "id": 1,
+  "name": "A1",
+  "capacity": 2,
+  "stable_id": 1,
+  "stable_name": "Hipica Can Bofill",
+  "is_active": true,
+  "horses_count": 1,
+  "horse_names": ["Trueno"]
+}
+```
+
+| Campo | Tipo | Descripcion |
+|-------|------|-------------|
+| `id` | integer | Identificador unico |
+| `name` | string | Nombre o codigo del box |
+| `capacity` | integer | Numero maximo de caballos |
+| `stable_id` | integer | ID de la hipica |
+| `stable_name` | string \| null | Nombre de la hipica |
+| `is_active` | boolean | Si el box esta operativo |
+| `horses_count` | integer | Numero de caballos actualmente asignados |
+| `horse_names` | array[string] | Nombres de los caballos asignados al box |
+
+---
+
 ## Detalle de Endpoints
 
 ### POST /api/v1/boxes/
 
-Crea un nuevo box. El `stable_id` se fuerza al de la cuadra del usuario autenticado; `app_admin` puede indicarlo explicitamente en el cuerpo.
+Crea un nuevo box. El `stable_id` se fuerza al de la cuadra del usuario autenticado; `app_admin` puede indicarlo explicitamente.
 
 **Rol requerido:** `stable_admin` o `app_admin`
 
@@ -41,27 +69,17 @@ Crea un nuevo box. El `stable_id` se fuerza al de la cuadra del usuario autentic
 |-------|------|-----------|-------------|
 | name | string | Si | Nombre o codigo del box |
 | capacity | integer | No (default: `1`) | Capacidad maxima de caballos |
-| stable_id | integer | Si | ID de la hipica. Ignorado para `stable_admin` (se sobreescribe con el del token) |
+| stable_id | integer | Si | ID de la hipica. Ignorado para `stable_admin` |
 
-**Response 201:**
-```json
-{
-  "id": 1,
-  "name": "A1",
-  "capacity": 1,
-  "stable_id": 1,
-  "is_active": true,
-  "horses_count": 0
-}
-```
+**Response 201:** Objeto `BoxRead`.
 
 **Errores posibles:**
 
 | Codigo | Causa |
 |--------|-------|
 | 401 | Token ausente o invalido |
-| 403 | Rol insuficiente (requiere `stable_admin` o `app_admin`) |
-| 422 | Datos de entrada invalidos o campos obligatorios ausentes |
+| 403 | Rol insuficiente |
+| 422 | Datos de entrada invalidos |
 
 ---
 
@@ -71,60 +89,17 @@ Devuelve los boxes de la cuadra del usuario autenticado. `app_admin` recibe boxe
 
 **Rol requerido:** `monitor`, `stable_admin` o `app_admin`
 
-**Response 200:**
-```json
-[
-  {
-    "id": 1,
-    "name": "A1",
-    "capacity": 1,
-    "stable_id": 1,
-    "is_active": true,
-    "horses_count": 2
-  },
-  {
-    "id": 2,
-    "name": "B3",
-    "capacity": 2,
-    "stable_id": 1,
-    "is_active": true,
-    "horses_count": 0
-  }
-]
-```
-
-**Errores posibles:**
-
-| Codigo | Causa |
-|--------|-------|
-| 401 | Token ausente o invalido |
-| 403 | Rol insuficiente (requiere `monitor` o superior) |
+**Response 200:** Array de `BoxRead`.
 
 ---
 
 ### GET /api/v1/boxes/{box_id}
 
-Obtiene un box por su ID. Si el box no pertenece a la hipica del usuario autenticado (y este no es `app_admin`), devuelve 403.
+Obtiene un box por su ID.
 
 **Rol requerido:** `monitor`, `stable_admin` o `app_admin`
 
-**Parametros de ruta:**
-
-| Parametro | Tipo | Descripcion |
-|-----------|------|-------------|
-| box_id | integer | ID del box |
-
-**Response 200:**
-```json
-{
-  "id": 1,
-  "name": "A1",
-  "capacity": 1,
-  "stable_id": 1,
-  "is_active": true,
-  "horses_count": 2
-}
-```
+**Response 200:** Objeto `BoxRead`.
 
 **Errores posibles:**
 
@@ -138,15 +113,9 @@ Obtiene un box por su ID. Si el box no pertenece a la hipica del usuario autenti
 
 ### PUT /api/v1/boxes/{box_id}
 
-Actualiza los datos de un box. Si el box no pertenece a la hipica del usuario autenticado (y este no es `app_admin`), devuelve 403.
+Actualiza los datos de un box.
 
 **Rol requerido:** `stable_admin` o `app_admin`
-
-**Parametros de ruta:**
-
-| Parametro | Tipo | Descripcion |
-|-----------|------|-------------|
-| box_id | integer | ID del box a actualizar |
 
 **Request Body:**
 ```json
@@ -163,17 +132,7 @@ Actualiza los datos de un box. Si el box no pertenece a la hipica del usuario au
 | capacity | integer | No | Nueva capacidad |
 | is_active | boolean | No | Estado del box |
 
-**Response 200:**
-```json
-{
-  "id": 1,
-  "name": "A1-bis",
-  "capacity": 2,
-  "stable_id": 1,
-  "is_active": false,
-  "horses_count": 1
-}
-```
+**Response 200:** Objeto `BoxRead` actualizado.
 
 **Errores posibles:**
 
@@ -188,21 +147,13 @@ Actualiza los datos de un box. Si el box no pertenece a la hipica del usuario au
 
 ### DELETE /api/v1/boxes/{box_id}
 
-Elimina un box por su ID. Devuelve 409 si el box tiene caballos asignados.
+Elimina un box. Devuelve 409 si tiene caballos asignados.
 
 **Rol requerido:** `stable_admin` o `app_admin`
 
-**Parametros de ruta:**
-
-| Parametro | Tipo | Descripcion |
-|-----------|------|-------------|
-| box_id | integer | ID del box a eliminar |
-
 **Response 200:**
 ```json
-{
-  "ok": true
-}
+{ "ok": true }
 ```
 
 **Errores posibles:**
@@ -212,4 +163,4 @@ Elimina un box por su ID. Devuelve 409 si el box tiene caballos asignados.
 | 401 | Token ausente o invalido |
 | 403 | Rol insuficiente o box de otra hipica |
 | 404 | No existe un box con el ID indicado |
-| 409 | El box tiene caballos asignados y no puede eliminarse |
+| 409 | El box tiene caballos asignados. El mensaje de error incluye sus nombres. |

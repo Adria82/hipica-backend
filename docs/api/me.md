@@ -2,7 +2,7 @@
 
 Base URL: `/api/v1/me`
 
-Endpoints relacionados con el usuario autenticado. Permiten al frontend obtener informacion de contexto del usuario actual, gestionar su perfil y consultar las funcionalidades activas para su hipica.
+Endpoints relacionados con el usuario autenticado. Permiten obtener informacion de contexto, gestionar el perfil (nombre, email, avatar) y consultar las funcionalidades activas de la hipica.
 
 ---
 
@@ -11,25 +11,17 @@ Endpoints relacionados con el usuario autenticado. Permiten al frontend obtener 
 | Metodo | Path | Descripcion | Rol requerido |
 |--------|------|-------------|---------------|
 | GET | `/profile` | Obtener perfil del usuario autenticado | Cualquier usuario autenticado |
-| PUT | `/profile` | Actualizar email y/o avatar del usuario | Cualquier usuario autenticado |
-| GET | `/features` | Listar funcionalidades activas de la hipica del usuario | Cualquier usuario autenticado |
+| PUT | `/profile` | Actualizar email y/o avatar | Cualquier usuario autenticado |
+| GET | `/features` | Listar funcionalidades activas de la hipica | Cualquier usuario autenticado |
 
 ---
 
-## Detalle de Endpoints
+## Esquema de perfil
 
-### GET /api/v1/me/profile
-
-Devuelve el perfil completo del usuario autenticado, incluyendo datos de su hipica y avatar.
-
-**Autenticacion requerida:** Si. Token Bearer en la cabecera `Authorization`.
-
-**Rol requerido:** Cualquier usuario autenticado.
-
-**Response 200:**
 ```json
 {
   "id": 3,
+  "name": "Monitor Juan",
   "email": "monitor@hipica.com",
   "role": "monitor",
   "stable_id": 1,
@@ -42,12 +34,25 @@ Devuelve el perfil completo del usuario autenticado, incluyendo datos de su hipi
 | Campo | Tipo | Descripcion |
 |-------|------|-------------|
 | `id` | integer | ID del usuario |
+| `name` | string | Nombre del usuario |
 | `email` | string | Email del usuario |
-| `role` | string | Rol del usuario (`app_admin`, `stable_admin`, `monitor`, `client`) |
-| `stable_id` | integer \| null | ID de la hipica asociada. `null` para `app_admin` sin hipica. |
-| `stable_name` | string \| null | Nombre legible de la hipica. `null` si no tiene hipica asociada. |
+| `role` | string | Rol: `app_admin`, `stable_admin`, `monitor`, `client` |
+| `stable_id` | integer \| null | ID de la hipica. `null` para `app_admin` global. |
+| `stable_name` | string \| null | Nombre de la hipica. `null` si no tiene hipica. |
 | `stable_theme` | string | Identificador del tema de branding. Default: `"default"`. |
-| `avatar` | string \| null | Data URL base64 del avatar o `null` si no se ha subido ninguno. |
+| `avatar` | string \| null | Data URL base64 del avatar, o `null` si no hay ninguno. |
+
+---
+
+## Detalle de Endpoints
+
+### GET /api/v1/me/profile
+
+Devuelve el perfil completo del usuario autenticado.
+
+**Autenticacion requerida:** Si.
+
+**Response 200:** Objeto de perfil (ver esquema arriba).
 
 **Errores posibles:**
 
@@ -59,13 +64,11 @@ Devuelve el perfil completo del usuario autenticado, incluyendo datos de su hipi
 
 ### PUT /api/v1/me/profile
 
-Actualiza el perfil del usuario autenticado. Solo se modifican los campos enviados; los omitidos conservan su valor.
+Actualiza el perfil. Solo se modifican los campos enviados.
 
-**Autenticacion requerida:** Si. Token Bearer en la cabecera `Authorization`.
+**Autenticacion requerida:** Si.
 
-**Rol requerido:** Cualquier usuario autenticado.
-
-**Request Body (todos los campos son opcionales):**
+**Request Body (todos opcionales):**
 ```json
 {
   "email": "nuevo@ejemplo.com",
@@ -76,34 +79,24 @@ Actualiza el perfil del usuario autenticado. Solo se modifican los campos enviad
 | Campo | Tipo | Requerido | Descripcion |
 |-------|------|-----------|-------------|
 | `email` | string | No | Nuevo email. Debe ser unico en el sistema. |
-| `avatar` | string | No | Data URL en base64 de la imagen de perfil. |
+| `avatar` | string | No | Data URL base64 de la imagen de perfil. Se almacena directamente en la columna `user.avatar` (character varying). |
 
-**Response 200:** Misma estructura que `GET /me/profile` con los datos actualizados.
+**Response 200:** Objeto de perfil actualizado.
 
 **Errores posibles:**
 
 | Codigo | Causa |
 |--------|-------|
 | 401 | Token ausente, invalido o expirado |
-| 409 | El email indicado ya esta en uso por otro usuario (`detail: "email.taken"`) |
+| 409 | El email indicado ya esta en uso (`detail: "email.taken"`) |
 
 ---
 
 ### GET /api/v1/me/features
 
-Devuelve la lista de codigos de funcionalidad (`FeatureCode`) activados para la hipica del usuario autenticado.
+Devuelve los codigos de funcionalidad (`FeatureCode`) activos para la hipica del usuario.
 
-El flujo interno es:
-1. Se obtiene el usuario desde el JWT.
-2. Se identifica su `stable_id`.
-3. Se consulta la tabla `StableFeature` para esa hipica.
-4. Se devuelve la lista de codigos de funcionalidad activos.
-
-**Caso especial:** Si el usuario es `app_admin` y no pertenece a ninguna hipica (`stable_id` es `null`), se devuelven **todas** las funcionalidades disponibles en el sistema.
-
-**Autenticacion requerida:** Si. Token Bearer en la cabecera `Authorization`.
-
-**Rol requerido:** Cualquier usuario autenticado (no hay restriccion de rol adicional).
+Si el usuario es `app_admin` sin hipica asignada, devuelve todas las funcionalidades del sistema.
 
 **Response 200:**
 ```json
@@ -112,17 +105,6 @@ El flujo interno es:
 }
 ```
 
-| Campo | Tipo | Descripcion |
-|-------|------|-------------|
-| features | array[string] | Lista de codigos de funcionalidad activos para la hipica |
-
-**Ejemplo — usuario app_admin sin hipica asignada (acceso total):**
-```json
-{
-  "features": ["HORSES", "CLIENTS", "LESSONS", "LEVELS", "USERS"]
-}
-```
-
 **Errores posibles:**
 
 | Codigo | Causa |
@@ -131,8 +113,8 @@ El flujo interno es:
 
 ---
 
-## Notas de Uso
+## Notas de implementacion
 
-Este endpoint es el mecanismo principal por el que el frontend decide que secciones del menu lateral mostrar. Se consulta tras el login y se almacena en el store reactivo de features (`src/features/features.ts`).
-
-El catalogo de codigos posibles (`FeatureCode`) esta definido en `app/models/feature.py`.
+- El avatar se guarda como data URL base64 directamente en la BD. Para imagenes grandes se recomienda comprimirlas en el cliente antes de enviarlas.
+- El frontend (`profile.ts`) excluye el avatar del `localStorage` para evitar `QuotaExceededError`. El avatar se recarga desde la API en cada sesion via `fetchProfile()`.
+- El campo `stable_theme` se usa en el frontend para cargar los assets de branding de la carpeta `public/branding/{theme}/`.

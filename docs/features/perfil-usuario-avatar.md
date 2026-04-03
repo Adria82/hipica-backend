@@ -2,7 +2,7 @@
 
 ## Descripcion
 
-La pantalla de perfil permite al usuario autenticado ver sus datos de cuenta y subir una foto de perfil (avatar). El avatar se almacena como data URL en base64 directamente en la tabla `user`, sin necesidad de un servicio de almacenamiento externo.
+La pantalla de perfil permite al usuario autenticado ver su nombre y datos de cuenta, subir una foto de perfil (avatar) y editar su email. El avatar se almacena como data URL en base64 directamente en la tabla `user`, sin necesidad de un servicio de almacenamiento externo.
 
 ## Modelo de Datos
 
@@ -14,14 +14,17 @@ La pantalla de perfil permite al usuario autenticado ver sus datos de cuenta y s
 
 ## Endpoints Afectados
 
-### `GET /api/v1/me/profile` — campos nuevos en la respuesta
-
-Ademas de los campos previos (`id`, `email`, `role`, `stable_id`), ahora devuelve:
+### `GET /api/v1/me/profile` — campos en la respuesta
 
 | Campo | Tipo | Descripcion |
 |-------|------|-------------|
-| `stable_name` | `str \| null` | Nombre legible de la hipica del usuario |
-| `stable_theme` | `str` | Tema de branding de la hipica (default: `"default"`) |
+| `id` | `int` | ID del usuario |
+| `name` | `str` | Nombre del usuario |
+| `email` | `str` | Email del usuario |
+| `role` | `str` | Rol del usuario |
+| `stable_id` | `int \| null` | ID de la hipica |
+| `stable_name` | `str \| null` | Nombre legible de la hipica |
+| `stable_theme` | `str` | Tema de branding (default: `"default"`) |
 | `avatar` | `str \| null` | Data URL del avatar o `null` si no se ha subido |
 
 ### `PUT /api/v1/me/profile` — endpoint nuevo
@@ -68,8 +71,20 @@ sequenceDiagram
 - **`src/auth/profile.ts`** — store reactivo `userProfile` que incluye el campo `avatar`. Se recarga con `fetchProfile()` tras cualquier actualizacion.
 - **`src/types/api.ts`** — interfaz `UserProfile` actualizada con `avatar`, `stable_name` y `stable_theme`.
 
+## Persistencia del avatar en localStorage
+
+El avatar **no** se guarda en `localStorage` para evitar `QuotaExceededError` con imagenes grandes. `profile.ts` excluye el campo `avatar` al serializar:
+
+```typescript
+const { avatar: _avatar, ...rest } = data;
+localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
+```
+
+El avatar se recupera desde la API en cada sesion via `fetchProfile()`, que `MainLayout.vue` llama en `onMounted`.
+
 ## Consideraciones
 
-- Los avatares en base64 pueden ser de tamano considerable (varios cientos de KB para imagenes sin comprimir). Se recomienda implementar compresion en cliente antes de enviar, o limitar el tamano en un middleware futuro.
-- El campo `avatar` se devuelve en cada llamada a `GET /me/profile`, lo que incrementa el tamano de la respuesta si el avatar es grande. Valorar separar en un endpoint dedicado si el impacto es relevante.
+- Los avatares en base64 pueden ser de tamano considerable (varios cientos de KB para imagenes sin comprimir). Se recomienda compresion en cliente (p.ej. canvas resize a 200x200) antes de enviar.
+- El campo `avatar` se devuelve en cada llamada a `GET /me/profile`. Valorar separar en un endpoint dedicado si el impacto en rendimiento es relevante.
 - No se realiza ningun procesado de imagen en el backend (redimensionado, conversion de formato).
+- El nombre del usuario (`name`) es de solo lectura desde el perfil; solo puede cambiarse desde la gestion de usuarios.
