@@ -34,6 +34,7 @@ def _box_to_read(box: Box, session: Session | None = None) -> BoxRead:
         stable_name=stable_name,
         is_active=box.is_active,
         horses_count=len(box.horses),
+        horse_names=[h.name for h in box.horses],
     )
 
 

@@ -30,6 +30,12 @@
 
       <v-list lines="two">
         <v-list-item
+          prepend-icon="mdi-account-outline"
+          :title="t('profile.name')"
+          :subtitle="userProfile?.name ?? '—'"
+        />
+        <v-divider />
+        <v-list-item
           prepend-icon="mdi-email-outline"
           :title="t('profile.email')"
           :subtitle="userProfile?.email ?? '—'"

@@ -44,6 +44,7 @@ export type Box = {
   stable_name: string | null;
   is_active: boolean;
   horses_count: number;
+  horse_names: string[];
 };
 
 /**
@@ -104,6 +105,7 @@ export type Stable = {
  */
 export type UserProfile = {
   id: number;
+  name: string;
   email: string;
   role: string;
   stable_id: number | null;

@@ -81,6 +81,7 @@ const messages = {
         deleteSuccess: "Box eliminado correctamente",
         deleteError: "Error al eliminar el box",
         stable: "Hípica",
+        assignedHorses: "Caballos en este box",
       },
       errors: {
         hasHorses: "No se puede eliminar un box que tiene caballos asignados",
@@ -354,6 +355,7 @@ const messages = {
     },
     profile: {
       title: "Mi perfil",
+      name: "Nombre",
       email: "Email",
       role: "Rol",
       stable: "Hípica",
@@ -458,6 +460,7 @@ const messages = {
         deleteSuccess: "Box eliminat correctament",
         deleteError: "Error en eliminar el box",
         stable: "Hípica",
+        assignedHorses: "Cavalls en aquest box",
       },
       errors: {
         hasHorses: "No es pot eliminar un box que té cavalls assignats",
@@ -731,6 +734,7 @@ const messages = {
     },
     profile: {
       title: "El meu perfil",
+      name: "Nom",
       email: "Email",
       role: "Rol",
       stable: "Hípica",
@@ -835,6 +839,7 @@ const messages = {
         deleteSuccess: "Box deleted successfully",
         deleteError: "Error deleting box",
         stable: "Stable",
+        assignedHorses: "Horses in this box",
       },
       errors: {
         hasHorses: "Cannot delete a box that has horses assigned",
@@ -1108,6 +1113,7 @@ const messages = {
     },
     profile: {
       title: "My profile",
+      name: "Name",
       email: "Email",
       role: "Role",
       stable: "Stable",

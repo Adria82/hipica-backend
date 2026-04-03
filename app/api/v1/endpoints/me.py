@@ -46,6 +46,7 @@ def get_my_profile(
 
     return {
         "id": current_user.id,
+        "name": current_user.name,
         "email": current_user.email,
         "role": current_user.role,
         "stable_id": current_user.stable_id,
@@ -98,6 +99,7 @@ def update_my_profile(
 
     return {
         "id": current_user.id,
+        "name": current_user.name,
         "email": current_user.email,
         "role": current_user.role,
         "stable_id": current_user.stable_id,

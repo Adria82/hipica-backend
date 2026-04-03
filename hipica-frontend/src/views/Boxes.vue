@@ -122,6 +122,20 @@
                 :min="1"
               />
             </v-col>
+            <v-col v-if="editingId && editingHorseNames.length" cols="12">
+              <div class="text-caption text-medium-emphasis mb-1">{{ t('boxes.dialog.assignedHorses') }}</div>
+              <div class="d-flex flex-wrap ga-1">
+                <v-chip
+                  v-for="horseName in editingHorseNames"
+                  :key="horseName"
+                  size="small"
+                  prepend-icon="mdi-horse"
+                  variant="tonal"
+                >
+                  {{ horseName }}
+                </v-chip>
+              </div>
+            </v-col>
             <v-col cols="12">
               <v-switch
                 v-model="form.is_active"
@@ -212,6 +226,7 @@ const dialog = ref(false);
 const saving = ref(false);
 const deleting = ref(false);
 const editingId = ref<number | null>(null);
+const editingHorseNames = ref<string[]>([]);
 const form = ref({ name: "", capacity: 1, is_active: true, stable_id: null as number | null });
 
 // Confirmación de eliminación
@@ -260,12 +275,14 @@ function onRowClick(_event: Event, row: { item: Box }) {
 
 function openCreateDialog() {
   editingId.value = null;
+  editingHorseNames.value = [];
   form.value = { name: "", capacity: 1, is_active: true, stable_id: null };
   dialog.value = true;
 }
 
 function openEditDialog(box: Box) {
   editingId.value = box.id;
+  editingHorseNames.value = box.horse_names ?? [];
   form.value = {
     name:      box.name,
     capacity:  box.capacity,

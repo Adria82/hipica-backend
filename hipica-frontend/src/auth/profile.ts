@@ -25,7 +25,10 @@ function loadProfile(): UserProfile | null {
 export async function fetchProfile(): Promise<void> {
   const { data } = await http.get<UserProfile>("/api/v1/me/profile");
   userProfile.value = data;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  // El avatar (base64) se excluye de localStorage para evitar QuotaExceededError.
+  // Se recarga desde la API en cada sesión (MainLayout lo llama en onMounted).
+  const { avatar: _avatar, ...rest } = data;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
 }
 
 export function clearProfile(): void {

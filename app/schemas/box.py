@@ -52,8 +52,7 @@ class BoxRead(SQLModel):
     """
     Esquema de salida de un box.
 
-    Includes horses_count: número de caballos actualmente asignados,
-    calculado en el endpoint (no es columna de DB).
+    horses_count y horse_names se calculan en el endpoint (no son columnas de DB).
     """
 
     id: int
@@ -63,3 +62,4 @@ class BoxRead(SQLModel):
     stable_name: Optional[str] = None
     is_active: bool
     horses_count: int
+    horse_names: list[str] = []
