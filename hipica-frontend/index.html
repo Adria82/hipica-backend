@@ -26,11 +26,11 @@
         const host = window.location.hostname;
 
         if (host.includes("localhost") || host.startsWith("127.0.0.1")) {
-          return "demo";
+          return "default";
         }
 
         const parts = host.split(".");
-        return parts.length > 2 ? parts[0] : "demo";
+        return parts.length > 2 ? parts[0] : "default";
       }
 
 
@@ -41,7 +41,7 @@
           const res = await fetch(`/branding/${client}/branding.json`);
           const branding = res.ok
             ? await res.json()
-            : await fetch(`/branding/demo/branding.json`).then(r => r.json());
+            : await fetch(`/branding/default/branding.json`).then(r => r.json());
 
           window.__APP_BRANDING__ = branding;
 

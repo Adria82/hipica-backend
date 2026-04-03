@@ -49,3 +49,4 @@ class ClientRead(SQLModel):
     phone: Optional[str] = None
     is_active: bool
     stable_id: int
+    stable_name: Optional[str] = None

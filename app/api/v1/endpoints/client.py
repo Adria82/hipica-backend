@@ -11,12 +11,31 @@ from sqlmodel import Session, select
 
 from app.db.session import get_session
 from app.models.client import Client
+from app.models.stable import Stable
 from app.dependencies import require_role
 from app.models import User
 from app.schemas.client import ClientCreate, ClientRead, ClientUpdate
 from app.core.i18n import t
 
 router = APIRouter(prefix="/clients", tags=["Clients"])
+
+
+def _client_to_read(client: Client, session: Session | None = None) -> ClientRead:
+    """Convierte un ORM Client en el schema ClientRead."""
+    stable_name: str | None = None
+    if session and client.stable_id:
+        stable = session.get(Stable, client.stable_id)
+        stable_name = stable.name if stable else None
+    return ClientRead(
+        id=client.id,
+        name=client.name,
+        email=client.email,
+        phone=client.phone,
+        is_active=client.is_active,
+        stable_id=client.stable_id,
+        stable_name=stable_name,
+    )
+
 
 @router.post("/", response_model=ClientRead, status_code=201)
 def create_client(
@@ -38,7 +57,7 @@ def create_client(
     session.add(client)
     session.commit()
     session.refresh(client)
-    return client
+    return _client_to_read(client, session)
 
 @router.get("/", response_model=list[ClientRead])
 def get_clients(
@@ -55,7 +74,8 @@ def get_clients(
     if current_user.role != "app_admin":
         query = query.where(Client.stable_id == current_user.stable_id)
 
-    return session.exec(query).all()
+    clients = session.exec(query).all()
+    return [_client_to_read(c, session) for c in clients]
 
 @router.get("/{client_id}", response_model=ClientRead)
 def get_client(
@@ -74,7 +94,7 @@ def get_client(
     if current_user.role != "app_admin" and client.stable_id != current_user.stable_id:
         raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
 
-    return client
+    return _client_to_read(client, session)
 
 @router.put("/{client_id}", response_model=ClientRead)
 def update_client(
@@ -102,7 +122,7 @@ def update_client(
     session.add(client)
     session.commit()
     session.refresh(client)
-    return client
+    return _client_to_read(client, session)
 
 @router.delete("/{client_id}")
 def delete_client(

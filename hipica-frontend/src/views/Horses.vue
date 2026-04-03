@@ -271,7 +271,7 @@ const headers = computed(() => [
   { title: t("horses.table.box"),    key: "box_name",  sortable: true  },
   { title: t("horses.table.levels"), key: "levels",    sortable: false },
   { title: t("horses.table.active"), key: "is_active", sortable: true  },
-  { title: t("horses.table.stable"), key: "stable_id", sortable: true  },
+  { title: t("horses.table.stable"), key: "stable_name", sortable: true  },
 ]);
 
 // Para export respetando el filtro de búsqueda
@@ -388,7 +388,7 @@ function exportToExcel() {
     [t("horses.table.box")]:    h.box_name ?? "-",
     [t("horses.table.levels")]: h.levels.map((l) => t(`horses.levels.${l}`)).join(", "),
     [t("horses.table.active")]: h.is_active ? "✓" : "✗",
-    [t("horses.table.stable")]: h.stable_id,
+    [t("horses.table.stable")]: h.stable_name ?? h.stable_id,
   }));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();

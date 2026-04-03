@@ -216,7 +216,7 @@ const headers = computed(() => [
   { title: t("clients.table.email"),  key: "email",     sortable: true },
   { title: t("clients.table.phone"),  key: "phone",     sortable: false },
   { title: t("clients.table.active"), key: "is_active", sortable: true },
-  { title: t("clients.table.stable"), key: "stable_id", sortable: true },
+  { title: t("clients.table.stable"), key: "stable_name", sortable: true },
 ]);
 
 const filteredClients = computed(() => {
@@ -321,7 +321,7 @@ function exportToExcel() {
     [t("clients.table.email")]:  c.email ?? "-",
     [t("clients.table.phone")]:  c.phone ?? "-",
     [t("clients.table.active")]: c.is_active ? "✓" : "✗",
-    [t("clients.table.stable")]: c.stable_id,
+    [t("clients.table.stable")]: c.stable_name ?? c.stable_id,
   }));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();

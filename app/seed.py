@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from sqlmodel import Session, SQLModel
 
 from app.db.session import engine
-from app.models.level import Level, NivelEquitacion
+from app.models.level import Level
 from app.security import hash_password
 
 # Importar modelos (sin provocar imports circulares)
@@ -128,8 +128,8 @@ def seed_db() -> None:
         # 2.5 Crear niveles de equitación (catálogo)
         # -----------------------------------------------------------------
         levels = []
-        for nivel in NivelEquitacion:
-            level = Level(name=nivel)
+        for nivel_name in ["Principiante", "Iniciado", "Experto"]:
+            level = Level(name=nivel_name)
             session.add(level)
             levels.append(level)
 

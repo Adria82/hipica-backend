@@ -13,19 +13,25 @@ from app.db.session import get_session
 from app.models.box import Box
 from app.dependencies import require_role
 from app.models import User
+from app.models.stable import Stable
 from app.schemas.box import BoxCreate, BoxRead, BoxUpdate
 from app.core.i18n import t
 
 router = APIRouter(prefix="/boxes", tags=["Boxes"])
 
 
-def _box_to_read(box: Box) -> BoxRead:
+def _box_to_read(box: Box, session: Session | None = None) -> BoxRead:
     """Convierte un ORM Box en el schema BoxRead."""
+    stable_name: str | None = None
+    if session and box.stable_id:
+        stable = session.get(Stable, box.stable_id)
+        stable_name = stable.name if stable else None
     return BoxRead(
         id=box.id,
         name=box.name,
         capacity=box.capacity,
         stable_id=box.stable_id,
+        stable_name=stable_name,
         is_active=box.is_active,
         horses_count=len(box.horses),
     )
@@ -47,7 +53,7 @@ def get_boxes(
         query = query.where(Box.stable_id == current_user.stable_id)
 
     boxes = session.exec(query).all()
-    return [_box_to_read(b) for b in boxes]
+    return [_box_to_read(b, session) for b in boxes]
 
 
 @router.post("/", response_model=BoxRead, status_code=201)
@@ -71,7 +77,7 @@ def create_box(
     session.add(box)
     session.commit()
     session.refresh(box)
-    return _box_to_read(box)
+    return _box_to_read(box, session)
 
 
 @router.get("/{box_id}", response_model=BoxRead)
@@ -93,7 +99,7 @@ def get_box(
     if current_user.role != "app_admin" and box.stable_id != current_user.stable_id:
         raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
 
-    return _box_to_read(box)
+    return _box_to_read(box, session)
 
 
 @router.put("/{box_id}", response_model=BoxRead)
@@ -123,7 +129,7 @@ def update_box(
     session.add(box)
     session.commit()
     session.refresh(box)
-    return _box_to_read(box)
+    return _box_to_read(box, session)
 
 
 @router.delete("/{box_id}")

@@ -11,14 +11,13 @@ Proyecto: Gestión de Hípica
 
 from typing import Optional
 from sqlmodel import SQLModel
-from app.models.level import NivelEquitacion
 
 
 class LevelBase(SQLModel):
     """
     Atributos base de un nivel de equitación.
     """
-    name: NivelEquitacion
+    name: str
 
 
 class LevelCreate(LevelBase):
@@ -26,6 +25,13 @@ class LevelCreate(LevelBase):
     Esquema para crear un nivel de equitación.
     """
     pass
+
+
+class LevelUpdate(SQLModel):
+    """
+    Esquema para renombrar un nivel de equitación.
+    """
+    name: Optional[str] = None
 
 
 class LevelRead(LevelBase):

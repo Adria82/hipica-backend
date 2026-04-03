@@ -92,7 +92,7 @@ import { useRouter } from "vue-router";
 import LanguageSelector from "@/components/LanguageSelector.vue";
 import { getAccessToken, clearTokens } from "@/auth/tokens";
 import { features, fetchFeatures } from "@/features/features";
-import { fetchProfile, clearProfile, isAppAdmin } from "@/auth/profile";
+import { fetchProfile, clearProfile, isAppAdmin, userProfile } from "@/auth/profile";
 import type { NavItem, FeatureCode } from "@/types/api";
 
 const { t } = useI18n();
@@ -104,16 +104,10 @@ const drawer = ref(true);
 // ---------------------------------------------------------------------------
 const branding = (window as any).__APP_BRANDING__ as { appName: string; logo?: string } | null;
 
-function detectClient(): string {
-  const host = window.location.hostname;
-  if (host.includes("localhost") || host.startsWith("127.0.0.1")) return "demo";
-  const parts = host.split(".");
-  return parts.length > 2 ? parts[0] : "demo";
-}
-
 const brandingLogoUrl = computed(() => {
   if (!branding?.logo) return undefined;
-  return `/branding/${detectClient()}/${branding.logo}`;
+  const theme = userProfile.value?.stable_theme ?? "default";
+  return `/branding/${theme}/${branding.logo}`;
 });
 
 // ---------------------------------------------------------------------------
@@ -124,6 +118,7 @@ const ADMIN_ITEMS: NavItem[] = [
   { titleKey: "menu.stables",  icon: "mdi-home-group",        route: "/stables"  },
   { titleKey: "menu.levels",   icon: "mdi-stairs",            route: "/levels"   },
   { titleKey: "menu.features", icon: "mdi-toggle-switch",     route: "/features" },
+  { titleKey: "menu.reports",  icon: "mdi-chart-bar",         route: "/reports"  },
 ];
 
 const OPERATIVA_ITEMS: (NavItem & { feature?: FeatureCode })[] = [

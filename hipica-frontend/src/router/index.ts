@@ -8,6 +8,7 @@ import Horses from "../views/Horses.vue";
 import Boxes from "../views/Boxes.vue";
 import Clients from "../views/Clients.vue";
 import Lessons from "../views/Lessons.vue";
+import Reports from "../views/Reports.vue";
 import Stables from "../views/Stables.vue";
 import Levels from "../views/Levels.vue";
 import Features from "../views/Features.vue";
@@ -34,10 +35,11 @@ const routes: RouteRecordRaw[] = [
       { path: "clients", name: "clients", component: Clients },
       { path: "lessons", name: "lessons", component: Lessons },
 
-      // Administración (solo app_admin)
+      // Administración (solo app_admin / stable_admin)
       { path: "stables",  name: "stables",  component: Stables  },
       { path: "levels",   name: "levels",   component: Levels   },
       { path: "features", name: "features", component: Features },
+      { path: "reports",  name: "reports",  component: Reports  },
 
       // Mi espacio
       { path: "profile", name: "profile", component: Profile },

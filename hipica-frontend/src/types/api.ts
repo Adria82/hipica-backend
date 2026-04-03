@@ -41,6 +41,7 @@ export type Box = {
   name: string;
   capacity: number;
   stable_id: number;
+  stable_name: string | null;
   is_active: boolean;
   horses_count: number;
 };
@@ -58,6 +59,7 @@ export type Horse = {
   box_name: string | null;
   is_active: boolean;
   stable_id: number;
+  stable_name: string | null;
   levels: string[];
 };
 
@@ -71,6 +73,7 @@ export type Client = {
   phone: string | null;
   is_active: boolean;
   stable_id: number;
+  stable_name: string | null;
 };
 
 /**
@@ -101,6 +104,9 @@ export type UserProfile = {
   email: string;
   role: string;
   stable_id: number | null;
+  stable_name: string | null;
+  stable_theme: string | null;
+  avatar: string | null;
 };
 
 export type FeatureCode =
@@ -129,4 +135,104 @@ export type NavSection = {
   titleKey: string;
   adminOnly?: boolean;
   items: NavItem[];
+};
+
+/**
+ * Entidad Track (pista de equitación).
+ *
+ * Representa una pista física dentro de una hípica.
+ */
+export type Track = {
+  id: number;
+  name: string;
+  stable_id: number;
+  is_active: boolean;
+};
+
+/**
+ * Entidad Lesson (clase/lección).
+ *
+ * Respuesta completa con datos desnormalizados: emails de instructor/ayudante,
+ * nombre de pista, nombres de caballos y alumnos.
+ */
+export type Lesson = {
+  id: number;
+  date_time: string;
+  end_time: string | null;
+  instructor_id: number;
+  instructor_email: string;
+  helper_id: number | null;
+  helper_email: string | null;
+  track_id: number | null;
+  track_name: string | null;
+  description: string | null;
+  stable_id: number;
+  horse_names: string[];
+  client_names: string[];
+};
+
+/**
+ * Payload para crear una lección.
+ */
+export type LessonCreate = {
+  date_time: string;
+  end_time?: string | null;
+  instructor_id: number;
+  helper_id?: number | null;
+  track_id?: number | null;
+  description?: string | null;
+  horse_ids: number[];
+  client_ids: number[];
+};
+
+/**
+ * Payload para actualizar una lección (todos los campos opcionales).
+ */
+export type LessonUpdate = Partial<LessonCreate>;
+
+// ---------------------------------------------------------------------------
+// Reports
+// ---------------------------------------------------------------------------
+
+export type InstructorHours = {
+  user_id: number;
+  email: string;
+  hours: number;
+};
+
+export type HelperHours = {
+  user_id: number;
+  email: string;
+  hours: number;
+};
+
+export type StudentClasses = {
+  client_id: number;
+  name: string;
+  class_count: number;
+};
+
+export type HorseHours = {
+  horse_id: number;
+  name: string;
+  hours: number;
+};
+
+export type LessonReport = {
+  instructor_hours: InstructorHours[];
+  helper_hours: HelperHours[];
+  student_classes: StudentClasses[];
+  horse_hours: HorseHours[];
+  from_date: string | null;
+  to_date: string | null;
+};
+
+/**
+ * Entidad User (usuario de la hípica) — versión pública para selectores.
+ */
+export type UserRead = {
+  id: number;
+  email: string;
+  role: string;
+  stable_id: number | null;
 };

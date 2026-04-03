@@ -12,9 +12,6 @@ Proyecto: Gestión de Hípica
 from sqlmodel import SQLModel
 from typing import List, Optional
 
-from app.models.level import NivelEquitacion
-
-
 class HorseBase(SQLModel):
     """
     Atributos base de un caballo.
@@ -50,7 +47,7 @@ class HorseUpdate(SQLModel):
     box_id: Optional[int] = None
     is_active: Optional[bool] = None
     stable_id: Optional[int] = None
-    levels: Optional[List[NivelEquitacion]] = None
+    levels: Optional[List[str]] = None
 
 class HorseRead(SQLModel):
     """
@@ -62,4 +59,5 @@ class HorseRead(SQLModel):
     box_name: Optional[str] = None
     is_active: bool
     stable_id: int
-    levels: List[NivelEquitacion]
+    stable_name: Optional[str] = None
+    levels: List[str]

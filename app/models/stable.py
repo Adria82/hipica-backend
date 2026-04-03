@@ -26,6 +26,7 @@ class Stable(SQLModel, table=True):
     name: str = Field(index=True, nullable=False)
     location: Optional[str] = None
     is_active: bool = Field(default=True)
+    theme: Optional[str] = Field(default="default")
 
     # Relación con usuarios
     users: List["User"] = Relationship(back_populates="stable")

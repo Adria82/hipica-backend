@@ -38,4 +38,5 @@ class User(SQLModel, table=True):
     stable_id: Optional[int] = Field(default=None, foreign_key="stable.id")  # None para app_admin
     stable: Optional[Stable] = Relationship(back_populates="users")
     is_active: bool = Field(default=True)
+    avatar: Optional[str] = Field(default=None)  # base64 data URL o URL externa
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -60,5 +60,6 @@ class BoxRead(SQLModel):
     name: str
     capacity: int
     stable_id: int
+    stable_name: Optional[str] = None
     is_active: bool
     horses_count: int

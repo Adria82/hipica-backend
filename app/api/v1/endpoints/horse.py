@@ -10,7 +10,8 @@ from app.models.horse import Horse
 from app.models.box import Box
 from app.dependencies import get_current_user, require_role
 from app.models import User
-from app.models.level import NivelEquitacion, Level
+from app.models.level import Level
+from app.models.stable import Stable
 from app.schemas.horse import HorseCreate, HorseRead, HorseUpdate
 from app.core.i18n import t
 
@@ -38,8 +39,12 @@ def _check_box_capacity(session: Session, box_id: int, exclude_horse_id: int | N
     return box
 
 
-def _horse_to_read(horse: Horse) -> HorseRead:
+def _horse_to_read(horse: Horse, session: Session | None = None) -> HorseRead:
     """Convierte un ORM Horse en el schema HorseRead."""
+    stable_name: str | None = None
+    if session and horse.stable_id:
+        stable = session.get(Stable, horse.stable_id)
+        stable_name = stable.name if stable else None
     return HorseRead(
         id=horse.id,
         name=horse.name,
@@ -47,6 +52,7 @@ def _horse_to_read(horse: Horse) -> HorseRead:
         box_name=horse.box.name if horse.box else None,
         is_active=horse.is_active,
         stable_id=horse.stable_id,
+        stable_name=stable_name,
         levels=[lvl.name for lvl in horse.levels],
     )
 
@@ -83,7 +89,7 @@ def create_horse(
     session.add(horse)
     session.commit()
     session.refresh(horse)
-    return _horse_to_read(horse)
+    return _horse_to_read(horse, session)
 
 @router.get("/", response_model=list[HorseRead])
 def get_horses(
@@ -101,7 +107,7 @@ def get_horses(
         query = query.where(Horse.stable_id == current_user.stable_id)
 
     horses = session.exec(query).all()
-    return [_horse_to_read(h) for h in horses]
+    return [_horse_to_read(h, session) for h in horses]
 
 @router.get("/{horse_id}", response_model=HorseRead)
 def get_horse(
@@ -120,7 +126,7 @@ def get_horse(
     if current_user.role != "app_admin" and horse.stable_id != current_user.stable_id:
         raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
 
-    return _horse_to_read(horse)
+    return _horse_to_read(horse, session)
 
 @router.put("/{horse_id}", response_model=HorseRead)
 def update_horse(
@@ -174,7 +180,7 @@ def update_horse(
     session.add(horse)
     session.commit()
     session.refresh(horse)
-    return _horse_to_read(horse)
+    return _horse_to_read(horse, session)
 
 @router.delete("/{horse_id}")
 def delete_horse(
@@ -206,7 +212,7 @@ def delete_horse(
 )
 def set_horse_levels(
     horse_id: int,
-    levels: list[NivelEquitacion],
+    levels: list[str],
     request: Request,
     session: Session = Depends(get_session),
     current_user: User = Depends(require_role(["stable_admin", "app_admin"])),
@@ -239,4 +245,4 @@ def set_horse_levels(
     session.commit()
     session.refresh(horse)
 
-    return _horse_to_read(horse)
+    return _horse_to_read(horse, session)

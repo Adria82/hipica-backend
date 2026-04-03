@@ -13,10 +13,6 @@
       hover
       @click:row="onRowClick"
     >
-      <template #[`item.name`]="{ item }">
-        {{ t(`levels.names.${item.name}`) }}
-      </template>
-
       <template #no-data>
         <v-alert type="warning" variant="tonal" class="ma-4">
           {{ t("levels.empty") }}
@@ -44,27 +40,36 @@
       </template>
     </v-data-table>
 
-    <!-- Diálogo crear -->
+    <!-- Diálogo crear / editar -->
     <v-dialog v-model="dialog" max-width="400" persistent>
       <v-card>
         <v-card-title class="text-h6 pa-4">
-          {{ t("levels.dialog.titleCreate") }}
+          {{ editingId ? t("levels.dialog.titleEdit") : t("levels.dialog.titleCreate") }}
         </v-card-title>
         <v-divider />
         <v-card-text class="pa-4">
-          <v-select
+          <v-text-field
             v-model="form.name"
             :label="t('levels.dialog.name')"
-            :items="levelOptions"
             variant="outlined"
             density="compact"
+            autofocus
             required
           />
         </v-card-text>
         <v-divider />
         <v-card-actions class="pa-4">
+          <v-btn
+            v-if="editingId"
+            color="error"
+            variant="text"
+            :loading="deleting"
+            @click="confirmDelete"
+          >
+            {{ t("levels.dialog.delete") }}
+          </v-btn>
           <v-spacer />
-          <v-btn variant="text" :disabled="saving" @click="dialog = false">
+          <v-btn variant="text" :disabled="saving || deleting" @click="dialog = false">
             {{ t("levels.dialog.cancel") }}
           </v-btn>
           <v-btn color="primary" variant="flat" :loading="saving" @click="save">
@@ -74,7 +79,7 @@
       </v-card>
     </v-dialog>
 
-    <!-- Diálogo confirmar eliminar (al hacer click en fila) -->
+    <!-- Diálogo confirmar eliminar -->
     <v-dialog v-model="confirmDeleteDialog" max-width="400" persistent>
       <v-card>
         <v-card-title class="text-h6 pa-4">{{ t("levels.dialog.delete") }}</v-card-title>
@@ -111,21 +116,13 @@ const error = ref("");
 const dialog = ref(false);
 const saving = ref(false);
 const deleting = ref(false);
-const deletingId = ref<number | null>(null);
+const editingId = ref<number | null>(null);
 const form = ref({ name: "" });
 
 const confirmDeleteDialog = ref(false);
 const snackbar = ref(false);
 const snackbarText = ref("");
 const snackbarColor = ref("success");
-
-const ALL_LEVELS = ["principiante", "iniciado", "experto"];
-
-const levelOptions = computed(() =>
-  ALL_LEVELS
-    .filter((l) => !levels.value.some((existing) => existing.name === l))
-    .map((l) => ({ title: t(`levels.names.${l}`), value: l }))
-);
 
 const headers = computed(() => [
   { title: t("levels.table.id"),   key: "id",   sortable: true },
@@ -146,22 +143,37 @@ async function load() {
 }
 
 function openCreateDialog() {
+  editingId.value = null;
   form.value = { name: "" };
   dialog.value = true;
 }
 
 function onRowClick(_event: Event, row: { item: Level }) {
-  deletingId.value = row.item.id;
+  editingId.value = row.item.id;
+  form.value = { name: row.item.name };
+  dialog.value = true;
+}
+
+function confirmDelete() {
+  dialog.value = false;
   confirmDeleteDialog.value = true;
 }
 
 async function save() {
   saving.value = true;
   try {
-    const res = await http.post<Level>("/api/v1/levels/", { name: form.value.name });
-    levels.value.push(res.data);
-    dialog.value = false;
-    showSnackbar(t("levels.saveSuccess"), "success");
+    if (editingId.value) {
+      const res = await http.put<Level>(`/api/v1/levels/${editingId.value}`, { name: form.value.name });
+      const idx = levels.value.findIndex((l) => l.id === editingId.value);
+      if (idx !== -1) levels.value[idx] = res.data;
+      dialog.value = false;
+      showSnackbar(t("levels.saveSuccessEdit"), "success");
+    } else {
+      const res = await http.post<Level>("/api/v1/levels/", { name: form.value.name });
+      levels.value.push(res.data);
+      dialog.value = false;
+      showSnackbar(t("levels.saveSuccess"), "success");
+    }
   } catch (e: any) {
     showSnackbar(e?.response?.data?.detail || t("levels.saveError"), "error");
   } finally {
@@ -170,11 +182,11 @@ async function save() {
 }
 
 async function deleteLevel() {
-  if (!deletingId.value) return;
+  if (!editingId.value) return;
   deleting.value = true;
   try {
-    await http.delete(`/api/v1/levels/${deletingId.value}`);
-    levels.value = levels.value.filter((l) => l.id !== deletingId.value);
+    await http.delete(`/api/v1/levels/${editingId.value}`);
+    levels.value = levels.value.filter((l) => l.id !== editingId.value);
     confirmDeleteDialog.value = false;
     showSnackbar(t("levels.dialog.deleteSuccess"), "success");
   } catch (e: any) {

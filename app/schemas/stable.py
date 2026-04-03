@@ -20,6 +20,7 @@ class StableBase(SQLModel):
     name: str
     location: str
     is_active: bool = True
+    theme: Optional[str] = "default"
 
 
 class StableCreate(StableBase):
@@ -36,6 +37,7 @@ class StableUpdate(SQLModel):
     name: Optional[str] = None
     location: Optional[str] = None
     is_active: Optional[bool] = None
+    theme: Optional[str] = None
 
 
 class StableRead(StableBase):

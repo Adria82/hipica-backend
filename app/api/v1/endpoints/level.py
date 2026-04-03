@@ -11,7 +11,7 @@ from app.db.session import get_session
 from app.models.level import Level
 from app.dependencies import require_role
 from app.models import User
-from app.schemas.level import LevelCreate, LevelRead
+from app.schemas.level import LevelCreate, LevelRead, LevelUpdate
 from app.core.i18n import t
 
 router = APIRouter(prefix="/levels", tags=["levels"])
@@ -59,6 +59,44 @@ def list_levels(
     Listar todos los niveles de equitación.
     """
     return session.exec(select(Level)).all()
+
+
+@router.put(
+    "/{level_id}",
+    response_model=LevelRead,
+)
+def update_level(
+    level_id: int,
+    data: LevelUpdate,
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["app_admin"])),
+):
+    """
+    Renombrar un nivel de equitación.
+    """
+    level = session.get(Level, level_id)
+    if not level:
+        raise HTTPException(
+            status_code=404,
+            detail=t(request, "level.not_found"),
+        )
+
+    if data.name is not None:
+        existing = session.exec(
+            select(Level).where(Level.name == data.name, Level.id != level_id)
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=400,
+                detail=t(request, "level.exists"),
+            )
+        level.name = data.name
+
+    session.add(level)
+    session.commit()
+    session.refresh(level)
+    return level
 
 
 @router.get(
