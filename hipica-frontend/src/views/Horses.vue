@@ -49,7 +49,7 @@
           size="x-small"
           class="mr-1"
         >
-          {{ t(`horses.levels.${lvl}`) }}
+          {{ lvl }}
         </v-chip>
       </template>
 
@@ -228,7 +228,7 @@ import { onMounted, ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import * as XLSX from "xlsx";
 import { http } from "../api/http";
-import type { Horse, Box, Stable } from "../types/api";
+import type { Horse, Box, Stable, Level } from "../types/api";
 import { canManage, isAppAdmin } from "../auth/profile";
 
 const { t } = useI18n();
@@ -254,11 +254,8 @@ const snackbar = ref(false);
 const snackbarText = ref("");
 const snackbarColor = ref("success");
 
-const levelOptions = computed(() => [
-  { title: t("horses.levels.principiante"), value: "principiante" },
-  { title: t("horses.levels.iniciado"),     value: "iniciado" },
-  { title: t("horses.levels.experto"),      value: "experto" },
-]);
+const levels = ref<Level[]>([]);
+const levelOptions = computed(() => levels.value.map((l) => ({ title: l.name, value: l.name })));
 
 // Opciones de boxes activos para el select del diálogo
 const boxOptions = computed(() =>
@@ -292,11 +289,13 @@ async function load() {
     const requests: Promise<any>[] = [
       http.get<Horse[]>("/api/v1/horses"),
       http.get<Box[]>("/api/v1/boxes"),
+      http.get<Level[]>("/api/v1/levels"),
     ];
     if (isAppAdmin.value) requests.push(http.get<Stable[]>("/api/v1/stables"));
-    const [horsesRes, boxesRes, stablesRes] = await Promise.all(requests);
+    const [horsesRes, boxesRes, levelsRes, stablesRes] = await Promise.all(requests);
     horses.value = horsesRes.data;
     boxes.value = boxesRes.data;
+    levels.value = levelsRes.data;
     if (stablesRes) stables.value = stablesRes.data;
   } catch (e: any) {
     error.value = e?.response?.data?.detail || t("horses.error");
@@ -386,7 +385,7 @@ function exportToExcel() {
     [t("horses.table.id")]:     h.id,
     [t("horses.table.name")]:   h.name,
     [t("horses.table.box")]:    h.box_name ?? "-",
-    [t("horses.table.levels")]: h.levels.map((l) => t(`horses.levels.${l}`)).join(", "),
+    [t("horses.table.levels")]: h.levels.join(", "),
     [t("horses.table.active")]: h.is_active ? "✓" : "✗",
     [t("horses.table.stable")]: h.stable_name ?? h.stable_id,
   }));
