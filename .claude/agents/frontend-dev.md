@@ -23,18 +23,29 @@ Eres el experto frontend del proyecto Hipica. Implementas, revisas y mantienes e
 ```
 hipica-frontend/src/
 ├── api/http.ts              # Axios instance — ÚNICO punto de HTTP
-├── auth/tokens.ts           # getAccessToken, setTokens, clearTokens, isLoggedIn
+├── auth/
+│   ├── tokens.ts            # getAccessToken, setTokens, clearTokens, isLoggedIn
+│   └── profile.ts           # userProfile, canManage, isAppAdmin — store reactivo del perfil
 ├── features/features.ts     # Feature flags reactivos (ref + fetchFeatures)
 ├── features/filter.ts       # Helpers para filtrar por feature
 ├── router/index.ts          # Rutas + guard global requiresAuth
-├── types/api.ts             # Interfaces TypeScript de la API
+├── types/api.ts             # Interfaces TypeScript: Horse, Box, Client, Level, Stable, UserProfile, NavItem, NavSection
 ├── i18n/
 │   ├── index.ts             # Configuración vue-i18n
 │   ├── locale.ts            # Persistencia locale en localStorage
 │   └── messages.ts          # Traducciones ca/es/en
 ├── plugins/vuetify.ts       # Configuración tema Vuetify
-├── layouts/MainLayout.vue   # Wrapper de rutas protegidas
-├── views/                   # Páginas (una por entidad/feature)
+├── layouts/MainLayout.vue   # 3 secciones: Administración (adminOnly) / Operativa (feature-gated) / Mi espacio
+├── views/
+│   ├── Login.vue
+│   ├── Horses.vue           # CRUD completo con role gating
+│   ├── Boxes.vue            # CRUD completo con role gating
+│   ├── Clients.vue          # CRUD completo, feature CLIENTS
+│   ├── Lessons.vue          # Placeholder, feature LESSONS
+│   ├── Stables.vue          # Solo app_admin
+│   ├── Levels.vue           # Solo app_admin
+│   ├── Features.vue         # Gestión de features por hípica, solo app_admin
+│   └── Profile.vue          # Mi espacio — perfil del usuario autenticado
 └── components/              # Componentes reutilizables
 ```
 

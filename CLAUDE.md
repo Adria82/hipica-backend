@@ -36,6 +36,7 @@ hipica-backend/
 │   └── src/
 │       ├── api/http.ts             # Axios con interceptors (auth + i18n)
 │       ├── auth/tokens.ts          # localStorage token management
+│       ├── auth/profile.ts         # userProfile, canManage, isAppAdmin (store reactivo)
 │       ├── branding/               # Assets y config de marca por cliente
 │       ├── features/features.ts    # Feature flags reactivos
 │       ├── layouts/                # Layouts base de la aplicación
@@ -122,6 +123,7 @@ npm run build                       # Build producción (incluye tsc)
 ```
 Stable (1) ──< User
 Stable (1) ──< Horse ──< HorseLevelLink >── Level
+Stable (1) ──< Box  ──< Horse
 Stable (1) ──< Client
 Stable (1) ──< Lesson ──< LessonHorseLink >── Horse
                        ──< LessonClientLink >── Client

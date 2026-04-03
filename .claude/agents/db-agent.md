@@ -24,7 +24,8 @@ app/
 │   ├── base.py
 │   ├── user.py
 │   ├── stable.py
-│   ├── horse.py
+│   ├── box.py           # Box — box físico de una hípica (capacity, is_active)
+│   ├── horse.py         # horse.box_id → box (FK opcional)
 │   ├── client.py
 │   ├── lesson.py
 │   ├── level.py
@@ -42,9 +43,11 @@ app/
 ```
 stable
   ├── user (stable_id FK, roles: app_admin/stable_admin/monitor/client)
-  ├── horse (stable_id FK)
+  ├── box (stable_id FK — capacity, is_active)
+  ├── horse (stable_id FK, box_id FK → box opcional)
   │     └── horselevellink → level
   ├── client (stable_id FK)
+  ├── stable_feature (stable_id FK — feature enum: HORSES/CLIENTS/LESSONS/BOOKINGS/BILLING/REPORTING)
   └── lesson (stable_id FK)
         ├── lessonhorselink → horse
         ├── lessonclientlink → client

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const d=require\\(''C:/abe/Hipica/app/hipica-backend/hipica-frontend/package.json''\\); console.log\\(''Vue:'',d.dependencies[''vue'']\\); console.log\\(''Vuetify:'',d.dependencies[''vuetify'']\\); console.log\\(''vue-router:'',d.dependencies[''vue-router'']\\); console.log\\(''vue-i18n:'',d.dependencies[''vue-i18n'']\\); console.log\\(''axios:'',d.dependencies[''axios'']\\); console.log\\(''TS:'',d.devDependencies[''typescript'']\\); console.log\\(''vite:'',d.devDependencies[''vite'']\\)\")",
+      "Bash(PYTHONPATH=. python -m pytest -v --tb=short)",
+      "Bash(docker-compose ps:*)",
+      "Bash(docker-compose exec:*)"
+    ],
+    "additionalDirectories": [
+      "c:\\abe\\Hipica\\app\\hipica-backend\\docs"
+    ]
+  }
+}

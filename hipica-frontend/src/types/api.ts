@@ -62,6 +62,26 @@ export type Horse = {
 };
 
 /**
+ * Entidad Client (cliente de una hípica).
+ */
+export type Client = {
+  id: number;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  is_active: boolean;
+  stable_id: number;
+};
+
+/**
+ * Entidad Level (nivel de equitación).
+ */
+export type Level = {
+  id: number;
+  name: string;
+};
+
+/**
  * Entidad Stable (hípica).
  */
 export type Stable = {
@@ -96,4 +116,17 @@ export type NavItem = {
   icon?: string;
   route: string;
   feature?: FeatureCode; // si existe, se filtra por licencia
+};
+
+/**
+ * Sección del menú lateral.
+ * Agrupa NavItems bajo un encabezado con control de visibilidad.
+ *
+ * - adminOnly: solo visible para app_admin
+ * - items: filtrados por feature si tienen el campo `feature`
+ */
+export type NavSection = {
+  titleKey: string;
+  adminOnly?: boolean;
+  items: NavItem[];
 };

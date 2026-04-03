@@ -7,6 +7,8 @@ from sqlmodel import Session, select
 
 from app.db.session import get_session
 from app.models.stable import Stable
+from app.models.stable_feature import StableFeature
+from app.models.feature import FeatureCode
 from app.dependencies import require_role
 from app.models import User
 from app.schemas.stable import StableCreate, StableRead, StableUpdate
@@ -115,3 +117,63 @@ def delete_stable(
     session.delete(stable)
     session.commit()
     return {"ok": True}
+
+
+@router.get("/{stable_id}/features", response_model=list[str])
+def get_stable_features(
+    stable_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["app_admin"])),
+):
+    """
+    Obtener las features activadas para una hípica.
+    """
+    stable = session.get(Stable, stable_id)
+    if not stable:
+        raise HTTPException(status_code=404, detail=t(request, "stable.not_found"))
+
+    results = session.exec(
+        select(StableFeature).where(StableFeature.stable_id == stable_id)
+    ).all()
+    return [sf.feature.value for sf in results]
+
+
+@router.put("/{stable_id}/features", response_model=list[str])
+def set_stable_features(
+    stable_id: int,
+    features: list[str],
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["app_admin"])),
+):
+    """
+    Reemplaza el conjunto de features de una hípica.
+
+    Recibe la lista completa de features activas; elimina las que ya no
+    estén y añade las nuevas.
+    """
+    stable = session.get(Stable, stable_id)
+    if not stable:
+        raise HTTPException(status_code=404, detail=t(request, "stable.not_found"))
+
+    # Validar que todos los valores son FeatureCode válidos
+    valid_codes = {f.value for f in FeatureCode}
+    for f in features:
+        if f not in valid_codes:
+            raise HTTPException(status_code=400, detail=f"Feature '{f}' no válida")
+
+    # Eliminar las existentes
+    existing = session.exec(
+        select(StableFeature).where(StableFeature.stable_id == stable_id)
+    ).all()
+    for sf in existing:
+        session.delete(sf)
+
+    # Insertar las nuevas
+    for f in features:
+        session.add(StableFeature(stable_id=stable_id, feature=FeatureCode(f)))
+
+    session.commit()
+
+    return features
