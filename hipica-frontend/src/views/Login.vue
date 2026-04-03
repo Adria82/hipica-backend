@@ -84,11 +84,11 @@ function detectClient(): string {
   const host = window.location.hostname;
 
   if (host.includes("localhost") || host.startsWith("127.0.0.1")) {
-    return "demo";
+    return "default";
   }
 
   const parts = host.split(".");
-  return parts.length > 2 ? parts[0] : "demo";
+  return parts.length > 2 ? parts[0] : "default";
 }
 
 const client = detectClient();
