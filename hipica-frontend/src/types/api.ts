@@ -60,7 +60,8 @@ export type Horse = {
   is_active: boolean;
   stable_id: number;
   stable_name: string | null;
-  levels: string[];
+  levels: string[];       // nombres localizados (para mostrar)
+  level_ids: number[];    // IDs de niveles asignados (para formularios)
 };
 
 /**
@@ -78,10 +79,11 @@ export type Client = {
 
 /**
  * Entidad Level (nivel de equitación).
+ * names contiene el nombre en cada idioma soportado: es, en, ca.
  */
 export type Level = {
   id: number;
-  name: string;
+  names: { es: string; en: string; ca: string };
 };
 
 /**

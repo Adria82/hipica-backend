@@ -13,7 +13,7 @@ from app.models import User
 from app.models.level import Level
 from app.models.stable import Stable
 from app.schemas.horse import HorseCreate, HorseRead, HorseUpdate
-from app.core.i18n import t
+from app.core.i18n import t, get_request_language
 
 router = APIRouter(prefix="/horses", tags=["Horses"])
 
@@ -39,12 +39,20 @@ def _check_box_capacity(session: Session, box_id: int, exclude_horse_id: int | N
     return box
 
 
-def _horse_to_read(horse: Horse, session: Session | None = None) -> HorseRead:
-    """Convierte un ORM Horse en el schema HorseRead."""
+def _horse_to_read(horse: Horse, session: Session | None = None, lang: str = "ca") -> HorseRead:
+    """Convierte un ORM Horse en el schema HorseRead.
+
+    lang: idioma para los nombres de niveles (ca/es/en).
+    """
     stable_name: str | None = None
     if session and horse.stable_id:
         stable = session.get(Stable, horse.stable_id)
         stable_name = stable.name if stable else None
+
+    def _level_name(lvl) -> str:
+        names = lvl.names or {}
+        return names.get(lang) or names.get("es") or names.get("ca") or next(iter(names.values()), str(lvl.id))
+
     return HorseRead(
         id=horse.id,
         name=horse.name,
@@ -53,7 +61,8 @@ def _horse_to_read(horse: Horse, session: Session | None = None) -> HorseRead:
         is_active=horse.is_active,
         stable_id=horse.stable_id,
         stable_name=stable_name,
-        levels=[lvl.name for lvl in horse.levels],
+        levels=[_level_name(lvl) for lvl in horse.levels],
+        level_ids=[lvl.id for lvl in horse.levels],
     )
 
 
@@ -89,7 +98,7 @@ def create_horse(
     session.add(horse)
     session.commit()
     session.refresh(horse)
-    return _horse_to_read(horse, session)
+    return _horse_to_read(horse, session, get_request_language(request))
 
 @router.get("/", response_model=list[HorseRead])
 def get_horses(
@@ -106,8 +115,9 @@ def get_horses(
     if current_user.role != "app_admin":
         query = query.where(Horse.stable_id == current_user.stable_id)
 
+    lang = get_request_language(request)
     horses = session.exec(query).all()
-    return [_horse_to_read(h, session) for h in horses]
+    return [_horse_to_read(h, session, lang) for h in horses]
 
 @router.get("/{horse_id}", response_model=HorseRead)
 def get_horse(
@@ -126,7 +136,7 @@ def get_horse(
     if current_user.role != "app_admin" and horse.stable_id != current_user.stable_id:
         raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
 
-    return _horse_to_read(horse, session)
+    return _horse_to_read(horse, session, get_request_language(request))
 
 @router.put("/{horse_id}", response_model=HorseRead)
 def update_horse(
@@ -164,10 +174,10 @@ def update_horse(
     for field, value in update_data.items():
         setattr(horse, field, value)
 
-    # Actualizar niveles si se proporcionaron
+    # Actualizar niveles si se proporcionaron (por IDs)
     if horse_data.levels is not None:
         db_levels = session.exec(
-            select(Level).where(Level.name.in_(horse_data.levels))
+            select(Level).where(Level.id.in_(horse_data.levels))
         ).all()
         if len(db_levels) != len(horse_data.levels):
             raise HTTPException(
@@ -180,7 +190,7 @@ def update_horse(
     session.add(horse)
     session.commit()
     session.refresh(horse)
-    return _horse_to_read(horse, session)
+    return _horse_to_read(horse, session, get_request_language(request))
 
 @router.delete("/{horse_id}")
 def delete_horse(
@@ -212,14 +222,14 @@ def delete_horse(
 )
 def set_horse_levels(
     horse_id: int,
-    levels: list[str],
+    level_ids: list[int],
     request: Request,
     session: Session = Depends(get_session),
     current_user: User = Depends(require_role(["stable_admin", "app_admin"])),
 ):
     """
     Asignar o reemplazar los niveles de equitación de un caballo.
-    Solo accesible para administradores.
+    Acepta una lista de IDs de niveles. Solo accesible para administradores.
     """
     horse = session.get(Horse, horse_id)
     if not horse:
@@ -229,10 +239,10 @@ def set_horse_levels(
         raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
 
     db_levels = session.exec(
-        select(Level).where(Level.name.in_(levels))
+        select(Level).where(Level.id.in_(level_ids))
     ).all()
 
-    if len(db_levels) != len(levels):
+    if len(db_levels) != len(level_ids):
         raise HTTPException(
             status_code=400,
             detail=t(request, "horse.invalid_levels"),
@@ -245,4 +255,4 @@ def set_horse_levels(
     session.commit()
     session.refresh(horse)
 
-    return _horse_to_read(horse, session)
+    return _horse_to_read(horse, session, get_request_language(request))

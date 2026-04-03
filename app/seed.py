@@ -91,8 +91,8 @@ def seed_db() -> None:
         )
 
         admin = User(
-            name="Admin Hípica",
-            email="admin@hipica.com",
+            name="Toni",
+            email="toni@canvalls.es",
             role="stable_admin",
             stable_id=stable.id,
             hashed_password=hash_password("admin123"),
@@ -125,16 +125,23 @@ def seed_db() -> None:
         print(f"Usuarios creados: {superAdmin}, {admin}, {monitor}, {client}")
 
         # -----------------------------------------------------------------
-        # 2.5 Crear niveles de equitación (catálogo)
+        # 2.5 Crear niveles de equitación (catálogo, multiidioma)
         # -----------------------------------------------------------------
+        nivel_data = [
+            {"es": "Principiante", "en": "Beginner",     "ca": "Principiant"},
+            {"es": "Iniciado",     "en": "Novice",        "ca": "Iniciat"},
+            {"es": "Intermedio",   "en": "Intermediate",  "ca": "Intermedi"},
+            {"es": "Avanzado",     "en": "Advanced",      "ca": "Avançat"},
+            {"es": "Experto",      "en": "Expert",        "ca": "Expert"},
+        ]
         levels = []
-        for nivel_name in ["Principiante", "Iniciado", "Experto"]:
-            level = Level(name=nivel_name)
+        for names in nivel_data:
+            level = Level(names=names)
             session.add(level)
             levels.append(level)
 
         session.commit()
-        print(f"Niveles de equitación creados: {[l.name for l in levels]}")
+        print(f"Niveles de equitación creados: {[l.names.get('es') for l in levels]}")
         
         # -----------------------------------------------------------------
         # 2.8 Crear boxes

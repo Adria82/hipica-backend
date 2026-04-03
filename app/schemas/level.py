@@ -16,8 +16,9 @@ from sqlmodel import SQLModel
 class LevelBase(SQLModel):
     """
     Atributos base de un nivel de equitación.
+    names es un dict {es, en, ca} con el nombre en cada idioma.
     """
-    name: str
+    names: dict[str, str]
 
 
 class LevelCreate(LevelBase):
@@ -29,9 +30,9 @@ class LevelCreate(LevelBase):
 
 class LevelUpdate(SQLModel):
     """
-    Esquema para renombrar un nivel de equitación.
+    Esquema para actualizar los nombres de un nivel de equitación.
     """
-    name: Optional[str] = None
+    names: Optional[dict[str, str]] = None
 
 
 class LevelRead(LevelBase):

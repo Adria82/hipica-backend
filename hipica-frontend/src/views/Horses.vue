@@ -41,15 +41,15 @@
         </v-icon>
       </template>
 
-      <!-- Columna niveles: chips -->
+      <!-- Columna niveles: chips reactivos al locale -->
       <template #[`item.levels`]="{ item }">
         <v-chip
-          v-for="lvl in item.levels"
-          :key="lvl"
+          v-for="lid in item.level_ids"
+          :key="lid"
           size="x-small"
           class="mr-1"
         >
-          {{ lvl }}
+          {{ levelName(lid) }}
         </v-chip>
       </template>
 
@@ -231,7 +231,7 @@ import { http } from "../api/http";
 import type { Horse, Box, Stable, Level } from "../types/api";
 import { canManage, isAppAdmin } from "../auth/profile";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const horses = ref<Horse[]>([]);
 const boxes = ref<Box[]>([]);
 const stables = ref<Stable[]>([]);
@@ -244,7 +244,7 @@ const dialog = ref(false);
 const saving = ref(false);
 const deleting = ref(false);
 const editingId = ref<number | null>(null);
-const form = ref({ name: "", box_id: null as number | null, is_active: true, levels: [] as string[], stable_id: null as number | null });
+const form = ref({ name: "", box_id: null as number | null, is_active: true, levels: [] as number[], stable_id: null as number | null });
 
 // Confirmación de eliminación
 const confirmDeleteDialog = ref(false);
@@ -255,7 +255,22 @@ const snackbarText = ref("");
 const snackbarColor = ref("success");
 
 const levels = ref<Level[]>([]);
-const levelOptions = computed(() => levels.value.map((l) => ({ title: l.name, value: l.name })));
+
+function levelName(id: number): string {
+  const level = levels.value.find((l) => l.id === id);
+  if (!level) return String(id);
+  const lang = locale.value;
+  if (lang === "es") return level.names.es || level.names.ca || level.names.en || "";
+  if (lang === "en") return level.names.en || level.names.es || level.names.ca || "";
+  return level.names.ca || level.names.es || level.names.en || "";
+}
+
+const levelOptions = computed(() =>
+  levels.value.map((l) => ({
+    title: levelName(l.id),
+    value: l.id,
+  }))
+);
 
 // Opciones de boxes activos para el select del diálogo
 const boxOptions = computed(() =>
@@ -320,7 +335,7 @@ function openEditDialog(horse: Horse) {
     name:      horse.name,
     box_id:    horse.box_id,
     is_active: horse.is_active,
-    levels:    [...horse.levels],
+    levels:    [...(horse.level_ids ?? [])],
     stable_id: horse.stable_id,
   };
   dialog.value = true;
@@ -385,7 +400,7 @@ function exportToExcel() {
     [t("horses.table.id")]:     h.id,
     [t("horses.table.name")]:   h.name,
     [t("horses.table.box")]:    h.box_name ?? "-",
-    [t("horses.table.levels")]: h.levels.join(", "),
+    [t("horses.table.levels")]: (h.level_ids ?? []).map(levelName).join(", "),
     [t("horses.table.active")]: h.is_active ? "✓" : "✗",
     [t("horses.table.stable")]: h.stable_name ?? h.stable_id,
   }));

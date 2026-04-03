@@ -41,17 +41,20 @@ class HorseUpdate(SQLModel):
 
     Puede ser utilizado por administradores para modificar
     los niveles de equitación asignados o el box asignado.
+    levels acepta una lista de IDs de nivel.
     """
     name: Optional[str] = None
     breed: Optional[str] = None
     box_id: Optional[int] = None
     is_active: Optional[bool] = None
     stable_id: Optional[int] = None
-    levels: Optional[List[str]] = None
+    levels: Optional[List[int]] = None
 
 class HorseRead(SQLModel):
     """
     Esquema de salida de un caballo.
+    levels: nombres localizados según Accept-Language de la request.
+    level_ids: IDs de los niveles asignados (para edición en formularios).
     """
     id: int
     name: str
@@ -61,3 +64,4 @@ class HorseRead(SQLModel):
     stable_id: int
     stable_name: Optional[str] = None
     levels: List[str]
+    level_ids: List[int] = []

@@ -31,17 +31,7 @@ def create_level(
     """
     Crear un nuevo nivel de equitación.
     """
-    exists = session.exec(
-        select(Level).where(Level.name == level.name)
-    ).first()
-
-    if exists:
-        raise HTTPException(
-            status_code=400,
-            detail=t(request, "level.exists"),
-        )
-
-    db_level = Level(name=level.name)
+    db_level = Level(names=level.names)
     session.add(db_level)
     session.commit()
     session.refresh(db_level)
@@ -73,7 +63,7 @@ def update_level(
     current_user: User = Depends(require_role(["app_admin"])),
 ):
     """
-    Renombrar un nivel de equitación.
+    Actualizar los nombres de un nivel de equitación.
     """
     level = session.get(Level, level_id)
     if not level:
@@ -82,16 +72,8 @@ def update_level(
             detail=t(request, "level.not_found"),
         )
 
-    if data.name is not None:
-        existing = session.exec(
-            select(Level).where(Level.name == data.name, Level.id != level_id)
-        ).first()
-        if existing:
-            raise HTTPException(
-                status_code=400,
-                detail=t(request, "level.exists"),
-            )
-        level.name = data.name
+    if data.names is not None:
+        level.names = data.names
 
     session.add(level)
     session.commit()
