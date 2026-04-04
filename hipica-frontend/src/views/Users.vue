@@ -174,6 +174,125 @@
                 hide-details
               />
             </v-col>
+
+            <!-- Teléfono (solo edición) -->
+            <template v-if="editingId">
+              <v-col cols="12">
+                <v-divider class="mt-2 mb-3" />
+                <div class="text-caption text-medium-emphasis mb-2">{{ t("users.dialog.profileSection") }}</div>
+              </v-col>
+
+              <!-- Phone — visible para client, monitor, assistant -->
+              <v-col v-if="['client','monitor','assistant'].includes(form.role)" cols="12">
+                <v-text-field
+                  v-model="form.phone"
+                  :label="t('users.dialog.phone')"
+                  variant="outlined"
+                  density="compact"
+                />
+              </v-col>
+
+              <!-- Campos client -->
+              <template v-if="form.role === 'client'">
+                <v-col cols="12">
+                  <v-text-field
+                    v-model="clientProfile.apellidos"
+                    :label="t('users.dialog.clientProfile.apellidos')"
+                    variant="outlined"
+                    density="compact"
+                  />
+                </v-col>
+                <v-col cols="12">
+                  <v-text-field
+                    v-model="clientProfile.direccion"
+                    :label="t('users.dialog.clientProfile.direccion')"
+                    variant="outlined"
+                    density="compact"
+                  />
+                </v-col>
+                <v-col cols="12">
+                  <v-text-field
+                    v-model="clientProfile.iban"
+                    :label="t('users.dialog.clientProfile.iban')"
+                    variant="outlined"
+                    density="compact"
+                  />
+                </v-col>
+                <v-col cols="12">
+                  <v-textarea
+                    v-model="clientProfile.notes"
+                    :label="t('users.dialog.clientProfile.notes')"
+                    variant="outlined"
+                    density="compact"
+                    rows="2"
+                    auto-grow
+                  />
+                </v-col>
+              </template>
+
+              <!-- Campos monitor / assistant -->
+              <template v-if="['monitor','assistant'].includes(form.role)">
+                <v-col cols="12">
+                  <v-text-field
+                    v-model="monitorProfile.especialidad"
+                    :label="t('users.dialog.monitorProfile.especialidad')"
+                    variant="outlined"
+                    density="compact"
+                  />
+                </v-col>
+                <v-col cols="12">
+                  <v-text-field
+                    v-model="monitorProfile.disponibilidad"
+                    :label="t('users.dialog.monitorProfile.disponibilidad')"
+                    variant="outlined"
+                    density="compact"
+                  />
+                </v-col>
+                <v-col cols="12">
+                  <v-text-field
+                    v-model="monitorProfile.certificados"
+                    :label="t('users.dialog.monitorProfile.certificados')"
+                    variant="outlined"
+                    density="compact"
+                  />
+                </v-col>
+                <v-col cols="12">
+                  <v-text-field
+                    v-model="monitorProfile.experiencia"
+                    :label="t('users.dialog.monitorProfile.experiencia')"
+                    variant="outlined"
+                    density="compact"
+                  />
+                </v-col>
+                <v-col cols="6">
+                  <v-text-field
+                    v-model="monitorProfile.iban"
+                    :label="t('users.dialog.monitorProfile.iban')"
+                    variant="outlined"
+                    density="compact"
+                  />
+                </v-col>
+                <v-col cols="6">
+                  <v-text-field
+                    v-model.number="monitorProfile.tarifa_hora"
+                    :label="t('users.dialog.monitorProfile.tarifa_hora')"
+                    type="number"
+                    variant="outlined"
+                    density="compact"
+                  />
+                </v-col>
+                <v-col cols="12">
+                  <v-textarea
+                    v-model="monitorProfile.notas"
+                    :label="t('users.dialog.monitorProfile.notas')"
+                    variant="outlined"
+                    density="compact"
+                    rows="2"
+                    auto-grow
+                  />
+                </v-col>
+              </template>
+            </template>
           </v-row>
         </v-card-text>
 
@@ -237,7 +356,7 @@ import { onMounted, ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import * as XLSX from "xlsx";
 import { http } from "../api/http";
-import type { UserRead, Stable } from "../types/api";
+import type { UserRead, Stable, ClientProfile, MonitorProfile } from "../types/api";
 import { canManage, isAppAdmin } from "../auth/profile";
 
 const { t } = useI18n();
@@ -258,9 +377,13 @@ const form = ref({
   email: "",
   password: "",
   role: "monitor",
+  phone: null as string | null,
   stable_id: null as number | null,
   is_active: true,
 });
+
+const clientProfile = ref<ClientProfile>({ apellidos: null, direccion: null, iban: null, notes: null });
+const monitorProfile = ref<MonitorProfile>({ especialidad: null, disponibilidad: null, certificados: null, experiencia: null, telefono: null, iban: null, notas: null, tarifa_hora: null });
 
 // Confirmación de eliminación
 const confirmDeleteDialog = ref(false);
@@ -276,11 +399,12 @@ const availableRoles = computed(() => {
     { title: t("users.roles.app_admin"),    value: "app_admin"    },
     { title: t("users.roles.stable_admin"), value: "stable_admin" },
     { title: t("users.roles.monitor"),      value: "monitor"      },
+    { title: t("users.roles.assistant"),    value: "assistant"    },
     { title: t("users.roles.client"),       value: "client"       },
   ];
   if (isAppAdmin.value) return all;
-  // stable_admin solo puede asignar monitor o client
-  return all.filter((r) => r.value === "monitor" || r.value === "client");
+  // stable_admin puede asignar monitor, assistant o client
+  return all.filter((r) => ["monitor", "assistant", "client"].includes(r.value));
 });
 
 const headers = computed(() => [
@@ -347,20 +471,34 @@ function onRowClick(_event: Event, row: { item: UserRead }) {
 
 function openCreateDialog() {
   editingId.value = null;
-  form.value = { name: "", email: "", password: "", role: "monitor", stable_id: null, is_active: true };
+  form.value = { name: "", email: "", password: "", role: "monitor", phone: null, stable_id: null, is_active: true };
+  clientProfile.value = { apellidos: null, direccion: null, iban: null, notes: null };
+  monitorProfile.value = { especialidad: null, disponibilidad: null, certificados: null, experiencia: null, telefono: null, iban: null, notas: null, tarifa_hora: null };
   dialog.value = true;
 }
 
-function openEditDialog(user: UserRead) {
+async function openEditDialog(user: UserRead) {
   editingId.value = user.id;
   form.value = {
     name:      user.name,
     email:     user.email,
     password:  "",
     role:      user.role,
+    phone:     user.phone,
     stable_id: user.stable_id,
     is_active: user.is_active,
   };
+  clientProfile.value = { apellidos: null, direccion: null, iban: null, notes: null };
+  monitorProfile.value = { especialidad: null, disponibilidad: null, certificados: null, experiencia: null, telefono: null, iban: null, notas: null, tarifa_hora: null };
+  if (["client", "monitor", "assistant"].includes(user.role)) {
+    try {
+      const res = await http.get(`/api/v1/users/${user.id}/profile`);
+      if (res.data) {
+        if (user.role === "client") clientProfile.value = { ...clientProfile.value, ...res.data };
+        else monitorProfile.value = { ...monitorProfile.value, ...res.data };
+      }
+    } catch { /* perfil vacío — no bloquear apertura del diálogo */ }
+  }
   dialog.value = true;
 }
 
@@ -373,6 +511,7 @@ async function save() {
         name:      form.value.name,
         email:     form.value.email,
         role:      form.value.role,
+        phone:     form.value.phone ?? null,
         is_active: form.value.is_active,
       };
       if (isAppAdmin.value) payload.stable_id = form.value.stable_id ?? null;
@@ -380,6 +519,13 @@ async function save() {
       const res = await http.put<UserRead>(`/api/v1/users/${editingId.value}`, payload);
       const idx = users.value.findIndex((u) => u.id === editingId.value);
       if (idx !== -1) users.value[idx] = res.data;
+
+      // Guardar perfil extendido si corresponde
+      if (form.value.role === "client") {
+        await http.put(`/api/v1/users/${editingId.value}/profile`, clientProfile.value);
+      } else if (["monitor", "assistant"].includes(form.value.role)) {
+        await http.put(`/api/v1/users/${editingId.value}/profile`, monitorProfile.value);
+      }
     } else {
       // POST — incluye password
       const payload: Record<string, any> = {
@@ -387,6 +533,7 @@ async function save() {
         email:     form.value.email,
         password:  form.value.password,
         role:      form.value.role,
+        phone:     form.value.phone ?? null,
         is_active: form.value.is_active,
       };
       if (isAppAdmin.value && form.value.stable_id) {

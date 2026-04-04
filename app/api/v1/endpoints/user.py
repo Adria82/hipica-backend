@@ -8,12 +8,15 @@ Proyecto: Gestión de Hípica
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session, select
-from typing import Optional
+from typing import Optional, Union
 
 from app.db.session import get_session
 from app.models.user import User
+from app.models.client_profile import ClientProfile
+from app.models.monitor_profile import MonitorProfile
 from app.dependencies import get_current_user, require_role
 from app.schemas.user import UserCreate, UserRead, UserUpdate
+from app.schemas.profile import ClientProfileRead, MonitorProfileRead, UserProfileUpdate
 from app.security import hash_password
 from app.core.i18n import t
 
@@ -173,3 +176,87 @@ def delete_user(
     session.delete(user)
     session.commit()
     return {"ok": True}
+
+
+@router.get("/{user_id}/profile", response_model=Union[ClientProfileRead, MonitorProfileRead, None])
+def get_user_profile(
+    user_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["stable_admin", "app_admin"])),
+):
+    """
+    Obtener el perfil extendido de un usuario.
+
+    - Si role=client → devuelve ClientProfile (o campos vacíos si no existe aún)
+    - Si role=monitor/assistant → devuelve MonitorProfile (o campos vacíos si no existe aún)
+    - Otros roles → 404
+    """
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail=t(request, "user.not_found"))
+
+    if current_user.role != "app_admin" and user.stable_id != current_user.stable_id:
+        raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
+
+    if user.role == "client":
+        profile = session.get(ClientProfile, user_id)
+        return profile or ClientProfileRead()
+
+    if user.role in ("monitor", "assistant"):
+        profile = session.get(MonitorProfile, user_id)
+        return profile or MonitorProfileRead()
+
+    return None
+
+
+@router.put("/{user_id}/profile", response_model=Union[ClientProfileRead, MonitorProfileRead])
+def update_user_profile(
+    user_id: int,
+    profile_data: UserProfileUpdate,
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["stable_admin", "app_admin"])),
+):
+    """
+    Actualizar el perfil extendido de un usuario.
+
+    Crea el registro de perfil si no existe todavía (upsert).
+    El tipo de perfil (ClientProfile / MonitorProfile) se determina
+    por el rol actual del usuario.
+    """
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail=t(request, "user.not_found"))
+
+    if current_user.role != "app_admin" and user.stable_id != current_user.stable_id:
+        raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
+
+    _CLIENT_FIELDS = {"apellidos", "direccion", "iban", "notes"}
+    _MONITOR_FIELDS = {"especialidad", "disponibilidad", "certificados", "experiencia", "telefono", "iban", "notas", "tarifa_hora"}
+
+    if user.role == "client":
+        profile = session.get(ClientProfile, user_id)
+        if profile is None:
+            profile = ClientProfile(user_id=user_id)
+            session.add(profile)
+        for field, value in profile_data.model_dump(exclude_unset=True).items():
+            if field in _CLIENT_FIELDS:
+                setattr(profile, field, value)
+        session.commit()
+        session.refresh(profile)
+        return profile
+
+    if user.role in ("monitor", "assistant"):
+        profile = session.get(MonitorProfile, user_id)
+        if profile is None:
+            profile = MonitorProfile(user_id=user_id)
+            session.add(profile)
+        for field, value in profile_data.model_dump(exclude_unset=True).items():
+            if field in _MONITOR_FIELDS:
+                setattr(profile, field, value)
+        session.commit()
+        session.refresh(profile)
+        return profile
+
+    raise HTTPException(status_code=400, detail="Este rol no tiene perfil extendido")

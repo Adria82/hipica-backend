@@ -234,3 +234,27 @@ export type UserRead = {
   stable_id: number | null;
   is_active: boolean;
 };
+
+/**
+ * Perfil extendido de un cliente (role=client).
+ */
+export type ClientProfile = {
+  apellidos: string | null;
+  direccion: string | null;
+  iban: string | null;
+  notes: string | null;
+};
+
+/**
+ * Perfil extendido de monitor o ayudante (role=monitor|assistant).
+ */
+export type MonitorProfile = {
+  especialidad: string | null;
+  disponibilidad: string | null;
+  certificados: string | null;
+  experiencia: string | null;
+  telefono: string | null;
+  iban: string | null;
+  notas: string | null;
+  tarifa_hora: number | null;
+};

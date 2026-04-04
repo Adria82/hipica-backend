@@ -44,6 +44,7 @@ class UserUpdate(SQLModel):
     name: Optional[str] = None
     email: Optional[str] = None
     role: Optional[str] = None
+    phone: Optional[str] = None
     stable_id: Optional[int] = None
     is_active: Optional[bool] = None
 
