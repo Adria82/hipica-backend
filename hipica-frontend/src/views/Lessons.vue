@@ -10,21 +10,36 @@
 
       <!-- CENTRO -->
       <div class="d-flex align-center gap-2 justify-center">
-        <v-btn variant="tonal" size="small" prepend-icon="mdi-chevron-left" @click="prevWeek">
-          {{ t("lessons.prevWeek") }}
-        </v-btn>
-
-        <v-btn variant="tonal" size="small" @click="goToday">
-          {{ t("lessons.today") }}
-        </v-btn>
-
-        <v-btn variant="tonal" size="small" append-icon="mdi-chevron-right" @click="nextWeek">
-          {{ t("lessons.nextWeek") }}
-        </v-btn>
+        <template v-if="viewMode === 'week'">
+          <v-btn variant="tonal" size="small" prepend-icon="mdi-chevron-left" @click="prevWeek">
+            {{ t("lessons.prevWeek") }}
+          </v-btn>
+          <v-btn variant="tonal" size="small" @click="goToday">
+            {{ t("lessons.today") }}
+          </v-btn>
+          <v-btn variant="tonal" size="small" append-icon="mdi-chevron-right" @click="nextWeek">
+            {{ t("lessons.nextWeek") }}
+          </v-btn>
+        </template>
+        <template v-else>
+          <v-btn variant="tonal" size="small" prepend-icon="mdi-chevron-left" @click="prevMonth">
+            {{ t("lessons.prevMonth") }}
+          </v-btn>
+          <v-btn variant="tonal" size="small" @click="goTodayMonth">
+            {{ t("lessons.today") }}
+          </v-btn>
+          <v-btn variant="tonal" size="small" append-icon="mdi-chevron-right" @click="nextMonth">
+            {{ t("lessons.nextMonth") }}
+          </v-btn>
+        </template>
       </div>
 
       <!-- DERECHA -->
-      <div class="flex-grow-1 d-flex justify-end">
+      <div class="flex-grow-1 d-flex justify-end align-center">
+        <v-btn-toggle v-model="viewMode" mandatory density="compact" class="mr-2">
+          <v-btn value="week" size="small">{{ t("lessons.weekView") }}</v-btn>
+          <v-btn value="month" size="small">{{ t("lessons.monthView") }}</v-btn>
+        </v-btn-toggle>
         <v-btn
           v-if="canManage"
           color="primary"
@@ -41,7 +56,7 @@
     <v-alert v-if="error" type="error" variant="tonal" class="mb-4">{{ error }}</v-alert>
 
     <!-- Week grid -->
-    <v-card variant="outlined">
+    <v-card v-if="viewMode === 'week'" variant="outlined">
       <div class="week-grid">
         <!-- Day headers -->
         <div
@@ -84,6 +99,47 @@
       </div>
     </v-card>
 
+    <!-- Month grid -->
+    <v-card v-if="viewMode === 'month'" variant="outlined">
+      <div class="month-grid">
+        <!-- Weekday headers -->
+        <div
+          v-for="header in monthWeekHeaders"
+          :key="'mh-' + header"
+          class="week-day-header"
+        >
+          <div class="text-caption font-weight-bold text-uppercase">{{ header }}</div>
+        </div>
+
+        <!-- Day cells -->
+        <div
+          v-for="day in monthDays"
+          :key="'m-' + day.iso"
+          class="week-day-cell"
+          :class="{ 'today-col': day.isToday }"
+          :style="!day.isCurrentMonth ? 'opacity: 0.4' : ''"
+          @click="canManage && openCreateDialog(day.iso)"
+        >
+          <div class="text-caption font-weight-medium pa-1">{{ day.dayNum }}</div>
+          <v-chip
+            v-for="lesson in lessonsForDay(day.iso)"
+            :key="lesson.id"
+            class="lesson-chip ma-1"
+            color="primary"
+            variant="tonal"
+            size="small"
+            @click.stop="openEditDialog(lesson)"
+          >
+            <v-icon start size="12">mdi-clock-outline</v-icon>
+            {{ formatTime(lesson.date_time) }}
+            <span v-if="lesson.track_name" class="ml-1 text-caption">({{ lesson.track_name }})</span>
+            <br />
+            <span class="text-caption">{{ lesson.instructor_email }}</span>
+          </v-chip>
+        </div>
+      </div>
+    </v-card>
+
     <!-- Loading overlay -->
     <div v-if="loading" class="d-flex justify-center mt-6">
       <v-progress-circular indeterminate color="primary" />
@@ -98,6 +154,19 @@
         <v-divider />
         <v-card-text class="pa-4">
           <v-row dense>
+            <v-col v-if="isAppAdmin" cols="12">
+              <v-select
+                v-model="form.stable_id"
+                :items="stables"
+                item-title="name"
+                item-value="id"
+                :label="t('lessons.dialog.stable')"
+                variant="outlined"
+                density="compact"
+                required
+              />
+            </v-col>
+
             <v-col cols="12" sm="6">
               <v-text-field
                 v-model="form.date_time"
@@ -247,8 +316,8 @@
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { http } from "@/api/http";
-import { canManage } from "@/auth/profile";
-import type { Lesson, LessonCreate, LessonUpdate, Track, Horse, UserRead } from "@/types/api";
+import { canManage, isAppAdmin } from "@/auth/profile";
+import type { Lesson, LessonCreate, LessonUpdate, Track, Horse, UserRead, Stable } from "@/types/api";
 
 const { t } = useI18n();
 
@@ -260,6 +329,7 @@ const tracks = ref<Track[]>([]);
 const horses = ref<Horse[]>([]);
 const students = ref<UserRead[]>([]);
 const users = ref<UserRead[]>([]);
+const stables = ref<Stable[]>([]);
 
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -273,6 +343,11 @@ const editingLesson = ref<Lesson | null>(null);
 const snackbar = ref(false);
 const snackbarText = ref("");
 const snackbarColor = ref<"success" | "error">("success");
+
+// ---------------------------------------------------------------------------
+// View mode
+// ---------------------------------------------------------------------------
+const viewMode = ref<"week" | "month">("week");
 
 // ---------------------------------------------------------------------------
 // Week navigation
@@ -304,7 +379,6 @@ const weekDays = computed(() => {
   });
 });
 
-
 function prevWeek() {
   const d = new Date(weekStart.value);
   d.setDate(d.getDate() - 7);
@@ -321,6 +395,99 @@ function goToday() {
   weekStart.value = getMonday(new Date());
 }
 
+// ---------------------------------------------------------------------------
+// Month navigation
+// ---------------------------------------------------------------------------
+const monthStart = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+
+function prevMonth() {
+  const d = new Date(monthStart.value);
+  d.setMonth(d.getMonth() - 1);
+  monthStart.value = d;
+}
+
+function nextMonth() {
+  const d = new Date(monthStart.value);
+  d.setMonth(d.getMonth() + 1);
+  monthStart.value = d;
+}
+
+function goTodayMonth() {
+  monthStart.value = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+}
+
+// Weekday header labels derived from a fixed reference week (Mon–Sun)
+const monthWeekHeaders = computed(() => {
+  const monday = getMonday(new Date());
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(d.getDate() + i);
+    return d.toLocaleDateString(undefined, { weekday: "short" });
+  });
+});
+
+const monthDays = computed(() => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const year = monthStart.value.getFullYear();
+  const month = monthStart.value.getMonth();
+
+  // First day of the month
+  const firstDay = new Date(year, month, 1);
+  // Last day of the month
+  const lastDay = new Date(year, month + 1, 0);
+
+  // Day of week for first day (0=Sun..6=Sat), convert to Mon-based (0=Mon..6=Sun)
+  const firstWeekDay = (firstDay.getDay() + 6) % 7;
+  // Day of week for last day, Mon-based
+  const lastWeekDay = (lastDay.getDay() + 6) % 7;
+
+  // Total cells: pad start + month days + pad end to complete last row
+  const paddingStart = firstWeekDay;
+  const paddingEnd = lastWeekDay === 6 ? 0 : 6 - lastWeekDay;
+
+  const days: { iso: string; dayNum: number; isToday: boolean; isCurrentMonth: boolean }[] = [];
+
+  // Days from previous month
+  for (let i = paddingStart - 1; i >= 0; i--) {
+    const d = new Date(year, month, -i);
+    days.push({
+      iso: d.toISOString().slice(0, 10),
+      dayNum: d.getDate(),
+      isToday: d.getTime() === today.getTime(),
+      isCurrentMonth: false,
+    });
+  }
+
+  // Days of current month
+  for (let i = 1; i <= lastDay.getDate(); i++) {
+    const d = new Date(year, month, i);
+    days.push({
+      iso: d.toISOString().slice(0, 10),
+      dayNum: d.getDate(),
+      isToday: d.getTime() === today.getTime(),
+      isCurrentMonth: true,
+    });
+  }
+
+  // Days from next month
+  for (let i = 1; i <= paddingEnd; i++) {
+    const d = new Date(year, month + 1, i);
+    days.push({
+      iso: d.toISOString().slice(0, 10),
+      dayNum: d.getDate(),
+      isToday: d.getTime() === today.getTime(),
+      isCurrentMonth: false,
+    });
+  }
+
+  return days;
+});
+
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
 function lessonsForDay(iso: string): Lesson[] {
   return lessons.value.filter((l) => l.date_time.slice(0, 10) === iso);
 }
@@ -350,6 +517,7 @@ interface LessonForm {
   horse_ids: number[];
   student_ids: number[];
   description: string;
+  stable_id: number | null;
 }
 
 function emptyForm(dateIso?: string | null): LessonForm {
@@ -363,6 +531,7 @@ function emptyForm(dateIso?: string | null): LessonForm {
     horse_ids: [],
     student_ids: [],
     description: "",
+    stable_id: null,
   };
 }
 
@@ -389,6 +558,7 @@ function openEditDialog(lesson: Lesson) {
       .filter((s) => lesson.student_names.includes(s.name))
       .map((s) => s.id),
     description: lesson.description ?? "",
+    stable_id: null,
   };
   dialog.value = true;
 }
@@ -400,18 +570,29 @@ async function loadAll() {
   loading.value = true;
   error.value = null;
   try {
-    const [lessonsRes, tracksRes, horsesRes, studentsRes, usersRes] = await Promise.all([
+    const requests: Promise<any>[] = [
       http.get<Lesson[]>("/api/v1/lessons"),
       http.get<Track[]>("/api/v1/tracks"),
       http.get<Horse[]>("/api/v1/horses"),
       http.get<UserRead[]>("/api/v1/users?role=client"),
       http.get<UserRead[]>("/api/v1/users"),
-    ]);
+    ];
+
+    if (isAppAdmin.value) {
+      requests.push(http.get<Stable[]>("/api/v1/stables"));
+    }
+
+    const [lessonsRes, tracksRes, horsesRes, studentsRes, usersRes, stablesRes] =
+      await Promise.all(requests);
+
     lessons.value = lessonsRes.data;
     tracks.value = tracksRes.data;
     horses.value = horsesRes.data;
     students.value = studentsRes.data;
     users.value = usersRes.data;
+    if (stablesRes) {
+      stables.value = stablesRes.data;
+    }
   } catch (e: any) {
     error.value = e?.response?.data?.detail || t("lessons.error");
   } finally {
@@ -445,6 +626,7 @@ async function save() {
         description: form.value.description || null,
         horse_ids: form.value.horse_ids,
         student_ids: form.value.student_ids,
+        ...(isAppAdmin.value && form.value.stable_id ? { stable_id: form.value.stable_id } : {}),
       };
       await http.post("/api/v1/lessons/", payload);
     }
@@ -489,6 +671,11 @@ onMounted(loadAll);
   grid-template-columns: repeat(7, 1fr);
   grid-template-rows: auto 1fr;
   min-height: 400px;
+}
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
 }
 
 .week-day-header {

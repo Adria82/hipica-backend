@@ -54,3 +54,8 @@ class UserRead(UserBase):
     Esquema de lectura de un usuario.
     """
     id: int
+
+
+class PasswordChange(SQLModel):
+    """Payload para cambiar la contraseña de un usuario."""
+    password: str

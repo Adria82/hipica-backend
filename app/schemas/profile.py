@@ -14,6 +14,7 @@ class ClientProfileRead(SQLModel):
     direccion: Optional[str] = None
     iban: Optional[str] = None
     notes: Optional[str] = None
+    level_id: Optional[int] = None
 
 
 class ClientProfileUpdate(SQLModel):
@@ -52,6 +53,7 @@ class UserProfileUpdate(SQLModel):
     apellidos: Optional[str] = None
     direccion: Optional[str] = None
     notes: Optional[str] = None
+    level_id: Optional[int] = None
     # monitor/assistant fields
     especialidad: Optional[str] = None
     disponibilidad: Optional[str] = None

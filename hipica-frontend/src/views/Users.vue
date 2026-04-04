@@ -175,15 +175,15 @@
               />
             </v-col>
 
-            <!-- Teléfono (solo edición) -->
-            <template v-if="editingId">
+            <!-- Sección datos adicionales — visible siempre que el rol tenga perfil -->
+            <template v-if="['client','monitor','assistant'].includes(form.role)">
               <v-col cols="12">
                 <v-divider class="mt-2 mb-3" />
                 <div class="text-caption text-medium-emphasis mb-2">{{ t("users.dialog.profileSection") }}</div>
               </v-col>
 
-              <!-- Phone — visible para client, monitor, assistant -->
-              <v-col v-if="['client','monitor','assistant'].includes(form.role)" cols="12">
+              <!-- Teléfono -->
+              <v-col cols="12">
                 <v-text-field
                   v-model="form.phone"
                   :label="t('users.dialog.phone')"
@@ -210,12 +210,25 @@
                     density="compact"
                   />
                 </v-col>
-                <v-col cols="12">
+                <v-col cols="6">
                   <v-text-field
                     v-model="clientProfile.iban"
                     :label="t('users.dialog.clientProfile.iban')"
                     variant="outlined"
                     density="compact"
+                  />
+                </v-col>
+                <!-- Nivel de equitación -->
+                <v-col cols="6">
+                  <v-select
+                    v-model="clientProfile.level_id"
+                    :label="t('users.dialog.clientProfile.level')"
+                    :items="levelOptions"
+                    item-title="title"
+                    item-value="value"
+                    variant="outlined"
+                    density="compact"
+                    clearable
                   />
                 </v-col>
                 <v-col cols="12">
@@ -236,14 +249,6 @@
                   <v-text-field
                     v-model="monitorProfile.especialidad"
                     :label="t('users.dialog.monitorProfile.especialidad')"
-                    variant="outlined"
-                    density="compact"
-                  />
-                </v-col>
-                <v-col cols="12">
-                  <v-text-field
-                    v-model="monitorProfile.disponibilidad"
-                    :label="t('users.dialog.monitorProfile.disponibilidad')"
                     variant="outlined"
                     density="compact"
                   />
@@ -291,6 +296,57 @@
                     auto-grow
                   />
                 </v-col>
+
+                <!-- Constructor de horario semanal -->
+                <v-col cols="12">
+                  <div class="d-flex align-center justify-space-between mb-2">
+                    <div class="text-caption text-medium-emphasis">{{ t("users.dialog.monitorProfile.schedule") }}</div>
+                    <v-btn size="x-small" variant="tonal" color="primary" prepend-icon="mdi-plus" @click="addScheduleDay">
+                      {{ t("users.dialog.monitorProfile.addDay") }}
+                    </v-btn>
+                  </div>
+                  <div v-for="(dayEntry, di) in schedule" :key="di" class="mb-3 pa-2 rounded" style="border:1px solid rgba(0,0,0,0.12)">
+                    <div class="d-flex align-center gap-2 mb-2">
+                      <v-select
+                        v-model="dayEntry.day"
+                        :items="weekdayOptions"
+                        item-title="label"
+                        item-value="value"
+                        density="compact"
+                        variant="outlined"
+                        hide-details
+                        :label="t('users.dialog.monitorProfile.selectDay')"
+                        style="max-width:180px"
+                      />
+                      <v-spacer />
+                      <v-btn icon="mdi-delete-outline" size="x-small" color="error" variant="text" @click="removeScheduleDay(di)" />
+                    </div>
+                    <div v-for="(slot, si) in dayEntry.slots" :key="si" class="d-flex align-center gap-2 mb-1">
+                      <v-text-field
+                        v-model="slot.from"
+                        :label="t('users.dialog.monitorProfile.from')"
+                        type="time"
+                        density="compact"
+                        variant="outlined"
+                        hide-details
+                        style="max-width:130px"
+                      />
+                      <v-text-field
+                        v-model="slot.to"
+                        :label="t('users.dialog.monitorProfile.to')"
+                        type="time"
+                        density="compact"
+                        variant="outlined"
+                        hide-details
+                        style="max-width:130px"
+                      />
+                      <v-btn icon="mdi-close" size="x-small" color="error" variant="text" @click="removeScheduleSlot(di, si)" />
+                    </div>
+                    <v-btn size="x-small" variant="text" color="primary" prepend-icon="mdi-plus" class="mt-1" @click="addScheduleSlot(di)">
+                      {{ t("users.dialog.monitorProfile.addSlot") }}
+                    </v-btn>
+                  </div>
+                </v-col>
               </template>
             </template>
           </v-row>
@@ -311,6 +367,18 @@
           </v-btn>
 
           <v-spacer />
+
+          <!-- Cambiar contraseña — solo app_admin al editar -->
+          <v-btn
+            v-if="editingId && isAppAdmin"
+            color="warning"
+            variant="text"
+            :disabled="saving || deleting"
+            @click="openChangePasswordDialog"
+          >
+            {{ t("users.dialog.changePassword") }}
+          </v-btn>
+
           <v-btn variant="text" :disabled="saving || deleting" @click="dialog = false">
             {{ t("users.dialog.cancel") }}
           </v-btn>
@@ -320,6 +388,55 @@
             :loading="saving"
             :disabled="deleting"
             @click="save"
+          >
+            {{ t("users.dialog.save") }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Diálogo cambiar contraseña -->
+    <v-dialog v-model="changePasswordDialog" max-width="400" persistent>
+      <v-card>
+        <v-card-title class="text-h6 pa-4">{{ t("users.dialog.changePasswordTitle") }}</v-card-title>
+        <v-divider />
+        <v-card-text class="pa-4">
+          <v-row dense>
+            <v-col cols="12">
+              <v-text-field
+                v-model="changePasswordForm.password"
+                :label="t('users.dialog.newPassword')"
+                type="password"
+                variant="outlined"
+                density="compact"
+                required
+              />
+            </v-col>
+            <v-col cols="12">
+              <v-text-field
+                v-model="changePasswordForm.confirm"
+                :label="t('users.dialog.confirmPassword')"
+                type="password"
+                variant="outlined"
+                density="compact"
+                :error-messages="changePasswordForm.confirm && changePasswordForm.password !== changePasswordForm.confirm ? t('users.dialog.passwordMismatch') : ''"
+                required
+              />
+            </v-col>
+          </v-row>
+        </v-card-text>
+        <v-divider />
+        <v-card-actions class="pa-4">
+          <v-spacer />
+          <v-btn variant="text" :disabled="changingPassword" @click="changePasswordDialog = false">
+            {{ t("users.dialog.cancel") }}
+          </v-btn>
+          <v-btn
+            color="primary"
+            variant="flat"
+            :loading="changingPassword"
+            :disabled="!changePasswordForm.password || changePasswordForm.password !== changePasswordForm.confirm"
+            @click="changePassword"
           >
             {{ t("users.dialog.save") }}
           </v-btn>
@@ -359,10 +476,16 @@ import { http } from "../api/http";
 import type { UserRead, Stable, ClientProfile, MonitorProfile } from "../types/api";
 import { canManage, isAppAdmin } from "../auth/profile";
 
-const { t } = useI18n();
+// --- Tipos para el horario del monitor ---
+interface TimeSlot { from: string; to: string }
+interface DayScheduleEntry { day: string; slots: TimeSlot[] }
+const WEEKDAYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] as const;
+
+const { t, locale } = useI18n();
 
 const users = ref<UserRead[]>([]);
 const stables = ref<Stable[]>([]);
+const levels = ref<{ id: number; names: Record<string, string> }[]>([]);
 const loading = ref(false);
 const error = ref("");
 const search = ref("");
@@ -376,17 +499,23 @@ const form = ref({
   name: "",
   email: "",
   password: "",
-  role: "monitor",
+  role: "client",
   phone: null as string | null,
   stable_id: null as number | null,
   is_active: true,
 });
 
-const clientProfile = ref<ClientProfile>({ apellidos: null, direccion: null, iban: null, notes: null });
+const clientProfile = ref<ClientProfile & { level_id?: number | null }>({ apellidos: null, direccion: null, iban: null, notes: null, level_id: null });
 const monitorProfile = ref<MonitorProfile>({ especialidad: null, disponibilidad: null, certificados: null, experiencia: null, telefono: null, iban: null, notas: null, tarifa_hora: null });
+const schedule = ref<DayScheduleEntry[]>([]);
 
 // Confirmación de eliminación
 const confirmDeleteDialog = ref(false);
+
+// Cambiar contraseña
+const changePasswordDialog = ref(false);
+const changingPassword = ref(false);
+const changePasswordForm = ref({ password: "", confirm: "" });
 
 // Snackbar
 const snackbar = ref(false);
@@ -415,6 +544,19 @@ const headers = computed(() => [
   { title: t("users.table.stable"), key: "stable_id", sortable: false },
   { title: t("users.table.active"), key: "is_active", sortable: true  },
 ]);
+
+// Opciones de nivel para el selector del perfil cliente
+const levelOptions = computed(() =>
+  levels.value.map((l) => ({
+    value: l.id,
+    title: l.names[locale.value as "es"|"ca"|"en"] || l.names["es"] || String(l.id),
+  }))
+);
+
+// Opciones de días de la semana para el selector del horario monitor
+const weekdayOptions = computed(() =>
+  WEEKDAYS.map((d) => ({ value: d, label: t(`users.days.${d}`) }))
+);
 
 // Mapa id → nombre de hípica para la columna de tabla
 const stableMap = computed(() => {
@@ -453,10 +595,14 @@ async function load() {
   loading.value = true;
   error.value = "";
   try {
-    const requests: Promise<any>[] = [http.get<UserRead[]>("/api/v1/users")];
+    const requests: Promise<any>[] = [
+      http.get<UserRead[]>("/api/v1/users"),
+      http.get("/api/v1/levels"),
+    ];
     if (isAppAdmin.value) requests.push(http.get<Stable[]>("/api/v1/stables"));
-    const [usersRes, stablesRes] = await Promise.all(requests);
+    const [usersRes, levelsRes, stablesRes] = await Promise.all(requests);
     users.value = usersRes.data;
+    levels.value = levelsRes.data;
     if (stablesRes) stables.value = stablesRes.data;
   } catch (e: any) {
     error.value = e?.response?.data?.detail || t("users.error");
@@ -471,9 +617,10 @@ function onRowClick(_event: Event, row: { item: UserRead }) {
 
 function openCreateDialog() {
   editingId.value = null;
-  form.value = { name: "", email: "", password: "", role: "monitor", phone: null, stable_id: null, is_active: true };
-  clientProfile.value = { apellidos: null, direccion: null, iban: null, notes: null };
+  form.value = { name: "", email: "", password: "", role: "client", phone: null, stable_id: null, is_active: true };
+  clientProfile.value = { apellidos: null, direccion: null, iban: null, notes: null, level_id: null };
   monitorProfile.value = { especialidad: null, disponibilidad: null, certificados: null, experiencia: null, telefono: null, iban: null, notas: null, tarifa_hora: null };
+  schedule.value = [];
   dialog.value = true;
 }
 
@@ -488,14 +635,23 @@ async function openEditDialog(user: UserRead) {
     stable_id: user.stable_id,
     is_active: user.is_active,
   };
-  clientProfile.value = { apellidos: null, direccion: null, iban: null, notes: null };
+  clientProfile.value = { apellidos: null, direccion: null, iban: null, notes: null, level_id: null };
   monitorProfile.value = { especialidad: null, disponibilidad: null, certificados: null, experiencia: null, telefono: null, iban: null, notas: null, tarifa_hora: null };
+  schedule.value = [];
   if (["client", "monitor", "assistant"].includes(user.role)) {
     try {
       const res = await http.get(`/api/v1/users/${user.id}/profile`);
       if (res.data) {
-        if (user.role === "client") clientProfile.value = { ...clientProfile.value, ...res.data };
-        else monitorProfile.value = { ...monitorProfile.value, ...res.data };
+        if (user.role === "client") {
+          clientProfile.value = { ...clientProfile.value, ...res.data };
+        } else {
+          const { disponibilidad, ...rest } = res.data;
+          monitorProfile.value = { ...monitorProfile.value, ...rest };
+          // Deserializar horario guardado como JSON en disponibilidad
+          if (disponibilidad) {
+            try { schedule.value = JSON.parse(disponibilidad); } catch { schedule.value = []; }
+          }
+        }
       }
     } catch { /* perfil vacío — no bloquear apertura del diálogo */ }
   }
@@ -524,7 +680,11 @@ async function save() {
       if (form.value.role === "client") {
         await http.put(`/api/v1/users/${editingId.value}/profile`, clientProfile.value);
       } else if (["monitor", "assistant"].includes(form.value.role)) {
-        await http.put(`/api/v1/users/${editingId.value}/profile`, monitorProfile.value);
+        const profilePayload = {
+          ...monitorProfile.value,
+          disponibilidad: schedule.value.length ? JSON.stringify(schedule.value) : null,
+        };
+        await http.put(`/api/v1/users/${editingId.value}/profile`, profilePayload);
       }
     } else {
       // POST — incluye password
@@ -542,6 +702,13 @@ async function save() {
 
       const res = await http.post<UserRead>("/api/v1/users/", payload);
       users.value.push(res.data);
+      // Guardar perfil del nuevo usuario si aplica
+      if (form.value.role === "client") {
+        await http.put(`/api/v1/users/${res.data.id}/profile`, clientProfile.value).catch(() => {});
+      } else if (["monitor", "assistant"].includes(form.value.role)) {
+        const profilePayload = { ...monitorProfile.value, disponibilidad: schedule.value.length ? JSON.stringify(schedule.value) : null };
+        await http.put(`/api/v1/users/${res.data.id}/profile`, profilePayload).catch(() => {});
+      }
     }
 
     dialog.value = false;
@@ -574,6 +741,40 @@ function showSnackbar(text: string, color: string) {
   snackbarText.value = text;
   snackbarColor.value = color;
   snackbar.value = true;
+}
+
+// --- Horario semanal del monitor ---
+function addScheduleDay() {
+  schedule.value.push({ day: "monday", slots: [{ from: "09:00", to: "13:00" }] });
+}
+function removeScheduleDay(di: number) {
+  schedule.value.splice(di, 1);
+}
+function addScheduleSlot(di: number) {
+  schedule.value[di].slots.push({ from: "09:00", to: "13:00" });
+}
+function removeScheduleSlot(di: number, si: number) {
+  schedule.value[di].slots.splice(si, 1);
+}
+
+// --- Cambiar contraseña ---
+function openChangePasswordDialog() {
+  changePasswordForm.value = { password: "", confirm: "" };
+  changePasswordDialog.value = true;
+}
+
+async function changePassword() {
+  if (!editingId.value || changePasswordForm.value.password !== changePasswordForm.value.confirm) return;
+  changingPassword.value = true;
+  try {
+    await http.put(`/api/v1/users/${editingId.value}/password`, { password: changePasswordForm.value.password });
+    changePasswordDialog.value = false;
+    showSnackbar(t("users.dialog.passwordChanged"), "success");
+  } catch (e: any) {
+    showSnackbar(e?.response?.data?.detail || t("users.saveError"), "error");
+  } finally {
+    changingPassword.value = false;
+  }
 }
 
 function exportToExcel() {

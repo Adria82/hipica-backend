@@ -33,5 +33,6 @@ class ClientProfile(SQLModel, table=True):
     direccion: Optional[str] = Field(default=None)
     iban: Optional[str] = Field(default=None)
     notes: Optional[str] = Field(default=None)
+    level_id: Optional[int] = Field(default=None, foreign_key="level.id")
 
     user: Optional["User"] = Relationship(back_populates="client_profile")
