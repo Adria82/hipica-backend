@@ -34,6 +34,11 @@
         </template>
       </div>
 
+      <!-- PERIODO ACTIVO -->
+      <div class="flex-grow-1 d-flex justify-center">
+        <span class="text-body-2 font-weight-medium text-medium-emphasis">{{ periodLabel }}</span>
+      </div>
+
       <!-- DERECHA -->
       <div class="flex-grow-1 d-flex justify-end align-center">
         <v-btn-toggle v-model="viewMode" mandatory density="compact" class="mr-2">
@@ -172,6 +177,7 @@
                 v-model="form.date_time"
                 :label="t('lessons.dialog.dateTime')"
                 type="datetime-local"
+                step="300"
                 variant="outlined"
                 density="compact"
                 required
@@ -182,16 +188,18 @@
                 v-model="form.end_time"
                 :label="t('lessons.dialog.endTime')"
                 type="datetime-local"
+                step="300"
                 variant="outlined"
                 density="compact"
+                :error-messages="dateTimeError"
               />
             </v-col>
 
             <v-col cols="12" sm="6">
               <v-select
                 v-model="form.instructor_id"
-                :items="userOptions"
-                item-title="email"
+                :items="instructorOptions"
+                item-title="name"
                 item-value="id"
                 :label="t('lessons.dialog.instructor')"
                 variant="outlined"
@@ -202,8 +210,8 @@
             <v-col cols="12" sm="6">
               <v-select
                 v-model="form.helper_id"
-                :items="userOptionsWithNone"
-                item-title="email"
+                :items="helperOptions"
+                item-title="name"
                 item-value="id"
                 :label="t('lessons.dialog.helper')"
                 variant="outlined"
@@ -253,6 +261,37 @@
                 chips
                 closable-chips
               />
+            </v-col>
+
+            <!-- Asignación alumno-caballo: visible solo cuando hay alumnos seleccionados -->
+            <v-col v-if="studentHorsePairs.length > 0" cols="12">
+              <div class="text-caption font-weight-medium text-medium-emphasis mb-2">
+                {{ t("lessons.dialog.studentHorseAssignment") }}
+              </div>
+              <v-row
+                v-for="pair in studentHorsePairs"
+                :key="pair.student_id"
+                dense
+                class="align-center"
+              >
+                <v-col cols="5" class="text-body-2">
+                  {{ students.find((s) => s.id === pair.student_id)?.name ?? pair.student_id }}
+                </v-col>
+                <v-col cols="7">
+                  <v-select
+                    v-model="pair.horse_id"
+                    :items="[
+                      { id: null, name: t('lessons.dialog.noHorse') },
+                      ...horseOptions.filter((h) => form.horse_ids.includes(h.id)),
+                    ]"
+                    item-title="name"
+                    item-value="id"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                  />
+                </v-col>
+              </v-row>
             </v-col>
 
             <v-col cols="12">
@@ -313,11 +352,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { http } from "@/api/http";
 import { canManage, isAppAdmin } from "@/auth/profile";
-import type { Lesson, LessonCreate, LessonUpdate, Track, Horse, UserRead, Stable } from "@/types/api";
+import type { Lesson, LessonCreate, LessonUpdate, Track, Horse, UserRead, Stable, StudentHorsePair } from "@/types/api";
 
 const { t } = useI18n();
 
@@ -497,13 +536,37 @@ function formatTime(dt: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Period label (centro del header)
+// ---------------------------------------------------------------------------
+const periodLabel = computed(() => {
+  if (viewMode.value === "week") {
+    const end = new Date(weekStart.value);
+    end.setDate(end.getDate() + 6);
+    const shortOpts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
+    const start = weekStart.value.toLocaleDateString(undefined, shortOpts);
+    const endStr = end.toLocaleDateString(undefined, { ...shortOpts, year: "numeric" });
+    return `${start} – ${endStr}`;
+  } else {
+    return monthStart.value.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Select options
 // ---------------------------------------------------------------------------
-const userOptions = computed(() => users.value);
-const userOptionsWithNone = computed(() => users.value);
+const instructorOptions = computed(() => users.value.filter((u) => u.role === "monitor"));
+const helperOptions = computed(() => users.value.filter((u) => u.role === "assistant"));
 const trackOptionsWithNone = computed(() => tracks.value.filter((tr) => tr.is_active));
 const horseOptions = computed(() => horses.value.filter((h) => h.is_active));
 const studentOptions = computed(() => students.value.filter((s) => s.is_active));
+
+// Validación: fin no puede ser anterior al inicio
+const dateTimeError = computed(() => {
+  if (!form.value.date_time || !form.value.end_time) return "";
+  return new Date(form.value.end_time) <= new Date(form.value.date_time)
+    ? t("lessons.dialog.endBeforeStart")
+    : "";
+});
 
 // ---------------------------------------------------------------------------
 // Form
@@ -537,29 +600,65 @@ function emptyForm(dateIso?: string | null): LessonForm {
 
 const form = ref<LessonForm>(emptyForm());
 
+// Pairs alumno-caballo gestionados en el diálogo
+const studentHorsePairs = ref<StudentHorsePair[]>([]);
+
+// Cuando cambia la lista de alumnos seleccionados, recalcula los pares
+// preservando asignaciones existentes y eliminando las de alumnos deseleccionados
+watch(
+  () => form.value.student_ids,
+  (newIds) => {
+    const existing = new Map(studentHorsePairs.value.map((p) => [p.student_id, p.horse_id]));
+    studentHorsePairs.value = newIds.map((id) => ({
+      student_id: id,
+      horse_id: existing.has(id) ? existing.get(id)! : null,
+    }));
+  },
+);
+
+// Cuando cambia la lista de caballos, limpia asignaciones a caballos ya no disponibles
+watch(
+  () => form.value.horse_ids,
+  (newHorseIds) => {
+    studentHorsePairs.value = studentHorsePairs.value.map((p: StudentHorsePair) => ({
+      ...p,
+      horse_id: p.horse_id !== null && newHorseIds.includes(p.horse_id) ? p.horse_id : null,
+    }));
+  },
+);
+
 function openCreateDialog(dateIso: string | null) {
   editingLesson.value = null;
   form.value = emptyForm(dateIso);
+  studentHorsePairs.value = [];
   dialog.value = true;
 }
 
 function openEditDialog(lesson: Lesson) {
   editingLesson.value = lesson;
+  const horseIds = horses.value
+    .filter((h) => lesson.horse_names.includes(h.name))
+    .map((h) => h.id);
+  const studentIds = students.value
+    .filter((s) => lesson.student_names.includes(s.name))
+    .map((s) => s.id);
   form.value = {
     date_time: lesson.date_time.slice(0, 16),
     end_time: lesson.end_time ? lesson.end_time.slice(0, 16) : "",
     instructor_id: lesson.instructor_id,
     helper_id: lesson.helper_id,
     track_id: lesson.track_id,
-    horse_ids: horses.value
-      .filter((h) => lesson.horse_names.includes(h.name))
-      .map((h) => h.id),
-    student_ids: students.value
-      .filter((s) => lesson.student_names.includes(s.name))
-      .map((s) => s.id),
+    horse_ids: horseIds,
+    student_ids: studentIds,
     description: lesson.description ?? "",
     stable_id: null,
   };
+  // Poblar pares desde los datos de la lección; si no hay, crear pares vacíos
+  if (lesson.student_horse_pairs && lesson.student_horse_pairs.length > 0) {
+    studentHorsePairs.value = lesson.student_horse_pairs.map((p) => ({ ...p }));
+  } else {
+    studentHorsePairs.value = studentIds.map((id) => ({ student_id: id, horse_id: null }));
+  }
   dialog.value = true;
 }
 
@@ -602,6 +701,7 @@ async function loadAll() {
 
 async function save() {
   if (!form.value.instructor_id || !form.value.date_time) return;
+  if (dateTimeError.value) { showSnackbar(dateTimeError.value, "error"); return; }
   saving.value = true;
   try {
     if (editingLesson.value) {
@@ -613,7 +713,7 @@ async function save() {
         track_id: form.value.track_id,
         description: form.value.description || null,
         horse_ids: form.value.horse_ids,
-        student_ids: form.value.student_ids,
+        student_horse_pairs: studentHorsePairs.value,
       };
       await http.put(`/api/v1/lessons/${editingLesson.value.id}`, payload);
     } else {
@@ -625,7 +725,7 @@ async function save() {
         track_id: form.value.track_id,
         description: form.value.description || null,
         horse_ids: form.value.horse_ids,
-        student_ids: form.value.student_ids,
+        student_horse_pairs: studentHorsePairs.value,
         ...(isAppAdmin.value && form.value.stable_id ? { stable_id: form.value.stable_id } : {}),
       };
       await http.post("/api/v1/lessons/", payload);

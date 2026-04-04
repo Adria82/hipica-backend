@@ -354,6 +354,20 @@
 
         <v-divider />
 
+        <!-- Fila superior: cambiar contraseña (solo app_admin al editar) -->
+        <v-card-actions v-if="editingId && isAppAdmin" class="px-4 pt-3 pb-0">
+          <v-btn
+            color="warning"
+            variant="tonal"
+            size="small"
+            prepend-icon="mdi-lock-reset"
+            :disabled="saving || deleting"
+            @click="openChangePasswordDialog"
+          >
+            {{ t("users.dialog.changePassword") }}
+          </v-btn>
+        </v-card-actions>
+
         <v-card-actions class="pa-4">
           <!-- Eliminar — solo app_admin al editar -->
           <v-btn
@@ -365,20 +379,7 @@
           >
             {{ t("users.dialog.delete") }}
           </v-btn>
-
           <v-spacer />
-
-          <!-- Cambiar contraseña — solo app_admin al editar -->
-          <v-btn
-            v-if="editingId && isAppAdmin"
-            color="warning"
-            variant="text"
-            :disabled="saving || deleting"
-            @click="openChangePasswordDialog"
-          >
-            {{ t("users.dialog.changePassword") }}
-          </v-btn>
-
           <v-btn variant="text" :disabled="saving || deleting" @click="dialog = false">
             {{ t("users.dialog.cancel") }}
           </v-btn>
@@ -751,10 +752,10 @@ function removeScheduleDay(di: number) {
   schedule.value.splice(di, 1);
 }
 function addScheduleSlot(di: number) {
-  schedule.value[di].slots.push({ from: "09:00", to: "13:00" });
+  schedule.value[di]?.slots.push({ from: "09:00", to: "13:00" });
 }
 function removeScheduleSlot(di: number, si: number) {
-  schedule.value[di].slots.splice(si, 1);
+  schedule.value[di]?.slots.splice(si, 1);
 }
 
 // --- Cambiar contraseña ---

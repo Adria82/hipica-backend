@@ -143,6 +143,15 @@ export type Track = {
 };
 
 /**
+ * Par alumno-caballo dentro de una lección.
+ * horse_id puede ser null si el alumno está en la clase sin caballo asignado.
+ */
+export type StudentHorsePair = {
+  student_id: number;
+  horse_id: number | null;
+};
+
+/**
  * Entidad Lesson (clase/lección).
  *
  * Respuesta completa con datos desnormalizados: emails de instructor/ayudante,
@@ -162,10 +171,12 @@ export type Lesson = {
   stable_id: number;
   horse_names: string[];
   student_names: string[];
+  student_horse_pairs: StudentHorsePair[];
 };
 
 /**
  * Payload para crear una lección.
+ * Si student_horse_pairs está presente, tiene preferencia sobre student_ids.
  */
 export type LessonCreate = {
   date_time: string;
@@ -175,7 +186,8 @@ export type LessonCreate = {
   track_id?: number | null;
   description?: string | null;
   horse_ids: number[];
-  student_ids: number[];
+  student_ids?: number[];
+  student_horse_pairs?: StudentHorsePair[];
 };
 
 /**
@@ -189,20 +201,25 @@ export type LessonUpdate = Partial<LessonCreate>;
 
 export type InstructorHours = {
   user_id: number;
+  name: string;
   email: string;
   hours: number;
+  class_count: number;
 };
 
 export type HelperHours = {
   user_id: number;
+  name: string;
   email: string;
   hours: number;
+  class_count: number;
 };
 
 export type StudentClasses = {
   user_id: number;
   name: string;
   class_count: number;
+  hours: number;
 };
 
 export type HorseHours = {
@@ -211,11 +228,28 @@ export type HorseHours = {
   hours: number;
 };
 
+export type TrackHours = {
+  track_id: number;
+  name: string;
+  class_count: number;
+  hours: number;
+};
+
+export type LessonDetail = {
+  lesson_id: number;
+  date_time: string;
+  end_time: string | null;
+  duration_hours: number;
+  track_name: string | null;
+  instructor_name: string;
+};
+
 export type LessonReport = {
   instructor_hours: InstructorHours[];
   helper_hours: HelperHours[];
   student_classes: StudentClasses[];
   horse_hours: HorseHours[];
+  track_hours: TrackHours[];
   from_date: string | null;
   to_date: string | null;
 };

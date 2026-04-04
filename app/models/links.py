@@ -10,6 +10,7 @@ Fecha:  31/01/2026
 Proyecto: Gestión de Hípica
 """
 
+from typing import Optional
 from sqlmodel import SQLModel, Field
 
 
@@ -26,11 +27,13 @@ class LessonUserLink(SQLModel, table=True):
     Tabla intermedia para relacionar Lecciones y Usuarios (alumnos).
 
     Sustituye a la antigua LessonClientLink que referenciaba la tabla client.
+    El campo horse_id permite registrar qué caballo monta cada alumno en la clase.
     """
     __tablename__ = "lessonuserlink"
 
     lesson_id: int = Field(foreign_key="lesson.id", primary_key=True)
     user_id: int = Field(foreign_key="user.id", primary_key=True)
+    horse_id: Optional[int] = Field(default=None, foreign_key="horse.id")
 
 
 class HorseLevelLink(SQLModel, table=True):

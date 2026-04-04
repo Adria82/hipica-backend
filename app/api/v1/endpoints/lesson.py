@@ -17,7 +17,7 @@ from app.models.track import Track
 from app.models.links import LessonUserLink, LessonHorseLink
 from app.dependencies import require_role
 from app.models import User
-from app.schemas.lesson import LessonCreate, LessonRead, LessonUpdate
+from app.schemas.lesson import LessonCreate, LessonRead, LessonUpdate, StudentHorsePair
 from app.core.i18n import t
 
 router = APIRouter(prefix="/lessons", tags=["Lessons"])
@@ -57,10 +57,14 @@ def _build_lesson_read(lesson: Lesson, session: Session) -> LessonRead:
         select(LessonUserLink).where(LessonUserLink.lesson_id == lesson.id)
     ).all()
     student_names = []
+    student_horse_pairs = []
     for sl in student_links:
         student = session.get(User, sl.user_id)
         if student:
             student_names.append(student.name)
+        student_horse_pairs.append(
+            StudentHorsePair(student_id=sl.user_id, horse_id=sl.horse_id)
+        )
 
     return LessonRead(
         id=lesson.id,
@@ -76,6 +80,7 @@ def _build_lesson_read(lesson: Lesson, session: Session) -> LessonRead:
         stable_id=lesson.stable_id,
         horse_names=horse_names,
         student_names=student_names,
+        student_horse_pairs=student_horse_pairs,
     )
 
 
@@ -136,14 +141,25 @@ def create_lesson(
     session.refresh(lesson)
 
     # Asociar alumnos (usuarios con role=client)
-    for student_id in lesson_data.student_ids:
-        student = session.get(User, student_id)
-        if not student:
-            raise HTTPException(
-                status_code=404,
-                detail=t(request, "lesson.client_not_found", client_id=student_id),
-            )
-        session.add(LessonUserLink(lesson_id=lesson.id, user_id=student_id))
+    # Si student_horse_pairs está presente, tiene preferencia sobre student_ids
+    if lesson_data.student_horse_pairs is not None:
+        for pair in lesson_data.student_horse_pairs:
+            student = session.get(User, pair.student_id)
+            if not student:
+                raise HTTPException(
+                    status_code=404,
+                    detail=t(request, "lesson.client_not_found", client_id=pair.student_id),
+                )
+            session.add(LessonUserLink(lesson_id=lesson.id, user_id=pair.student_id, horse_id=pair.horse_id))
+    else:
+        for student_id in lesson_data.student_ids:
+            student = session.get(User, student_id)
+            if not student:
+                raise HTTPException(
+                    status_code=404,
+                    detail=t(request, "lesson.client_not_found", client_id=student_id),
+                )
+            session.add(LessonUserLink(lesson_id=lesson.id, user_id=student_id))
 
     # Asociar caballos
     for horse_id in lesson_data.horse_ids:
@@ -219,7 +235,18 @@ def update_lesson(
     session.commit()
 
     # Actualizar relaciones N:N
-    if lesson_update.student_ids is not None:
+    # student_horse_pairs tiene preferencia sobre student_ids si viene en el payload
+    if lesson_update.student_horse_pairs is not None:
+        session.exec(
+            delete(LessonUserLink).where(LessonUserLink.lesson_id == lesson.id)
+        )
+        session.add_all(
+            [
+                LessonUserLink(lesson_id=lesson.id, user_id=pair.student_id, horse_id=pair.horse_id)
+                for pair in lesson_update.student_horse_pairs
+            ]
+        )
+    elif lesson_update.student_ids is not None:
         session.exec(
             delete(LessonUserLink).where(LessonUserLink.lesson_id == lesson.id)
         )
