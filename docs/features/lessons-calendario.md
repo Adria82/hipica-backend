@@ -39,30 +39,47 @@ La respuesta de los endpoints de Lesson incluye datos resueltos para evitar mult
 | `horse_names` | `list[str]` | Nombres de los caballos asignados |
 | `client_names` | `list[str]` | Nombres de los alumnos participantes |
 
-## Frontend: Calendario Semanal (`Lessons.vue`)
+## Frontend: Calendario (`Lessons.vue`)
 
-La vista abandona la tabla plana y adopta un calendario de semana vista con las siguientes caracteristicas:
+La vista adopta un calendario con dos modos de visualizacion intercambiables mediante un toggle:
+
+### Toggle semana / mes
+
+Boton `v-btn-toggle` en el header derecho con opciones `week` y `month`. El estado se guarda en `viewMode` (ref).
+
+### Vista semanal
 
 - **Navegacion:** botones "Semana anterior" / "Hoy" / "Semana siguiente".
-- **Grid semanal:** 7 columnas (lun–dom). El dia actual se resalta visualmente.
-- **Chips de clase:** cada clase aparece como un chip en su dia con hora de inicio, nombre de pista (si existe) y email del instructor.
-- **Crear clase:** click en una celda vacia del dia abre el dialogo de creacion con la fecha preseleccionada (solo para `canManage`).
-- **Editar clase:** click en un chip abre el dialogo de edicion con todos los campos cargados.
+- **Grid semanal:** 7 columnas (lun–dom). El dia actual se resalta.
+- **Chips de clase:** hora de inicio, pista (si existe), email instructor.
+- **Crear clase:** click en celda vacia abre el dialogo con la fecha preseleccionada.
+
+### Vista mensual
+
+- **Navegacion:** botones "Mes anterior" / "Hoy" / "Mes siguiente" (los mismos botones del centro cambian dinamicamente segun `viewMode`).
+- **Grid mensual:** `month-grid` con `grid-template-columns: repeat(7, 1fr)`. Incluye dias del mes anterior/siguiente para completar filas de 7; esos dias se renderizan con `opacity: 0.4`.
+- **Cabecera:** dias de la semana abreviados (lun, mar, ...) derivados de una semana de referencia con `toLocaleDateString`.
+- **Chips de clase:** identicos a la vista semanal.
+
+Computed relevantes:
+- `monthDays`: array de `{ iso, dayNum, isToday, isCurrentMonth }` con todos los dias del grid mensual.
+- `monthWeekHeaders`: array con los 7 nombres abreviados de dia de la semana (Lun–Dom).
 
 ### Dialogo de creacion/edicion
 
-Campos disponibles:
-
-| Campo | Tipo de control | Notas |
-|-------|----------------|-------|
+| Campo | Control | Notas |
+|-------|---------|-------|
+| **Hipica** | `v-select` | Solo visible para `app_admin`. Requerido al crear. |
 | Fecha y hora inicio | `datetime-local` | Requerido |
 | Fecha y hora fin | `datetime-local` | Opcional |
-| Instructor | `v-select` | Lista de usuarios de la hipica |
-| Ayudante | `v-select` | Lista de usuarios + opcion "ninguno" |
-| Pista | `v-select` | Lista de tracks activos + opcion "ninguna" |
-| Caballos | `v-select` multiple | Chips con nombre de caballo |
-| Alumnos | `v-select` multiple | Chips con nombre de cliente |
+| Instructor | `v-select` | Usuarios de la hipica |
+| Ayudante | `v-select` | Usuarios + opcion limpia |
+| Pista | `v-select` | Tracks activos + opcion limpia |
+| Caballos | `v-select` multiple | Chips |
+| Alumnos | `v-select` multiple | Chips |
 | Descripcion | `v-textarea` | Notas adicionales |
+
+El campo **Hipica** es necesario porque `app_admin` no tiene `stable_id` propio. Para otros roles, el backend fuerza `stable_id = current_user.stable_id` y el campo no se muestra.
 
 ## Frontend: Informes (`Reports.vue`)
 
@@ -95,8 +112,8 @@ sequenceDiagram
     Monitor->>Lessons.vue: Click en dia del calendario
     Lessons.vue->>Lessons.vue: openCreateDialog(fecha)
     Monitor->>Lessons.vue: Rellena formulario y guarda
-    Lessons.vue->>API: POST /api/v1/lessons/ { date_time, end_time, instructor_id, helper_id, track_id, horse_ids, client_ids, description }
-    API->>DB: INSERT lesson + LessonHorseLink + LessonClientLink
+    Lessons.vue->>API: POST /api/v1/lessons/ { date_time, end_time, instructor_id, helper_id, track_id, horse_ids, student_ids, description, stable_id? }
+    API->>DB: INSERT lesson + LessonHorseLink + LessonUserLink
     DB-->>API: Lesson creada
     API-->>Lessons.vue: LessonRead desnormalizado
     Lessons.vue->>Lessons.vue: Refresca lista y muestra chip en calendario
