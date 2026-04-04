@@ -29,6 +29,7 @@ from app.models.links import HorseLevelLink, LessonHorseLink, LessonUserLink
 from app.models.stable_feature import StableFeature
 from app.models.feature import FeatureCode
 from app.models.box import Box
+from app.models.track import Track
 from app.models.client_profile import ClientProfile
 from app.models.monitor_profile import MonitorProfile
 
@@ -242,6 +243,19 @@ def seed_db() -> None:
         session.refresh(box3)
 
         # --------------------------------------------------------------
+        # 2.4 Crear pistas
+        # --------------------------------------------------------------
+        track1 = Track(name="Pista 1", stable_id=stable.id)
+        track2 = Track(name="Pista 2", stable_id=stable.id)
+        track3 = Track(name="Ruta",    stable_id=stable.id)
+        session.add_all([track1, track2, track3])
+        session.commit()
+        session.refresh(track1)
+        session.refresh(track2)
+        session.refresh(track3)
+        print("Pistas creadas: Pista 1, Pista 2, Ruta")
+
+        # --------------------------------------------------------------
         # 3. Crear caballos
         # --------------------------------------------------------------
         horse1 = Horse(name="Trueno",   stable_id=stable.id, box_id=box1.id)
@@ -277,21 +291,27 @@ def seed_db() -> None:
         lessons_data = [
             dict(date=datetime(2026, 1, 6,  10, 0, tzinfo=timezone.utc),
                  end=datetime(2026, 1, 6,  11, 0, tzinfo=timezone.utc),
+                 track=track1,
                  horses=[horse1, horse2], students=[client_users[0], client_users[1]]),
             dict(date=datetime(2026, 1, 10, 9, 0, tzinfo=timezone.utc),
                  end=datetime(2026, 1, 10, 10, 30, tzinfo=timezone.utc),
+                 track=track2,
                  horses=[horse3], students=[client_users[2]]),
             dict(date=datetime(2026, 1, 14, 17, 0, tzinfo=timezone.utc),
                  end=datetime(2026, 1, 14, 18, 30, tzinfo=timezone.utc),
+                 track=track1,
                  horses=[horse1, horse4], students=[client_users[0], client_users[3]]),
             dict(date=datetime(2026, 1, 18, 10, 0, tzinfo=timezone.utc),
                  end=datetime(2026, 1, 18, 11, 0, tzinfo=timezone.utc),
+                 track=track2,
                  horses=[horse2, horse3], students=[client_users[1], client_users[2]]),
             dict(date=datetime(2026, 1, 21, 16, 0, tzinfo=timezone.utc),
                  end=datetime(2026, 1, 21, 17, 30, tzinfo=timezone.utc),
+                 track=track3,
                  horses=[horse4], students=[client_users[3]]),
             dict(date=datetime(2026, 1, 25, 9, 0, tzinfo=timezone.utc),
                  end=datetime(2026, 1, 25, 10, 30, tzinfo=timezone.utc),
+                 track=track1,
                  horses=[horse1, horse2, horse3], students=[client_users[0], client_users[1], client_users[2], client_users[3]]),
         ]
 
@@ -300,6 +320,7 @@ def seed_db() -> None:
                 date_time=ld["date"],
                 end_time=ld["end"],
                 instructor_id=monitor.id,
+                track_id=ld["track"].id,
                 stable_id=stable.id,
             )
             session.add(lesson)

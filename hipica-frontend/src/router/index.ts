@@ -15,6 +15,7 @@ import Profile from "../views/Profile.vue";
 import { isLoggedIn } from "../auth/tokens";
 import MainLayout from "../layouts/MainLayout.vue";
 import Users from "../views/Users.vue";
+import Tracks from "../views/Tracks.vue";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -32,6 +33,7 @@ const routes: RouteRecordRaw[] = [
       // Operativa
       { path: "horses",  name: "horses",  component: Horses  },
       { path: "boxes",   name: "boxes",   component: Boxes   },
+      { path: "tracks",  name: "tracks",  component: Tracks  },
       { path: "lessons", name: "lessons", component: Lessons },
 
       // Administración (solo app_admin / stable_admin)

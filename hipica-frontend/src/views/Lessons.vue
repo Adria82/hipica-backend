@@ -174,9 +174,19 @@
 
             <v-col cols="12" sm="6">
               <v-text-field
-                v-model="form.date_time"
-                :label="t('lessons.dialog.dateTime')"
-                type="datetime-local"
+                v-model="form.start_date"
+                :label="t('lessons.dialog.startDate')"
+                type="date"
+                variant="outlined"
+                density="compact"
+                required
+              />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="form.start_time"
+                :label="t('lessons.dialog.startTime')"
+                type="time"
                 step="300"
                 variant="outlined"
                 density="compact"
@@ -185,9 +195,18 @@
             </v-col>
             <v-col cols="12" sm="6">
               <v-text-field
-                v-model="form.end_time"
-                :label="t('lessons.dialog.endTime')"
-                type="datetime-local"
+                v-model="form.end_date"
+                :label="t('lessons.dialog.endDate')"
+                type="date"
+                variant="outlined"
+                density="compact"
+              />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="form.end_time_input"
+                :label="t('lessons.dialog.endTimeLabel')"
+                type="time"
                 step="300"
                 variant="outlined"
                 density="compact"
@@ -289,9 +308,16 @@
                     variant="outlined"
                     density="compact"
                     hide-details
+                    :error="!!duplicateHorseError && pair.horse_id !== null && studentHorsePairs.filter((p) => p.horse_id === pair.horse_id).length > 1"
                   />
                 </v-col>
               </v-row>
+            </v-col>
+
+            <v-col v-if="duplicateHorseError" cols="12">
+              <v-alert type="error" variant="tonal" density="compact">
+                {{ duplicateHorseError }}
+              </v-alert>
             </v-col>
 
             <v-col cols="12">
@@ -560,20 +586,50 @@ const trackOptionsWithNone = computed(() => tracks.value.filter((tr) => tr.is_ac
 const horseOptions = computed(() => horses.value.filter((h) => h.is_active));
 const studentOptions = computed(() => students.value.filter((s) => s.is_active));
 
+// Helpers para componer/descomponer datetime-local
+function toDateTimeLocal(iso: string): { date: string; time: string } {
+  const s = iso.slice(0, 16); // "YYYY-MM-DDTHH:MM"
+  return { date: s.slice(0, 10), time: s.slice(11) };
+}
+
+function fromDateAndTime(date: string, time: string): string {
+  if (!date || !time) return "";
+  return `${date}T${time}`;
+}
+
 // Validación: fin no puede ser anterior al inicio
 const dateTimeError = computed(() => {
-  if (!form.value.date_time || !form.value.end_time) return "";
-  return new Date(form.value.end_time) <= new Date(form.value.date_time)
-    ? t("lessons.dialog.endBeforeStart")
-    : "";
+  const start = fromDateAndTime(form.value.start_date, form.value.start_time);
+  const end   = fromDateAndTime(form.value.end_date, form.value.end_time_input);
+  if (!start || !end) return "";
+  return new Date(end) <= new Date(start) ? t("lessons.dialog.endBeforeStart") : "";
 });
+
+// Validación: no asignar el mismo caballo a dos alumnos distintos
+const duplicateHorseError = computed(() => {
+  const assigned = studentHorsePairs.value
+    .map((p) => p.horse_id)
+    .filter((id): id is number => id !== null);
+  const hasDuplicate = assigned.length !== new Set(assigned).size;
+  return hasDuplicate ? t("lessons.dialog.duplicateHorse") : "";
+});
+
+// Computed: datetime ISO strings para los payloads
+const computedDateTime = computed(() =>
+  fromDateAndTime(form.value.start_date, form.value.start_time)
+);
+const computedEndTime = computed(() =>
+  fromDateAndTime(form.value.end_date, form.value.end_time_input) || null
+);
 
 // ---------------------------------------------------------------------------
 // Form
 // ---------------------------------------------------------------------------
 interface LessonForm {
-  date_time: string;
-  end_time: string;
+  start_date: string;
+  start_time: string;
+  end_date: string;
+  end_time_input: string;
   instructor_id: number | null;
   helper_id: number | null;
   track_id: number | null;
@@ -584,10 +640,11 @@ interface LessonForm {
 }
 
 function emptyForm(dateIso?: string | null): LessonForm {
-  const base = dateIso ? `${dateIso}T09:00` : "";
   return {
-    date_time: base,
-    end_time: "",
+    start_date: dateIso ?? "",
+    start_time: "09:00",
+    end_date: dateIso ?? "",
+    end_time_input: "",
     instructor_id: null,
     helper_id: null,
     track_id: null,
@@ -642,9 +699,13 @@ function openEditDialog(lesson: Lesson) {
   const studentIds = students.value
     .filter((s) => lesson.student_names.includes(s.name))
     .map((s) => s.id);
+  const startParts = toDateTimeLocal(lesson.date_time);
+  const endParts   = lesson.end_time ? toDateTimeLocal(lesson.end_time) : { date: "", time: "" };
   form.value = {
-    date_time: lesson.date_time.slice(0, 16),
-    end_time: lesson.end_time ? lesson.end_time.slice(0, 16) : "",
+    start_date:     startParts.date,
+    start_time:     startParts.time,
+    end_date:       endParts.date,
+    end_time_input: endParts.time,
     instructor_id: lesson.instructor_id,
     helper_id: lesson.helper_id,
     track_id: lesson.track_id,
@@ -700,14 +761,15 @@ async function loadAll() {
 }
 
 async function save() {
-  if (!form.value.instructor_id || !form.value.date_time) return;
+  if (!form.value.instructor_id || !form.value.start_date || !form.value.start_time) return;
   if (dateTimeError.value) { showSnackbar(dateTimeError.value, "error"); return; }
+  if (duplicateHorseError.value) { showSnackbar(duplicateHorseError.value, "error"); return; }
   saving.value = true;
   try {
     if (editingLesson.value) {
       const payload: LessonUpdate = {
-        date_time: form.value.date_time,
-        end_time: form.value.end_time || null,
+        date_time: computedDateTime.value,
+        end_time: computedEndTime.value,
         instructor_id: form.value.instructor_id ?? undefined,
         helper_id: form.value.helper_id,
         track_id: form.value.track_id,
@@ -718,8 +780,8 @@ async function save() {
       await http.put(`/api/v1/lessons/${editingLesson.value.id}`, payload);
     } else {
       const payload: LessonCreate = {
-        date_time: form.value.date_time,
-        end_time: form.value.end_time || null,
+        date_time: computedDateTime.value,
+        end_time: computedEndTime.value,
         instructor_id: form.value.instructor_id!,
         helper_id: form.value.helper_id,
         track_id: form.value.track_id,

@@ -125,6 +125,7 @@ const ADMIN_ITEMS: NavItem[] = [
 const OPERATIVA_ITEMS: (NavItem & { feature?: FeatureCode })[] = [
   { titleKey: "menu.horses",  icon: "mdi-horse",              route: "/horses",  feature: "HORSES"  },
   { titleKey: "menu.boxes",   icon: "mdi-door",               route: "/boxes",   feature: "HORSES"  },
+  { titleKey: "menu.tracks",  icon: "mdi-map-marker-path",    route: "/tracks",  feature: "LESSONS" },
   { titleKey: "menu.lessons", icon: "mdi-school",             route: "/lessons", feature: "LESSONS" },
 ];
 
