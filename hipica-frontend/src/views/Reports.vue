@@ -229,7 +229,22 @@
                 chips
                 closable-chips
                 style="max-width: 280px"
-              />
+              >
+                <template #prepend-item>
+                  <v-list-item
+                    :title="allWeekdayFiltersSelected ? t('reports.charts.unselectAll') : t('reports.charts.selectAll')"
+                    @click="toggleAllWeekdayFilters"
+                  >
+                    <template #prepend>
+                      <v-checkbox-btn
+                        :model-value="allWeekdayFiltersSelected"
+                        :indeterminate="someWeekdayFiltersSelected && !allWeekdayFiltersSelected"
+                      />
+                    </template>
+                  </v-list-item>
+                  <v-divider class="mb-1" />
+                </template>
+              </v-select>
             </v-card-title>
             <VueApexCharts
               type="bar"
@@ -430,6 +445,19 @@ const weekdayFilterOptions = computed((): { id: number; name: string }[] => {
   }
 });
 
+const allWeekdayFilterOptionIds = computed(() => weekdayFilterOptions.value.map((option) => option.id));
+
+const allWeekdayFiltersSelected = computed(() =>
+  allWeekdayFilterOptionIds.value.length > 0 &&
+  allWeekdayFilterOptionIds.value.every((id) => weekdayFilterIds.value.includes(id))
+);
+
+const someWeekdayFiltersSelected = computed(() => weekdayFilterIds.value.length > 0);
+
+function toggleAllWeekdayFilters() {
+  weekdayFilterIds.value = allWeekdayFiltersSelected.value ? [] : [...allWeekdayFilterOptionIds.value];
+}
+
 // Al cambiar el tipo de filtro, se reinicia la selección de entidades
 watch(weekdayFilterType, () => { weekdayFilterIds.value = []; });
 
@@ -479,6 +507,32 @@ const weekdayChartOptions = computed(() => ({
   },
 }));
 
+function formatDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getPreviousMonthRange() {
+  const today = new Date();
+  const firstDayPreviousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const lastDayPreviousMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+
+  return {
+    from: formatDateInput(firstDayPreviousMonth),
+    to: formatDateInput(lastDayPreviousMonth),
+  };
+}
+
+function ensureDefaultReportDates() {
+  if (fromDate.value || toDate.value) return;
+
+  const previousMonthRange = getPreviousMonthRange();
+  fromDate.value = previousMonthRange.from;
+  toDate.value = previousMonthRange.to;
+}
+
 // ---------------------------------------------------------------------------
 // Cargar hípicas (solo app_admin)
 // ---------------------------------------------------------------------------
@@ -493,6 +547,7 @@ async function loadStables() {
 }
 
 onMounted(() => {
+  ensureDefaultReportDates();
   loadStables();
 });
 
@@ -500,6 +555,7 @@ onMounted(() => {
 // Load report
 // ---------------------------------------------------------------------------
 async function loadReport() {
+  ensureDefaultReportDates();
   loading.value = true;
   error.value = null;
   allLessonsDetailMap.value = new Map();

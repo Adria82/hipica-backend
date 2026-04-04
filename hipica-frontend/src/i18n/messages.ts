@@ -446,6 +446,8 @@ const messages = {
         weekdayFilterInstructor: "Filtrar por instructor",
         weekdayFilterHelper: "Filtrar por ayudante",
         weekdayFilterTrack: "Filtrar por pista",
+        selectAll: "Marcar todos",
+        unselectAll: "Desmarcar todos",
       },
     },
     profile: {
@@ -921,6 +923,8 @@ const messages = {
         weekdayFilterInstructor: "Filtrar per instructor",
         weekdayFilterHelper: "Filtrar per ajudant",
         weekdayFilterTrack: "Filtrar per pista",
+        selectAll: "Marcar-los tots",
+        unselectAll: "Desmarcar-los tots",
       },
     },
     profile: {
@@ -1396,6 +1400,8 @@ const messages = {
         weekdayFilterInstructor: "Filter by instructor",
         weekdayFilterHelper: "Filter by helper",
         weekdayFilterTrack: "Filter by track",
+        selectAll: "Select all",
+        unselectAll: "Unselect all",
       },
     },
     profile: {
