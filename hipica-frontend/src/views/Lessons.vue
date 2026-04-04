@@ -105,7 +105,7 @@
               </v-chip>
             </template>
             <span>
-              {{ lesson.instructor_email }}
+              {{ instructorName(lesson.instructor_id) || lesson.instructor_email }}
               <template v-if="lesson.student_names.length">
                 · {{ lesson.student_names[0] }}<template v-if="lesson.student_names.length > 1"> …</template>
               </template>
@@ -157,7 +157,7 @@
               </v-chip>
             </template>
             <span>
-              {{ lesson.instructor_email }}
+              {{ instructorName(lesson.instructor_id) || lesson.instructor_email }}
               <template v-if="lesson.student_names.length">
                 · {{ lesson.student_names[0] }}<template v-if="lesson.student_names.length > 1"> …</template>
               </template>
@@ -581,6 +581,11 @@ const periodLabel = computed(() => {
 // ---------------------------------------------------------------------------
 // Select options
 // ---------------------------------------------------------------------------
+// Devuelve el nombre del instructor a partir de su ID
+function instructorName(id: number): string {
+  return users.value.find((u) => u.id === id)?.name ?? "";
+}
+
 const instructorOptions = computed(() => users.value.filter((u) => u.role === "monitor"));
 const helperOptions = computed(() => users.value.filter((u) => u.role === "assistant"));
 const trackOptionsWithNone = computed(() => tracks.value.filter((tr) => tr.is_active));

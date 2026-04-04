@@ -158,6 +158,8 @@
               density="compact"
               hide-default-footer
               :no-data-text="t('reports.empty')"
+              @click:row="onTrackRowClick"
+              style="cursor: pointer"
             />
           </v-card>
         </v-col>
@@ -213,18 +215,20 @@
                 hide-details
                 style="max-width: 200px"
               />
-              <!-- Filter value (entity selector) -->
+              <!-- Selector de entidades con multiselección -->
               <v-select
                 v-if="weekdayFilterType !== 'all'"
-                v-model="weekdayFilterId"
+                v-model="weekdayFilterIds"
                 :items="weekdayFilterOptions"
                 item-title="name"
                 item-value="id"
                 density="compact"
                 variant="outlined"
                 hide-details
-                clearable
-                style="max-width: 200px"
+                multiple
+                chips
+                closable-chips
+                style="max-width: 280px"
               />
             </v-card-title>
             <VueApexCharts
@@ -272,7 +276,7 @@ import { useI18n } from "vue-i18n";
 import VueApexCharts from "vue3-apexcharts";
 import { http } from "@/api/http";
 import { isAppAdmin } from "@/auth/profile";
-import type { LessonReport, LessonDetail, InstructorHours, HelperHours, StudentClasses, HorseHours, Stable } from "@/types/api";
+import type { LessonReport, LessonDetail, InstructorHours, HelperHours, StudentClasses, HorseHours, TrackHours, Stable } from "@/types/api";
 
 const { t } = useI18n();
 
@@ -398,10 +402,12 @@ const staffChartOptions = computed(() => {
 // Estado del filtro de la gráfica de días de la semana
 type WeekdayFilterType = "all" | "horse" | "student" | "instructor" | "helper" | "track";
 const weekdayFilterType = ref<WeekdayFilterType>("all");
-const weekdayFilterId = ref<number | null>(null);
+// Multiselección de entidades (IDs seleccionados)
+const weekdayFilterIds = ref<number[]>([]);
 
-// Detalle de clases del período (cargado al generar informe, reutilizado por la gráfica)
-const allLessonsDetail = ref<import("@/types/api").LessonDetail[]>([]);
+// Detalle de clases del período agrupado por entidad: entityId → LessonDetail[]
+// En modo "all" se usa la clave 0
+const allLessonsDetailMap = ref<Map<number, LessonDetail[]>>(new Map());
 
 const weekdayFilterTypeItems = computed(() => [
   { title: t("reports.charts.weekdayFilterAll"),        value: "all"        },
@@ -424,24 +430,53 @@ const weekdayFilterOptions = computed((): { id: number; name: string }[] => {
   }
 });
 
-// Al cambiar el tipo de filtro, se reinicia el valor seleccionado
-watch(weekdayFilterType, () => { weekdayFilterId.value = null; });
+// Al cambiar el tipo de filtro, se reinicia la selección de entidades
+watch(weekdayFilterType, () => { weekdayFilterIds.value = []; });
+
+// Colores para las series de la gráfica
+const CHART_COLORS = [
+  "#008FFB","#00E396","#FEB019","#FF4560","#775DD0",
+  "#546E7A","#26a69a","#D10CE8","#F86624","#2b908f",
+];
 
 const weekdayChartSeries = computed(() => {
-  const counts = new Array(7).fill(0);
-  const lessons = allLessonsDetail.value;
-  lessons.forEach((l) => {
-    const dayIndex = new Date(l.date_time).getDay();
-    counts[dayIndex] = (counts[dayIndex] ?? 0) + 1;
+  if (weekdayFilterType.value === "all" || weekdayFilterIds.value.length === 0) {
+    // Serie única con todas las clases
+    const counts = new Array(7).fill(0);
+    const lessons = allLessonsDetailMap.value.get(0) ?? [];
+    lessons.forEach((l) => {
+      const dayIndex = new Date(l.date_time).getDay();
+      counts[dayIndex] = (counts[dayIndex] ?? 0) + 1;
+    });
+    return [{ name: t("reports.charts.byWeekday"), data: counts }];
+  }
+  // Una serie por entidad seleccionada, con nombre de la entidad
+  return weekdayFilterIds.value.map((id, idx) => {
+    const counts = new Array(7).fill(0);
+    const lessons = allLessonsDetailMap.value.get(id) ?? [];
+    lessons.forEach((l) => {
+      const dayIndex = new Date(l.date_time).getDay();
+      counts[dayIndex] = (counts[dayIndex] ?? 0) + 1;
+    });
+    const opcion = weekdayFilterOptions.value.find((o) => o.id === id);
+    return {
+      name: opcion?.name ?? String(id),
+      data: counts,
+      color: CHART_COLORS[idx % CHART_COLORS.length],
+    };
   });
-  return [{ name: t("reports.charts.byWeekday"), data: counts }];
 });
 
 const weekdayChartOptions = computed(() => ({
-  chart: { toolbar: { show: false } },
+  chart: { toolbar: { show: false }, stacked: false },
   xaxis: { categories: WEEKDAY_KEYS },
   plotOptions: { bar: { horizontal: false, borderRadius: 4 } },
   dataLabels: { enabled: false },
+  tooltip: {
+    y: {
+      formatter: (val: number) => `${val} ${t("reports.charts.classes")}`,
+    },
+  },
 }));
 
 // ---------------------------------------------------------------------------
@@ -467,9 +502,9 @@ onMounted(() => {
 async function loadReport() {
   loading.value = true;
   error.value = null;
-  allLessonsDetail.value = [];
+  allLessonsDetailMap.value = new Map();
   weekdayFilterType.value = "all";
-  weekdayFilterId.value = null;
+  weekdayFilterIds.value = [];
   try {
     const params: Record<string, string | number> = {};
     if (fromDate.value) params.from_date = fromDate.value;
@@ -481,7 +516,7 @@ async function loadReport() {
     report.value = data;
     loaded.value = true;
     // Carga el detalle de clases para la gráfica de días de la semana
-    loadWeekdayChartData(params);
+    loadAllLessonsForChart(params);
   } catch (e: unknown) {
     const err = e as { response?: { data?: { detail?: string } } };
     error.value = err?.response?.data?.detail || t("reports.error");
@@ -490,50 +525,54 @@ async function loadReport() {
   }
 }
 
-async function loadWeekdayChartData(params: Record<string, string | number>, userId?: number, horseId?: number) {
+// Carga datos de clases para una entidad concreta y los guarda en el mapa por entityKey
+async function loadEntityLessons(entityKey: number, url: string, params: Record<string, string | number>) {
   try {
-    let lessons: LessonDetail[] = [];
-    if (userId != null) {
-      const { data } = await http.get<LessonDetail[]>(`/api/v1/reports/lessons/by-user/${userId}`, { params });
-      lessons = data;
-    } else if (horseId != null) {
-      const { data } = await http.get<LessonDetail[]>(`/api/v1/reports/lessons/by-horse/${horseId}`, { params });
-      lessons = data;
-    } else {
-      // Sin filtro: carga todas las clases del período agrupando por instructor (deduplicadas)
-      if (report.value) {
-        const peticiones = report.value.instructor_hours.map((i: InstructorHours) =>
-          http.get<LessonDetail[]>(`/api/v1/reports/lessons/by-user/${i.user_id}`, { params })
-            .then((r: { data: LessonDetail[] }) => r.data)
-            .catch(() => [] as LessonDetail[])
-        );
-        const resultados: LessonDetail[][] = await Promise.all(peticiones);
-        // Deduplicar por lesson_id
-        const vistos = new Set<number>();
-        ([] as LessonDetail[]).concat(...resultados).forEach((l: LessonDetail) => {
-          if (!vistos.has(l.lesson_id)) { vistos.add(l.lesson_id); lessons.push(l); }
-        });
-      }
-    }
-    allLessonsDetail.value = lessons;
+    const { data } = await http.get<LessonDetail[]>(url, { params });
+    const mapa = new Map(allLessonsDetailMap.value);
+    mapa.set(entityKey, data);
+    allLessonsDetailMap.value = mapa;
   } catch {
-    allLessonsDetail.value = [];
+    // Si falla, deja la entrada vacía
+    const mapa = new Map(allLessonsDetailMap.value);
+    mapa.set(entityKey, []);
+    allLessonsDetailMap.value = mapa;
   }
 }
 
-// Al cambiar el filtro de la gráfica, recarga los datos de días de la semana
-watch([weekdayFilterType, weekdayFilterId], ([tipo, id]) => {
+// Carga todas las clases del período agrupando por instructores (clave 0)
+async function loadAllLessonsForChart(params: Record<string, string | number>) {
+  if (!report.value) return;
+  const peticiones = report.value.instructor_hours.map((i: InstructorHours) =>
+    http.get<LessonDetail[]>(`/api/v1/reports/lessons/by-user/${i.user_id}`, { params })
+      .then((r: { data: LessonDetail[] }) => r.data)
+      .catch(() => [] as LessonDetail[])
+  );
+  const resultados: LessonDetail[][] = await Promise.all(peticiones);
+  // Deduplicar por lesson_id
+  const vistos = new Set<number>();
+  const todas: LessonDetail[] = [];
+  ([] as LessonDetail[]).concat(...resultados).forEach((l: LessonDetail) => {
+    if (!vistos.has(l.lesson_id)) { vistos.add(l.lesson_id); todas.push(l); }
+  });
+  const mapa = new Map(allLessonsDetailMap.value);
+  mapa.set(0, todas);
+  allLessonsDetailMap.value = mapa;
+}
+
+// Al cambiar la selección de entidades, carga los datos que falten en el mapa
+watch(weekdayFilterIds, (ids) => {
   const params = buildDetailParams();
-  if (tipo === "all") {
-    loadWeekdayChartData(params);
-  } else if (tipo === "horse" && id != null) {
-    loadWeekdayChartData(params, undefined, id);
-  } else if (id != null) {
-    loadWeekdayChartData(params, id, undefined);
-  } else {
-    // Tipo cambiado pero sin entidad seleccionada aún — vaciar
-    allLessonsDetail.value = [];
-  }
+  if (ids.length === 0) return;
+  const tipo = weekdayFilterType.value;
+  ids.forEach((id) => {
+    if (allLessonsDetailMap.value.has(id)) return; // ya cargado
+    let url = "";
+    if (tipo === "horse") url = `/api/v1/reports/lessons/by-horse/${id}`;
+    else if (tipo === "track") url = `/api/v1/reports/lessons/by-track/${id}`;
+    else url = `/api/v1/reports/lessons/by-user/${id}`; // student / instructor / helper
+    loadEntityLessons(id, url, params);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -568,6 +607,10 @@ function onHorseRowClick(_evt: MouseEvent, row: { item: HorseHours }) {
   openHorseDetail(row.item.horse_id);
 }
 
+function onTrackRowClick(_evt: MouseEvent, row: { item: TrackHours }) {
+  openTrackDetail(row.item.track_id);
+}
+
 async function openUserDetail(userId: number) {
   detailDialog.value = true;
   detailLoading.value = true;
@@ -592,6 +635,23 @@ async function openHorseDetail(horseId: number) {
   try {
     const { data } = await http.get<LessonDetail[]>(
       `/api/v1/reports/lessons/by-horse/${horseId}`,
+      { params: buildDetailParams() }
+    );
+    detailItems.value = data;
+  } catch {
+    detailItems.value = [];
+  } finally {
+    detailLoading.value = false;
+  }
+}
+
+async function openTrackDetail(trackId: number) {
+  detailDialog.value = true;
+  detailLoading.value = true;
+  detailItems.value = [];
+  try {
+    const { data } = await http.get<LessonDetail[]>(
+      `/api/v1/reports/lessons/by-track/${trackId}`,
       { params: buildDetailParams() }
     );
     detailItems.value = data;

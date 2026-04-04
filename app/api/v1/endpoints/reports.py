@@ -352,3 +352,38 @@ def lessons_by_horse(
         ))
 
     return result
+
+
+@router.get("/lessons/by-track/{track_id}", response_model=list[LessonDetail])
+def lessons_by_track(
+    track_id: int,
+    from_date: Optional[date] = None,
+    to_date: Optional[date] = None,
+    stable_id: Optional[int] = None,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["monitor", "stable_admin", "app_admin"])),
+):
+    """
+    Detalle de clases de una pista para drill-down.
+
+    Devuelve las lecciones realizadas en la pista indicada dentro del rango de fechas.
+    """
+    query = select(Lesson).where(Lesson.track_id == track_id)
+    query = _apply_date_and_stable_filters(query, current_user, stable_id, from_date, to_date)
+    lessons = session.exec(query).all()
+    lessons = sorted(lessons, key=lambda l: l.date_time)
+
+    result: list[LessonDetail] = []
+    for lesson in lessons:
+        instructor = session.get(User, lesson.instructor_id)
+        trk = session.get(Track, lesson.track_id) if lesson.track_id else None
+        result.append(LessonDetail(
+            lesson_id=lesson.id,
+            date_time=lesson.date_time.isoformat(),
+            end_time=lesson.end_time.isoformat() if lesson.end_time else None,
+            duration_hours=round(_lesson_duration_hours(lesson), 2),
+            track_name=trk.name if trk else None,
+            instructor_name=instructor.name if instructor else "",
+        ))
+
+    return result
