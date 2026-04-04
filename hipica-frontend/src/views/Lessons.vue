@@ -85,21 +85,32 @@
           <div v-if="lessonsForDay(day.iso).length === 0" class="text-caption text-disabled pa-2">
             {{ t("lessons.noLessonsDay") }}
           </div>
-          <v-chip
+          <v-tooltip
             v-for="lesson in lessonsForDay(day.iso)"
             :key="lesson.id"
-            class="lesson-chip ma-1"
-            color="primary"
-            variant="tonal"
-            size="small"
-            @click.stop="openEditDialog(lesson)"
+            location="top"
           >
-            <v-icon start size="12">mdi-clock-outline</v-icon>
-            {{ formatTime(lesson.date_time) }}
-            <span v-if="lesson.track_name" class="ml-1 text-caption">({{ lesson.track_name }})</span>
-            <br />
-            <span class="text-caption">{{ lesson.instructor_email }}</span>
-          </v-chip>
+            <template #activator="{ props: tooltipProps }">
+              <v-chip
+                v-bind="tooltipProps"
+                class="lesson-chip ma-1"
+                color="primary"
+                variant="tonal"
+                size="small"
+                @click.stop="openEditDialog(lesson)"
+              >
+                <v-icon start size="12">mdi-clock-outline</v-icon>
+                {{ formatTime(lesson.date_time) }}
+                <span v-if="lesson.track_name" class="ml-1 text-caption">({{ lesson.track_name }})</span>
+              </v-chip>
+            </template>
+            <span>
+              {{ lesson.instructor_email }}
+              <template v-if="lesson.student_names.length">
+                · {{ lesson.student_names[0] }}<template v-if="lesson.student_names.length > 1"> …</template>
+              </template>
+            </span>
+          </v-tooltip>
         </div>
       </div>
     </v-card>
@@ -126,21 +137,32 @@
           @click="canManage && openCreateDialog(day.iso)"
         >
           <div class="text-caption font-weight-medium pa-1">{{ day.dayNum }}</div>
-          <v-chip
+          <v-tooltip
             v-for="lesson in lessonsForDay(day.iso)"
             :key="lesson.id"
-            class="lesson-chip ma-1"
-            color="primary"
-            variant="tonal"
-            size="small"
-            @click.stop="openEditDialog(lesson)"
+            location="top"
           >
-            <v-icon start size="12">mdi-clock-outline</v-icon>
-            {{ formatTime(lesson.date_time) }}
-            <span v-if="lesson.track_name" class="ml-1 text-caption">({{ lesson.track_name }})</span>
-            <br />
-            <span class="text-caption">{{ lesson.instructor_email }}</span>
-          </v-chip>
+            <template #activator="{ props: tooltipProps }">
+              <v-chip
+                v-bind="tooltipProps"
+                class="lesson-chip ma-1"
+                color="primary"
+                variant="tonal"
+                size="small"
+                @click.stop="openEditDialog(lesson)"
+              >
+                <v-icon start size="12">mdi-clock-outline</v-icon>
+                {{ formatTime(lesson.date_time) }}
+                <span v-if="lesson.track_name" class="ml-1 text-caption">({{ lesson.track_name }})</span>
+              </v-chip>
+            </template>
+            <span>
+              {{ lesson.instructor_email }}
+              <template v-if="lesson.student_names.length">
+                · {{ lesson.student_names[0] }}<template v-if="lesson.student_names.length > 1"> …</template>
+              </template>
+            </span>
+          </v-tooltip>
         </div>
       </div>
     </v-card>
@@ -174,9 +196,9 @@
 
             <v-col cols="12" sm="6">
               <v-text-field
-                v-model="form.start_date"
-                :label="t('lessons.dialog.startDate')"
-                type="date"
+                v-model="form.date_time"
+                :label="t('lessons.dialog.dateTime')"
+                type="datetime-local"
                 variant="outlined"
                 density="compact"
                 required
@@ -184,30 +206,9 @@
             </v-col>
             <v-col cols="12" sm="6">
               <v-text-field
-                v-model="form.start_time"
-                :label="t('lessons.dialog.startTime')"
-                type="time"
-                step="300"
-                variant="outlined"
-                density="compact"
-                required
-              />
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field
-                v-model="form.end_date"
-                :label="t('lessons.dialog.endDate')"
-                type="date"
-                variant="outlined"
-                density="compact"
-              />
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field
-                v-model="form.end_time_input"
-                :label="t('lessons.dialog.endTimeLabel')"
-                type="time"
-                step="300"
+                v-model="form.end_time"
+                :label="t('lessons.dialog.endTime')"
+                type="datetime-local"
                 variant="outlined"
                 density="compact"
                 :error-messages="dateTimeError"
@@ -586,23 +587,27 @@ const trackOptionsWithNone = computed(() => tracks.value.filter((tr) => tr.is_ac
 const horseOptions = computed(() => horses.value.filter((h) => h.is_active));
 const studentOptions = computed(() => students.value.filter((s) => s.is_active));
 
-// Helpers para componer/descomponer datetime-local
-function toDateTimeLocal(iso: string): { date: string; time: string } {
-  const s = iso.slice(0, 16); // "YYYY-MM-DDTHH:MM"
-  return { date: s.slice(0, 10), time: s.slice(11) };
-}
-
-function fromDateAndTime(date: string, time: string): string {
-  if (!date || !time) return "";
-  return `${date}T${time}`;
-}
-
 // Validación: fin no puede ser anterior al inicio
 const dateTimeError = computed(() => {
-  const start = fromDateAndTime(form.value.start_date, form.value.start_time);
-  const end   = fromDateAndTime(form.value.end_date, form.value.end_time_input);
-  if (!start || !end) return "";
-  return new Date(end) <= new Date(start) ? t("lessons.dialog.endBeforeStart") : "";
+  if (!form.value.date_time || !form.value.end_time) return "";
+  return new Date(form.value.end_time) <= new Date(form.value.date_time)
+    ? t("lessons.dialog.endBeforeStart")
+    : "";
+});
+
+// Validación: mismo número de caballos y alumnos
+const horseStudentCountError = computed(() => {
+  const h = form.value.horse_ids.length;
+  const s = form.value.student_ids.length;
+  if (h > 0 && s > 0 && h !== s) return t("lessons.dialog.horseStudentMismatch");
+  return "";
+});
+
+// Validación: todas las asignaciones alumno-caballo deben estar rellenas
+const unassignedPairError = computed(() => {
+  if (studentHorsePairs.value.length === 0) return "";
+  const hasEmpty = studentHorsePairs.value.some((p) => p.horse_id === null);
+  return hasEmpty ? t("lessons.dialog.unassignedPair") : "";
 });
 
 // Validación: no asignar el mismo caballo a dos alumnos distintos
@@ -614,22 +619,12 @@ const duplicateHorseError = computed(() => {
   return hasDuplicate ? t("lessons.dialog.duplicateHorse") : "";
 });
 
-// Computed: datetime ISO strings para los payloads
-const computedDateTime = computed(() =>
-  fromDateAndTime(form.value.start_date, form.value.start_time)
-);
-const computedEndTime = computed(() =>
-  fromDateAndTime(form.value.end_date, form.value.end_time_input) || null
-);
-
 // ---------------------------------------------------------------------------
 // Form
 // ---------------------------------------------------------------------------
 interface LessonForm {
-  start_date: string;
-  start_time: string;
-  end_date: string;
-  end_time_input: string;
+  date_time: string;
+  end_time: string;
   instructor_id: number | null;
   helper_id: number | null;
   track_id: number | null;
@@ -640,11 +635,10 @@ interface LessonForm {
 }
 
 function emptyForm(dateIso?: string | null): LessonForm {
+  const base = dateIso ? `${dateIso}T09:00` : "";
   return {
-    start_date: dateIso ?? "",
-    start_time: "09:00",
-    end_date: dateIso ?? "",
-    end_time_input: "",
+    date_time: base,
+    end_time: "",
     instructor_id: null,
     helper_id: null,
     track_id: null,
@@ -670,6 +664,23 @@ watch(
       student_id: id,
       horse_id: existing.has(id) ? existing.get(id)! : null,
     }));
+  },
+);
+
+// Cuando cambia date_time, auto-rellena end_time con +1h si end_time está vacío o es anterior
+watch(
+  () => form.value.date_time,
+  (newVal) => {
+    if (!newVal) return;
+    const start = new Date(newVal);
+    if (isNaN(start.getTime())) return;
+    const end = form.value.end_time ? new Date(form.value.end_time) : null;
+    if (!end || isNaN(end.getTime()) || end <= start) {
+      const autoEnd = new Date(start.getTime() + 60 * 60 * 1000);
+      // Formatea como "YYYY-MM-DDTHH:MM"
+      const pad = (n: number) => String(n).padStart(2, "0");
+      form.value.end_time = `${autoEnd.getFullYear()}-${pad(autoEnd.getMonth() + 1)}-${pad(autoEnd.getDate())}T${pad(autoEnd.getHours())}:${pad(autoEnd.getMinutes())}`;
+    }
   },
 );
 
@@ -699,13 +710,9 @@ function openEditDialog(lesson: Lesson) {
   const studentIds = students.value
     .filter((s) => lesson.student_names.includes(s.name))
     .map((s) => s.id);
-  const startParts = toDateTimeLocal(lesson.date_time);
-  const endParts   = lesson.end_time ? toDateTimeLocal(lesson.end_time) : { date: "", time: "" };
   form.value = {
-    start_date:     startParts.date,
-    start_time:     startParts.time,
-    end_date:       endParts.date,
-    end_time_input: endParts.time,
+    date_time: lesson.date_time.slice(0, 16),
+    end_time:  lesson.end_time ? lesson.end_time.slice(0, 16) : "",
     instructor_id: lesson.instructor_id,
     helper_id: lesson.helper_id,
     track_id: lesson.track_id,
@@ -761,15 +768,17 @@ async function loadAll() {
 }
 
 async function save() {
-  if (!form.value.instructor_id || !form.value.start_date || !form.value.start_time) return;
+  if (!form.value.instructor_id || !form.value.date_time) return;
   if (dateTimeError.value) { showSnackbar(dateTimeError.value, "error"); return; }
+  if (horseStudentCountError.value) { showSnackbar(horseStudentCountError.value, "error"); return; }
+  if (unassignedPairError.value) { showSnackbar(unassignedPairError.value, "error"); return; }
   if (duplicateHorseError.value) { showSnackbar(duplicateHorseError.value, "error"); return; }
   saving.value = true;
   try {
     if (editingLesson.value) {
       const payload: LessonUpdate = {
-        date_time: computedDateTime.value,
-        end_time: computedEndTime.value,
+        date_time: form.value.date_time,
+        end_time: form.value.end_time || null,
         instructor_id: form.value.instructor_id ?? undefined,
         helper_id: form.value.helper_id,
         track_id: form.value.track_id,
@@ -780,8 +789,8 @@ async function save() {
       await http.put(`/api/v1/lessons/${editingLesson.value.id}`, payload);
     } else {
       const payload: LessonCreate = {
-        date_time: computedDateTime.value,
-        end_time: computedEndTime.value,
+        date_time: form.value.date_time,
+        end_time: form.value.end_time || null,
         instructor_id: form.value.instructor_id!,
         helper_id: form.value.helper_id,
         track_id: form.value.track_id,

@@ -195,15 +195,41 @@
           </v-card>
         </v-col>
 
-        <!-- Classes by weekday bar chart -->
-        <v-col cols="12" md="4">
+      </v-row>
+
+      <!-- Weekday chart row with filters -->
+      <v-row v-if="!isEmpty">
+        <v-col cols="12">
           <v-card variant="outlined" class="mb-4 pa-2">
-            <v-card-title class="text-subtitle-2 pa-2">
+            <v-card-title class="text-subtitle-2 pa-2 d-flex align-center flex-wrap ga-2">
               {{ t("reports.charts.byWeekday") }}
+              <v-spacer />
+              <!-- Filter type -->
+              <v-select
+                v-model="weekdayFilterType"
+                :items="weekdayFilterTypeItems"
+                density="compact"
+                variant="outlined"
+                hide-details
+                style="max-width: 200px"
+              />
+              <!-- Filter value (entity selector) -->
+              <v-select
+                v-if="weekdayFilterType !== 'all'"
+                v-model="weekdayFilterId"
+                :items="weekdayFilterOptions"
+                item-title="name"
+                item-value="id"
+                density="compact"
+                variant="outlined"
+                hide-details
+                clearable
+                style="max-width: 200px"
+              />
             </v-card-title>
             <VueApexCharts
               type="bar"
-              height="220"
+              height="240"
               :options="weekdayChartOptions"
               :series="weekdayChartSeries"
             />
@@ -241,7 +267,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import VueApexCharts from "vue3-apexcharts";
 import { http } from "@/api/http";
@@ -366,16 +392,48 @@ const staffChartOptions = computed(() => {
   };
 });
 
+// ---------------------------------------------------------------------------
+// Gráfica de clases por día de la semana — calculada desde el informe global
+// ---------------------------------------------------------------------------
+// Estado del filtro de la gráfica de días de la semana
+type WeekdayFilterType = "all" | "horse" | "student" | "instructor" | "helper" | "track";
+const weekdayFilterType = ref<WeekdayFilterType>("all");
+const weekdayFilterId = ref<number | null>(null);
+
+// Detalle de clases del período (cargado al generar informe, reutilizado por la gráfica)
+const allLessonsDetail = ref<import("@/types/api").LessonDetail[]>([]);
+
+const weekdayFilterTypeItems = computed(() => [
+  { title: t("reports.charts.weekdayFilterAll"),        value: "all"        },
+  { title: t("reports.charts.weekdayFilterHorse"),      value: "horse"      },
+  { title: t("reports.charts.weekdayFilterStudent"),    value: "student"    },
+  { title: t("reports.charts.weekdayFilterInstructor"), value: "instructor" },
+  { title: t("reports.charts.weekdayFilterHelper"),     value: "helper"     },
+  { title: t("reports.charts.weekdayFilterTrack"),      value: "track"      },
+]);
+
+const weekdayFilterOptions = computed((): { id: number; name: string }[] => {
+  if (!report.value) return [];
+  switch (weekdayFilterType.value) {
+    case "horse":      return report.value.horse_hours.map((h) => ({ id: h.horse_id, name: h.name }));
+    case "student":    return report.value.student_classes.map((s) => ({ id: s.user_id, name: s.name }));
+    case "instructor": return report.value.instructor_hours.map((i) => ({ id: i.user_id, name: i.name }));
+    case "helper":     return report.value.helper_hours.map((h) => ({ id: h.user_id, name: h.name }));
+    case "track":      return report.value.track_hours.map((tr) => ({ id: tr.track_id, name: tr.name }));
+    default:           return [];
+  }
+});
+
+// Al cambiar el tipo de filtro, se reinicia el valor seleccionado
+watch(weekdayFilterType, () => { weekdayFilterId.value = null; });
+
 const weekdayChartSeries = computed(() => {
   const counts = new Array(7).fill(0);
-  // We derive from instructor_hours class_count by day — but we don't have per-day
-  // data in the aggregated report. We use the raw report lessons if available.
-  // Since we only have aggregated data, we aggregate from instructor class_count as a
-  // placeholder and show zeroes for days. The actual day-of-week breakdown requires
-  // per-lesson data. We load it from detailItems if available, otherwise show 0s.
-  // For a proper implementation, it is computed from all lessons in the current detail fetch.
-  // Here we accumulate from lessonDayOfWeekCounts populated during detail load.
-  lessonDayOfWeekCounts.value.forEach((v, i) => { counts[i] = v; });
+  const lessons = allLessonsDetail.value;
+  lessons.forEach((l) => {
+    const dayIndex = new Date(l.date_time).getDay();
+    counts[dayIndex] = (counts[dayIndex] ?? 0) + 1;
+  });
   return [{ name: t("reports.charts.byWeekday"), data: counts }];
 });
 
@@ -386,11 +444,8 @@ const weekdayChartOptions = computed(() => ({
   dataLabels: { enabled: false },
 }));
 
-// Accumulated day-of-week counts from drill-down calls (reset on new report load)
-const lessonDayOfWeekCounts = ref<number[]>(new Array(7).fill(0));
-
 // ---------------------------------------------------------------------------
-// Load stables (for app_admin)
+// Cargar hípicas (solo app_admin)
 // ---------------------------------------------------------------------------
 async function loadStables() {
   if (!isAppAdmin.value) return;
@@ -412,7 +467,9 @@ onMounted(() => {
 async function loadReport() {
   loading.value = true;
   error.value = null;
-  lessonDayOfWeekCounts.value = new Array(7).fill(0);
+  allLessonsDetail.value = [];
+  weekdayFilterType.value = "all";
+  weekdayFilterId.value = null;
   try {
     const params: Record<string, string | number> = {};
     if (fromDate.value) params.from_date = fromDate.value;
@@ -423,6 +480,8 @@ async function loadReport() {
     const { data } = await http.get<LessonReport>("/api/v1/reports/lessons", { params });
     report.value = data;
     loaded.value = true;
+    // Carga el detalle de clases para la gráfica de días de la semana
+    loadWeekdayChartData(params);
   } catch (e: unknown) {
     const err = e as { response?: { data?: { detail?: string } } };
     error.value = err?.response?.data?.detail || t("reports.error");
@@ -431,8 +490,54 @@ async function loadReport() {
   }
 }
 
+async function loadWeekdayChartData(params: Record<string, string | number>, userId?: number, horseId?: number) {
+  try {
+    let lessons: LessonDetail[] = [];
+    if (userId != null) {
+      const { data } = await http.get<LessonDetail[]>(`/api/v1/reports/lessons/by-user/${userId}`, { params });
+      lessons = data;
+    } else if (horseId != null) {
+      const { data } = await http.get<LessonDetail[]>(`/api/v1/reports/lessons/by-horse/${horseId}`, { params });
+      lessons = data;
+    } else {
+      // Sin filtro: carga todas las clases del período agrupando por instructor (deduplicadas)
+      if (report.value) {
+        const peticiones = report.value.instructor_hours.map((i: InstructorHours) =>
+          http.get<LessonDetail[]>(`/api/v1/reports/lessons/by-user/${i.user_id}`, { params })
+            .then((r: { data: LessonDetail[] }) => r.data)
+            .catch(() => [] as LessonDetail[])
+        );
+        const resultados: LessonDetail[][] = await Promise.all(peticiones);
+        // Deduplicar por lesson_id
+        const vistos = new Set<number>();
+        ([] as LessonDetail[]).concat(...resultados).forEach((l: LessonDetail) => {
+          if (!vistos.has(l.lesson_id)) { vistos.add(l.lesson_id); lessons.push(l); }
+        });
+      }
+    }
+    allLessonsDetail.value = lessons;
+  } catch {
+    allLessonsDetail.value = [];
+  }
+}
+
+// Al cambiar el filtro de la gráfica, recarga los datos de días de la semana
+watch([weekdayFilterType, weekdayFilterId], ([tipo, id]) => {
+  const params = buildDetailParams();
+  if (tipo === "all") {
+    loadWeekdayChartData(params);
+  } else if (tipo === "horse" && id != null) {
+    loadWeekdayChartData(params, undefined, id);
+  } else if (id != null) {
+    loadWeekdayChartData(params, id, undefined);
+  } else {
+    // Tipo cambiado pero sin entidad seleccionada aún — vaciar
+    allLessonsDetail.value = [];
+  }
+});
+
 // ---------------------------------------------------------------------------
-// Drill-down
+// Detalle por registro (drill-down)
 // ---------------------------------------------------------------------------
 function buildDetailParams(): Record<string, string | number> {
   const params: Record<string, string | number> = {};
@@ -445,7 +550,7 @@ function buildDetailParams(): Record<string, string | number> {
 }
 
 // ---------------------------------------------------------------------------
-// Row-click adapters (v-data-table passes (_event, { item }) — no TS in template)
+// Adaptadores de clic en filas (v-data-table pasa (_event, { item }))
 // ---------------------------------------------------------------------------
 function onInstructorRowClick(_evt: MouseEvent, row: { item: InstructorHours }) {
   openUserDetail(row.item.user_id);
@@ -473,7 +578,6 @@ async function openUserDetail(userId: number) {
       { params: buildDetailParams() }
     );
     detailItems.value = data;
-    accumulateWeekdays(data);
   } catch {
     detailItems.value = [];
   } finally {
@@ -491,18 +595,10 @@ async function openHorseDetail(horseId: number) {
       { params: buildDetailParams() }
     );
     detailItems.value = data;
-    accumulateWeekdays(data);
   } catch {
     detailItems.value = [];
   } finally {
     detailLoading.value = false;
   }
-}
-
-function accumulateWeekdays(lessons: LessonDetail[]) {
-  lessons.forEach((l) => {
-    const dayIndex = new Date(l.date_time).getDay();
-    lessonDayOfWeekCounts.value[dayIndex] = (lessonDayOfWeekCounts.value[dayIndex] ?? 0) + 1;
-  });
 }
 </script>

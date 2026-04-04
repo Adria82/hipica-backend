@@ -1,5 +1,8 @@
 const messages = {
   es: {
+    common: {
+      close: "Cerrar",
+    },
     language: {
       label: "Idioma",
       options: {
@@ -344,7 +347,11 @@ const messages = {
         students: "Alumnos",
         description: "Descripción (opcional)",
         stable: "Hípica",
+        dateTime: "Fecha y hora de inicio",
+        endTime: "Fecha y hora de fin",
         endBeforeStart: "La hora de fin debe ser posterior a la hora de inicio",
+        horseStudentMismatch: "El número de caballos y alumnos debe coincidir",
+        unassignedPair: "Todos los alumnos deben tener un caballo asignado",
         studentHorseAssignment: "Asignación alumno / caballo",
         noHorse: "Sin caballo asignado",
         duplicateHorse: "Un mismo caballo no puede asignarse a dos alumnos",
@@ -432,6 +439,12 @@ const messages = {
         horseHours: "Horas por caballo (top 5)",
         staffHours: "Horas por monitor/ayudante (top 5)",
         byWeekday: "Clases por día de la semana",
+        weekdayFilterAll: "Todos",
+        weekdayFilterHorse: "Filtrar por caballo",
+        weekdayFilterStudent: "Filtrar por alumno",
+        weekdayFilterInstructor: "Filtrar por instructor",
+        weekdayFilterHelper: "Filtrar por ayudante",
+        weekdayFilterTrack: "Filtrar por pista",
       },
     },
     profile: {
@@ -460,6 +473,9 @@ const messages = {
     },
   },
   ca: {
+    common: {
+      close: "Tancar",
+    },
     language: {
       label: "Idioma",
       options: {
@@ -805,7 +821,11 @@ const messages = {
         students: "Alumnes",
         description: "Descripció (opcional)",
         stable: "Hípica",
+        dateTime: "Data i hora d'inici",
+        endTime: "Data i hora de fi",
         endBeforeStart: "L'hora de fi ha de ser posterior a l'hora d'inici",
+        horseStudentMismatch: "El nombre de cavalls i alumnes ha de coincidir",
+        unassignedPair: "Tots els alumnes han de tenir un cavall assignat",
         studentHorseAssignment: "Assignació alumne / cavall",
         noHorse: "Sense cavall assignat",
         duplicateHorse: "Un mateix cavall no es pot assignar a dos alumnes",
@@ -893,6 +913,12 @@ const messages = {
         horseHours: "Hores per cavall (top 5)",
         staffHours: "Hores per monitor/ajudant (top 5)",
         byWeekday: "Classes per dia de la setmana",
+        weekdayFilterAll: "Tots",
+        weekdayFilterHorse: "Filtrar per cavall",
+        weekdayFilterStudent: "Filtrar per alumne",
+        weekdayFilterInstructor: "Filtrar per instructor",
+        weekdayFilterHelper: "Filtrar per ajudant",
+        weekdayFilterTrack: "Filtrar per pista",
       },
     },
     profile: {
@@ -921,6 +947,9 @@ const messages = {
     },
   },
   en: {
+    common: {
+      close: "Close",
+    },
     language: {
       label: "Language",
       options: {
@@ -1266,7 +1295,11 @@ const messages = {
         students: "Students",
         description: "Description (optional)",
         stable: "Stable",
+        dateTime: "Start date and time",
+        endTime: "End date and time",
         endBeforeStart: "End time must be after start time",
+        horseStudentMismatch: "The number of horses and students must match",
+        unassignedPair: "All students must have a horse assigned",
         studentHorseAssignment: "Student / horse assignment",
         noHorse: "No horse assigned",
         duplicateHorse: "The same horse cannot be assigned to two students",
@@ -1354,6 +1387,12 @@ const messages = {
         horseHours: "Hours by horse (top 5)",
         staffHours: "Hours by monitor/helper (top 5)",
         byWeekday: "Classes by day of the week",
+        weekdayFilterAll: "All",
+        weekdayFilterHorse: "Filter by horse",
+        weekdayFilterStudent: "Filter by student",
+        weekdayFilterInstructor: "Filter by instructor",
+        weekdayFilterHelper: "Filter by helper",
+        weekdayFilterTrack: "Filter by track",
       },
     },
     profile: {
