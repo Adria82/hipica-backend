@@ -100,7 +100,8 @@ def seed_db() -> None:
         )
 
         monitor = User(
-            name="Juan García",
+            name="Juan",
+            apellidos="García",
             email="juan@hipica.com",
             role="monitor",
             stable_id=stable.id,
@@ -111,7 +112,8 @@ def seed_db() -> None:
         )
 
         assistant = User(
-            name="Marta López",
+            name="Marta",
+            apellidos="López",
             email="marta@hipica.com",
             role="assistant",
             stable_id=stable.id,
@@ -187,15 +189,16 @@ def seed_db() -> None:
         # 2.2 Crear clientes (≥4)
         # --------------------------------------------------------------
         clients_data = [
-            dict(name="Carlos Ruiz",    email="carlos@gmail.com",  phone="600111222", level_idx=0),
-            dict(name="Ana Martínez",   email="ana@gmail.com",     phone="600333444", level_idx=1),
-            dict(name="Lucía Fernández",email="lucia@gmail.com",   phone="600555666", level_idx=2),
-            dict(name="Pedro Sánchez",  email="pedro@gmail.com",   phone="600777888", level_idx=1),
+            dict(name="Carlos",  apellidos="Ruiz",      email="carlos@gmail.com",  phone="600111222", level_idx=0),
+            dict(name="Ana",     apellidos="Martínez",  email="ana@gmail.com",     phone="600333444", level_idx=1),
+            dict(name="Lucía",   apellidos="Fernández", email="lucia@gmail.com",   phone="600555666", level_idx=2),
+            dict(name="Pedro",   apellidos="Sánchez",   email="pedro@gmail.com",   phone="600777888", level_idx=1),
         ]
         clients = []
         for cd in clients_data:
             u = User(
                 name=cd["name"],
+                apellidos=cd["apellidos"],
                 email=cd["email"],
                 phone=cd["phone"],
                 role="client",
@@ -213,15 +216,14 @@ def seed_db() -> None:
 
         # Perfiles de cliente
         client_extra = [
-            dict(apellidos="Ruiz Mora",       direccion="Calle Mayor 1, Barcelona",    iban="ES7621000418401234567801", notes="Alérgico al polvo"),
-            dict(apellidos="Martínez Gil",    direccion="Av. Diagonal 200, Barcelona", iban="ES7621000418401234567802", notes="Paga por domiciliación"),
-            dict(apellidos="Fernández Puig",  direccion="Carrer Nou 5, Sabadell",      iban="ES7621000418401234567803", notes="Prefiere horario tarde"),
-            dict(apellidos="Sánchez Torres",  direccion="Passeig de Gràcia 10",        iban="ES7621000418401234567804", notes="Nuevo alumno"),
+            dict(direccion="Calle Mayor 1, Barcelona",    iban="ES7621000418401234567801", notes="Alérgico al polvo"),
+            dict(direccion="Av. Diagonal 200, Barcelona", iban="ES7621000418401234567802", notes="Paga por domiciliación"),
+            dict(direccion="Carrer Nou 5, Sabadell",      iban="ES7621000418401234567803", notes="Prefiere horario tarde"),
+            dict(direccion="Passeig de Gràcia 10",        iban="ES7621000418401234567804", notes="Nuevo alumno"),
         ]
         for (u, level_idx), extra in zip(clients, client_extra):
             session.add(ClientProfile(
                 user_id=u.id,
-                apellidos=extra["apellidos"],
                 direccion=extra["direccion"],
                 iban=extra["iban"],
                 notes=extra["notes"],

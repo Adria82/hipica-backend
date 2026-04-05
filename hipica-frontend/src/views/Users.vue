@@ -127,6 +127,24 @@
               />
             </v-col>
 
+            <v-col cols="12">
+              <v-text-field
+                v-model="form.apellidos"
+                :label="t('users.dialog.apellidos')"
+                variant="outlined"
+                density="compact"
+              />
+            </v-col>
+
+            <v-col cols="12">
+              <v-text-field
+                v-model="form.dni"
+                :label="t('users.dialog.dni')"
+                variant="outlined"
+                density="compact"
+              />
+            </v-col>
+
             <!-- Email -->
             <v-col cols="12">
               <v-text-field
@@ -194,14 +212,6 @@
 
               <!-- Campos client -->
               <template v-if="form.role === 'client'">
-                <v-col cols="12">
-                  <v-text-field
-                    v-model="clientProfile.apellidos"
-                    :label="t('users.dialog.clientProfile.apellidos')"
-                    variant="outlined"
-                    density="compact"
-                  />
-                </v-col>
                 <v-col cols="12">
                   <v-text-field
                     v-model="clientProfile.direccion"
@@ -498,7 +508,9 @@ const deleting = ref(false);
 const editingId = ref<number | null>(null);
 const form = ref({
   name: "",
+  apellidos: null as string | null,
   email: "",
+  dni: null as string | null,
   password: "",
   role: "client",
   phone: null as string | null,
@@ -540,6 +552,8 @@ const availableRoles = computed(() => {
 const headers = computed(() => [
   { title: t("users.table.id"),     key: "id",        sortable: true  },
   { title: t("users.table.name"),   key: "name",      sortable: true  },
+  { title: t("users.table.apellidos"), key: "apellidos", sortable: true  },
+  { title: t("users.table.dni"),    key: "dni",       sortable: true  },
   { title: t("users.table.email"),  key: "email",     sortable: true  },
   { title: t("users.table.role"),   key: "role",      sortable: true  },
   { title: t("users.table.stable"), key: "stable_id", sortable: false },
@@ -588,6 +602,8 @@ const filteredUsers = computed(() => {
   return users.value.filter(
     (u) =>
       u.name.toLowerCase().includes(q) ||
+      (u.apellidos ?? "").toLowerCase().includes(q) ||
+      (u.dni ?? "").toLowerCase().includes(q) ||
       u.email.toLowerCase().includes(q)
   );
 });
@@ -618,7 +634,7 @@ function onRowClick(_event: Event, row: { item: UserRead }) {
 
 function openCreateDialog() {
   editingId.value = null;
-  form.value = { name: "", email: "", password: "", role: "client", phone: null, stable_id: null, is_active: true };
+  form.value = { name: "", apellidos: null, email: "", dni: null, password: "", role: "client", phone: null, stable_id: null, is_active: true };
   clientProfile.value = { apellidos: null, direccion: null, iban: null, notes: null, level_id: null };
   monitorProfile.value = { especialidad: null, disponibilidad: null, certificados: null, experiencia: null, telefono: null, iban: null, notas: null, tarifa_hora: null };
   schedule.value = [];
@@ -629,7 +645,9 @@ async function openEditDialog(user: UserRead) {
   editingId.value = user.id;
   form.value = {
     name:      user.name,
+    apellidos: user.apellidos,
     email:     user.email,
+    dni:       user.dni,
     password:  "",
     role:      user.role,
     phone:     user.phone,
@@ -666,7 +684,9 @@ async function save() {
       // PUT — sin password
       const payload: Record<string, any> = {
         name:      form.value.name,
+        apellidos: form.value.apellidos ?? null,
         email:     form.value.email,
+        dni:       form.value.dni ?? null,
         role:      form.value.role,
         phone:     form.value.phone ?? null,
         is_active: form.value.is_active,
@@ -679,7 +699,7 @@ async function save() {
 
       // Guardar perfil extendido si corresponde
       if (form.value.role === "client") {
-        await http.put(`/api/v1/users/${editingId.value}/profile`, clientProfile.value);
+        await http.put(`/api/v1/users/${editingId.value}/profile`, { ...clientProfile.value, apellidos: form.value.apellidos ?? null });
       } else if (["monitor", "assistant"].includes(form.value.role)) {
         const profilePayload = {
           ...monitorProfile.value,
@@ -691,7 +711,9 @@ async function save() {
       // POST — incluye password
       const payload: Record<string, any> = {
         name:      form.value.name,
+        apellidos: form.value.apellidos ?? null,
         email:     form.value.email,
+        dni:       form.value.dni ?? null,
         password:  form.value.password,
         role:      form.value.role,
         phone:     form.value.phone ?? null,
@@ -705,7 +727,7 @@ async function save() {
       users.value.push(res.data);
       // Guardar perfil del nuevo usuario si aplica
       if (form.value.role === "client") {
-        await http.put(`/api/v1/users/${res.data.id}/profile`, clientProfile.value).catch(() => {});
+        await http.put(`/api/v1/users/${res.data.id}/profile`, { ...clientProfile.value, apellidos: form.value.apellidos ?? null }).catch(() => {});
       } else if (["monitor", "assistant"].includes(form.value.role)) {
         const profilePayload = { ...monitorProfile.value, disponibilidad: schedule.value.length ? JSON.stringify(schedule.value) : null };
         await http.put(`/api/v1/users/${res.data.id}/profile`, profilePayload).catch(() => {});
@@ -782,6 +804,8 @@ function exportToExcel() {
   const rows = filteredUsers.value.map((u) => ({
     [t("users.table.id")]:     u.id,
     [t("users.table.name")]:   u.name,
+    [t("users.table.apellidos")]: u.apellidos ?? "-",
+    [t("users.table.dni")]:    u.dni ?? "-",
     [t("users.table.email")]:  u.email,
     [t("users.table.role")]:   t(`users.roles.${u.role}`),
     [t("users.table.stable")]: stableName(u.stable_id),

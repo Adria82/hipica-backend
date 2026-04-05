@@ -94,12 +94,33 @@ export type Stable = {
 export type UserProfile = {
   id: number;
   name: string;
+  apellidos: string | null;
   email: string;
+  dni: string | null;
+  phone: string | null;
   role: string;
   stable_id: number | null;
   stable_name: string | null;
   stable_theme: string | null;
   avatar: string | null;
+};
+
+export type ClientProfileData = {
+  direccion: string | null;
+  iban: string | null;
+  notes: string | null;
+  level_id: number | null;
+};
+
+export type MonitorProfileData = {
+  especialidad: string | null;
+  disponibilidad: string | null;
+  certificados: string | null;
+  experiencia: string | null;
+  telefono: string | null;
+  iban: string | null;
+  notas: string | null;
+  tarifa_hora: number | null;
 };
 
 export type FeatureCode =
@@ -262,7 +283,9 @@ export type LessonReport = {
 export type UserRead = {
   id: number;
   name: string;
+  apellidos: string | null;
   email: string;
+  dni: string | null;
   role: string;
   phone: string | null;
   stable_id: number | null;

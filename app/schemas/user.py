@@ -23,7 +23,9 @@ class UserBase(SQLModel):
     Atributos base de un usuario (sin credenciales).
     """
     name: str
+    apellidos: Optional[str] = None
     email: str
+    dni: Optional[str] = None
     role: str = "client"
     phone: Optional[str] = None
     stable_id: Optional[int] = None
@@ -42,7 +44,9 @@ class UserUpdate(SQLModel):
     Esquema para actualizar parcialmente un usuario.
     """
     name: Optional[str] = None
+    apellidos: Optional[str] = None
     email: Optional[str] = None
+    dni: Optional[str] = None
     role: Optional[str] = None
     phone: Optional[str] = None
     stable_id: Optional[int] = None

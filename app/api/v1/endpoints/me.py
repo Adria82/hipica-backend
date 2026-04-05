@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from app.db.session import get_session
 from app.dependencies import get_current_user
 from app.models import User
+from app.models.client_profile import ClientProfile
 from app.models.stable import Stable
 from app.models.stable_feature import StableFeature
 from app.models.feature import FeatureCode
@@ -47,7 +48,10 @@ def get_my_profile(
     return {
         "id": current_user.id,
         "name": current_user.name,
+        "apellidos": current_user.apellidos,
         "email": current_user.email,
+        "dni": current_user.dni,
+        "phone": current_user.phone,
         "role": current_user.role,
         "stable_id": current_user.stable_id,
         "stable_name": stable_name,
@@ -57,7 +61,11 @@ def get_my_profile(
 
 
 class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    apellidos: Optional[str] = None
     email: Optional[str] = None
+    dni: Optional[str] = None
+    phone: Optional[str] = None
     avatar: Optional[str] = None
 
 
@@ -73,6 +81,12 @@ def update_my_profile(
     Returns:
         dict: Perfil actualizado.
     """
+    if data.name is not None:
+        current_user.name = data.name
+
+    if data.apellidos is not None:
+        current_user.apellidos = data.apellidos
+
     if data.email is not None:
         existing = session.exec(
             select(User).where(User.email == data.email, User.id != current_user.id)
@@ -81,8 +95,21 @@ def update_my_profile(
             raise HTTPException(status_code=409, detail="email.taken")
         current_user.email = data.email
 
+    if data.dni is not None:
+        current_user.dni = data.dni
+
+    if data.phone is not None:
+        current_user.phone = data.phone
+
     if data.avatar is not None:
         current_user.avatar = data.avatar
+
+    if current_user.role == "client" and data.apellidos is not None:
+        profile = session.get(ClientProfile, current_user.id)
+        if profile is None:
+            profile = ClientProfile(user_id=current_user.id)
+            session.add(profile)
+        profile.apellidos = data.apellidos
 
     session.add(current_user)
     session.commit()
@@ -100,7 +127,10 @@ def update_my_profile(
     return {
         "id": current_user.id,
         "name": current_user.name,
+        "apellidos": current_user.apellidos,
         "email": current_user.email,
+        "dni": current_user.dni,
+        "phone": current_user.phone,
         "role": current_user.role,
         "stable_id": current_user.stable_id,
         "stable_name": stable_name,

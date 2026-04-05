@@ -30,6 +30,7 @@ class InstructorHours(SQLModel):
     """Horas impartidas por un instructor en el rango de fechas."""
     user_id: int
     name: str
+    apellidos: Optional[str] = None
     email: str
     hours: float
     class_count: int
@@ -39,6 +40,7 @@ class HelperHours(SQLModel):
     """Horas como ayudante en el rango de fechas."""
     user_id: int
     name: str
+    apellidos: Optional[str] = None
     email: str
     hours: float
     class_count: int
@@ -48,6 +50,7 @@ class StudentClasses(SQLModel):
     """Número de clases asistidas por un alumno (usuario) en el rango de fechas."""
     user_id: int
     name: str
+    apellidos: Optional[str] = None
     class_count: int
     hours: float
 
@@ -195,6 +198,7 @@ def lessons_report(
             instructor_hours.append(InstructorHours(
                 user_id=user_id,
                 name=user.name,
+                apellidos=user.apellidos,
                 email=user.email,
                 hours=round(hours, 2),
                 class_count=instructor_count_map.get(user_id, 0),
@@ -207,6 +211,7 @@ def lessons_report(
             helper_hours.append(HelperHours(
                 user_id=user_id,
                 name=user.name,
+                apellidos=user.apellidos,
                 email=user.email,
                 hours=round(hours, 2),
                 class_count=helper_count_map.get(user_id, 0),
@@ -219,6 +224,7 @@ def lessons_report(
             student_classes.append(StudentClasses(
                 user_id=user_id,
                 name=student.name,
+                apellidos=student.apellidos,
                 class_count=count,
                 hours=round(student_hours_map.get(user_id, 0), 2),
             ))

@@ -26,6 +26,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 _ELEVATED_ROLES = {"app_admin", "stable_admin"}
 
 
+
 @router.post("/", response_model=UserRead, status_code=201)
 def create_user(
     user_data: UserCreate,
@@ -183,7 +184,7 @@ def get_user_profile(
     user_id: int,
     request: Request,
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_role(["stable_admin", "app_admin"])),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Obtener el perfil extendido de un usuario.
@@ -191,12 +192,18 @@ def get_user_profile(
     - Si role=client → devuelve ClientProfile (o campos vacíos si no existe aún)
     - Si role=monitor/assistant → devuelve MonitorProfile (o campos vacíos si no existe aún)
     - Otros roles → 404
+
+    Permisos: el propio usuario puede consultar su perfil; administradores pueden ver cualquiera.
     """
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail=t(request, "user.not_found"))
 
-    if current_user.role != "app_admin" and user.stable_id != current_user.stable_id:
+    # Permite acceso propio o a admins de la misma hípica / app_admin
+    is_self = current_user.id == user_id
+    is_admin = current_user.role in ("stable_admin", "app_admin")
+    same_stable = current_user.role != "app_admin" and user.stable_id == current_user.stable_id
+    if not is_self and not is_admin and not same_stable:
         raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
 
     if user.role == "client":
@@ -216,7 +223,7 @@ def update_user_profile(
     profile_data: UserProfileUpdate,
     request: Request,
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_role(["stable_admin", "app_admin"])),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Actualizar el perfil extendido de un usuario.
@@ -224,15 +231,21 @@ def update_user_profile(
     Crea el registro de perfil si no existe todavía (upsert).
     El tipo de perfil (ClientProfile / MonitorProfile) se determina
     por el rol actual del usuario.
+
+    Permisos: el propio usuario puede editar su perfil extendido; administradores pueden editar cualquiera.
     """
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail=t(request, "user.not_found"))
 
-    if current_user.role != "app_admin" and user.stable_id != current_user.stable_id:
+    is_self = current_user.id == user_id
+    is_admin = current_user.role in ("stable_admin", "app_admin")
+    if not is_self and not is_admin:
+        raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
+    if is_admin and current_user.role != "app_admin" and user.stable_id != current_user.stable_id:
         raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
 
-    _CLIENT_FIELDS = {"apellidos", "direccion", "iban", "notes", "level_id"}
+    _CLIENT_FIELDS = {"direccion", "iban", "notes", "level_id"}
     _MONITOR_FIELDS = {"especialidad", "disponibilidad", "certificados", "experiencia", "telefono", "iban", "notas", "tarifa_hora"}
 
     if user.role == "client":

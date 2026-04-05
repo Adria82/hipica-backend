@@ -74,7 +74,7 @@
             <v-divider />
             <v-data-table
               :headers="instructorHeaders"
-              :items="report.instructor_hours"
+              :items="instructorRows"
               density="compact"
               hide-default-footer
               :no-data-text="t('reports.empty')"
@@ -94,7 +94,7 @@
             <v-divider />
             <v-data-table
               :headers="helperHeaders"
-              :items="report.helper_hours"
+              :items="helperRows"
               density="compact"
               hide-default-footer
               :no-data-text="t('reports.empty')"
@@ -114,7 +114,7 @@
             <v-divider />
             <v-data-table
               :headers="studentHeaders"
-              :items="report.student_classes"
+              :items="studentRows"
               density="compact"
               hide-default-footer
               :no-data-text="t('reports.empty')"
@@ -329,22 +329,35 @@ const isEmpty = computed(() =>
 );
 
 // ---------------------------------------------------------------------------
+// Datos enriquecidos con nombre completo para tablas
+// ---------------------------------------------------------------------------
+const instructorRows = computed(() =>
+  report.value?.instructor_hours.map((i) => ({ ...i, fullName: userFullName(i) })) ?? []
+);
+const helperRows = computed(() =>
+  report.value?.helper_hours.map((h) => ({ ...h, fullName: userFullName(h) })) ?? []
+);
+const studentRows = computed(() =>
+  report.value?.student_classes.map((s) => ({ ...s, fullName: userFullName(s) })) ?? []
+);
+
+// ---------------------------------------------------------------------------
 // Table headers
 // ---------------------------------------------------------------------------
 const instructorHeaders = computed(() => [
-  { title: t("reports.instructorHours.name"), key: "name", sortable: true },
+  { title: t("reports.instructorHours.name"), key: "fullName", sortable: true },
   { title: t("reports.instructorHours.hours"), key: "hours", sortable: true },
   { title: t("reports.instructorHours.classCount"), key: "class_count", sortable: true },
 ]);
 
 const helperHeaders = computed(() => [
-  { title: t("reports.helperHours.name"), key: "name", sortable: true },
+  { title: t("reports.helperHours.name"), key: "fullName", sortable: true },
   { title: t("reports.helperHours.hours"), key: "hours", sortable: true },
   { title: t("reports.helperHours.classCount"), key: "class_count", sortable: true },
 ]);
 
 const studentHeaders = computed(() => [
-  { title: t("reports.studentClasses.name"), key: "name", sortable: true },
+  { title: t("reports.studentClasses.name"), key: "fullName", sortable: true },
   { title: t("reports.studentClasses.classCount"), key: "class_count", sortable: true },
   { title: t("reports.studentClasses.hours"), key: "hours", sortable: true },
 ]);
@@ -387,8 +400,8 @@ const horseChartOptions = computed(() => ({
 const staffChartSeries = computed(() => {
   if (!report.value) return [{ name: t("reports.instructorHours.hours"), data: [] }];
   const combined = [
-    ...report.value.instructor_hours.map((i) => ({ name: i.name, hours: i.hours })),
-    ...report.value.helper_hours.map((h) => ({ name: h.name, hours: h.hours })),
+    ...report.value.instructor_hours.map((i) => ({ name: userFullName(i), hours: i.hours })),
+    ...report.value.helper_hours.map((h) => ({ name: userFullName(h), hours: h.hours })),
   ]
     .sort((a, b) => b.hours - a.hours)
     .slice(0, 5);
@@ -398,8 +411,8 @@ const staffChartSeries = computed(() => {
 const staffChartOptions = computed(() => {
   if (!report.value) return { chart: { toolbar: { show: false } }, xaxis: { categories: [] } };
   const combined = [
-    ...report.value.instructor_hours.map((i) => ({ name: i.name, hours: i.hours })),
-    ...report.value.helper_hours.map((h) => ({ name: h.name, hours: h.hours })),
+    ...report.value.instructor_hours.map((i) => ({ name: userFullName(i), hours: i.hours })),
+    ...report.value.helper_hours.map((h) => ({ name: userFullName(h), hours: h.hours })),
   ]
     .sort((a, b) => b.hours - a.hours)
     .slice(0, 5);
@@ -433,13 +446,17 @@ const weekdayFilterTypeItems = computed(() => [
   { title: t("reports.charts.weekdayFilterTrack"),      value: "track"      },
 ]);
 
+function userFullName(u: { name: string; apellidos?: string | null }): string {
+  return u.apellidos ? `${u.name} ${u.apellidos}` : u.name;
+}
+
 const weekdayFilterOptions = computed((): { id: number; name: string }[] => {
   if (!report.value) return [];
   switch (weekdayFilterType.value) {
     case "horse":      return report.value.horse_hours.map((h) => ({ id: h.horse_id, name: h.name }));
-    case "student":    return report.value.student_classes.map((s) => ({ id: s.user_id, name: s.name }));
-    case "instructor": return report.value.instructor_hours.map((i) => ({ id: i.user_id, name: i.name }));
-    case "helper":     return report.value.helper_hours.map((h) => ({ id: h.user_id, name: h.name }));
+    case "student":    return report.value.student_classes.map((s) => ({ id: s.user_id, name: userFullName(s) }));
+    case "instructor": return report.value.instructor_hours.map((i) => ({ id: i.user_id, name: userFullName(i) }));
+    case "helper":     return report.value.helper_hours.map((h) => ({ id: h.user_id, name: userFullName(h) }));
     case "track":      return report.value.track_hours.map((tr) => ({ id: tr.track_id, name: tr.name }));
     default:           return [];
   }

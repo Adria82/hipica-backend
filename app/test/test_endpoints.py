@@ -80,6 +80,7 @@ def create_user(
     email="user@example.com",
     password="secret",
     role="monitor",
+    **extra,
 ):
     """Crea un usuario de prueba con contraseña hasheada."""
     user = User(
@@ -89,6 +90,7 @@ def create_user(
         role=role,
         stable_id=stable_id,
         is_active=True,
+        **extra,
     )
     session.add(user)
     session.commit()
@@ -753,6 +755,8 @@ def test_me_profile(client):
             stable.id,
             email="admin_profile@example.com",
             role="stable_admin",
+            apellidos="Pérez",
+            dni="12345678A",
         )
         stable_id = stable.id
         admin_email = admin.email
@@ -762,8 +766,40 @@ def test_me_profile(client):
     assert response.status_code == 200
     data = response.json()
     assert data["email"] == admin_email
+    assert data["apellidos"] == "Pérez"
+    assert data["dni"] == "12345678A"
     assert data["role"] == "stable_admin"
     assert data["stable_id"] == stable_id
+
+
+def test_update_client_profile_syncs_apellidos_to_user(client):
+    """Verifica que actualizar el perfil cliente sincroniza apellidos en User."""
+    test_client, engine = client
+
+    with Session(engine) as session:
+        stable = create_stable(session)
+        user = create_user(
+            session,
+            stable.id,
+            email="client_profile_sync@example.com",
+            password="secret",
+            role="client",
+        )
+        user_id = user.id
+        user_email = user.email
+
+    token = login(test_client, user_email)
+    response = test_client.put(
+        f"/api/v1/users/{user_id}/profile",
+        json={"apellidos": "García López"},
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 200
+
+    with Session(engine) as session:
+        updated_user = session.get(User, user_id)
+        assert updated_user is not None
+        assert updated_user.apellidos == "García López"
 
 
 def test_me_profile_unauthenticated(client):

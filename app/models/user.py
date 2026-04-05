@@ -40,7 +40,9 @@ class User(SQLModel, table=True):
     """
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(nullable=False)
+    apellidos: Optional[str] = Field(default=None)
     email: str = Field(nullable=False, index=True, unique=True)
+    dni: Optional[str] = Field(default=None)
     hashed_password: str = Field(nullable=False)
     role: str = Field(nullable=False, default="client")  # 'app_admin', 'stable_admin', 'monitor', 'assistant', 'client'
     phone: Optional[str] = Field(default=None)

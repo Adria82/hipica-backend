@@ -20,7 +20,6 @@ class ClientProfile(SQLModel, table=True):
 
     Attributes:
         user_id (int): Clave primaria y FK a user.id.
-        apellidos (Optional[str]): Apellidos del cliente.
         direccion (Optional[str]): Dirección postal.
         iban (Optional[str]): IBAN para pagos/domiciliación.
         notes (Optional[str]): Notas internas del administrador.
@@ -29,7 +28,6 @@ class ClientProfile(SQLModel, table=True):
     __tablename__ = "clientprofile"
 
     user_id: int = Field(foreign_key="user.id", primary_key=True)
-    apellidos: Optional[str] = Field(default=None)
     direccion: Optional[str] = Field(default=None)
     iban: Optional[str] = Field(default=None)
     notes: Optional[str] = Field(default=None)

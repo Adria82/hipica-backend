@@ -219,7 +219,7 @@
               <v-select
                 v-model="form.instructor_id"
                 :items="instructorOptions"
-                item-title="name"
+                item-title="fullName"
                 item-value="id"
                 :label="t('lessons.dialog.instructor')"
                 variant="outlined"
@@ -231,7 +231,7 @@
               <v-select
                 v-model="form.helper_id"
                 :items="helperOptions"
-                item-title="name"
+                item-title="fullName"
                 item-value="id"
                 :label="t('lessons.dialog.helper')"
                 variant="outlined"
@@ -272,7 +272,7 @@
               <v-select
                 v-model="form.student_ids"
                 :items="studentOptions"
-                item-title="name"
+                item-title="fullName"
                 item-value="id"
                 :label="t('lessons.dialog.students')"
                 variant="outlined"
@@ -295,7 +295,7 @@
                 class="align-center"
               >
                 <v-col cols="5" class="text-body-2">
-                  {{ students.find((s) => s.id === pair.student_id)?.name ?? pair.student_id }}
+                  {{ (() => { const s = students.find((s) => s.id === pair.student_id); return s ? fullName(s) : pair.student_id; })() }}
                 </v-col>
                 <v-col cols="7">
                   <v-select
@@ -581,16 +581,28 @@ const periodLabel = computed(() => {
 // ---------------------------------------------------------------------------
 // Select options
 // ---------------------------------------------------------------------------
-// Devuelve el nombre del instructor a partir de su ID
-function instructorName(id: number): string {
-  return users.value.find((u) => u.id === id)?.name ?? "";
+// Devuelve el nombre completo (nombre + apellidos) de un usuario
+function fullName(user: { name: string; apellidos?: string | null }): string {
+  return user.apellidos ? `${user.name} ${user.apellidos}` : user.name;
 }
 
-const instructorOptions = computed(() => users.value.filter((u) => u.role === "monitor"));
-const helperOptions = computed(() => users.value.filter((u) => u.role === "assistant"));
+// Devuelve el nombre completo del instructor a partir de su ID
+function instructorName(id: number): string {
+  const u = users.value.find((u) => u.id === id);
+  return u ? fullName(u) : "";
+}
+
+const instructorOptions = computed(() =>
+  users.value.filter((u) => u.role === "monitor").map((u) => ({ ...u, fullName: fullName(u) }))
+);
+const helperOptions = computed(() =>
+  users.value.filter((u) => u.role === "assistant").map((u) => ({ ...u, fullName: fullName(u) }))
+);
 const trackOptionsWithNone = computed(() => tracks.value.filter((tr) => tr.is_active));
 const horseOptions = computed(() => horses.value.filter((h) => h.is_active));
-const studentOptions = computed(() => students.value.filter((s) => s.is_active));
+const studentOptions = computed(() =>
+  students.value.filter((s) => s.is_active).map((s) => ({ ...s, fullName: fullName(s) }))
+);
 
 // Validación: fin no puede ser anterior al inicio
 const dateTimeError = computed(() => {

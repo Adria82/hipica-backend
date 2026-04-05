@@ -1,123 +1,124 @@
 # Feature: Perfil de Usuario
 
-## Descripción
+## Descripcion
 
-El perfil de usuario expone los datos básicos del usuario autenticado (email, rol e hípica asignada) y los pone a disposición del frontend como estado reactivo global. Además de la vista informativa `Profile.vue`, el store del perfil exporta dos computeds que se usan a lo largo de toda la aplicación para aplicar gating de funcionalidades: `canManage` e `isAppAdmin`.
+El perfil de usuario expone todos los datos del usuario autenticado y permite editarlos desde la vista `Profile.vue`. Ademas del perfil base (nombre, apellidos, DNI, email, telefono, rol e hipica), se muestran y editan los datos del perfil extendido segun el rol: `ClientProfile` para alumnos y `MonitorProfile` para monitores y ayudantes.
+
+El store de perfil (`src/auth/profile.ts`) exporta dos computeds usados globalmente para control de acceso: `canManage` e `isAppAdmin`.
 
 ---
 
-## Endpoint
+## Endpoints
 
 ### GET /api/v1/me/profile
 
-Devuelve el perfil del usuario autenticado a partir del token JWT.
+Devuelve el perfil basico del usuario autenticado.
 
-**Autenticación requerida:** Sí. Token Bearer en la cabecera `Authorization`.
-
-**Rol requerido:** Cualquier usuario autenticado (no hay restricción de rol adicional).
+**Autenticacion requerida:** Si.
 
 **Response 200:**
 ```json
 {
   "id": 3,
-  "email": "monitor@hipica.com",
+  "name": "Juan",
+  "apellidos": "Garcia",
+  "email": "juan@hipica.com",
+  "dni": "12345678A",
+  "phone": "600100200",
   "role": "monitor",
-  "stable_id": 1
+  "stable_id": 1,
+  "stable_name": "Hipica Can Valls",
+  "stable_theme": "default",
+  "avatar": null
 }
 ```
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `id` | integer | ID del usuario en la base de datos |
-| `email` | string | Correo electrónico del usuario |
-| `role` | string | Rol asignado: `app_admin`, `stable_admin`, `monitor` o `client` |
-| `stable_id` | integer o null | ID de la hípica a la que pertenece el usuario; `null` para `app_admin` global |
+### PUT /api/v1/me/profile
 
-**Errores posibles:**
+Actualiza los campos basicos del usuario autenticado.
 
-| Código | Causa |
-|--------|-------|
-| 401 | Token ausente, inválido o expirado |
+**Payload:** `{ name?, apellidos?, email?, dni?, phone?, avatar? }` (todos opcionales)
+
+**Notas:**
+- Si se envia `email`, se verifica que no este en uso por otro usuario (HTTP 409 si esta duplicado).
+- Si se envia `avatar`, debe ser un data URL en base64.
+
+### GET /api/v1/users/{id}/profile
+
+Obtiene el perfil extendido de un usuario (`ClientProfile` o `MonitorProfile` segun rol).
+
+**Permisos:** El propio usuario puede consultar su perfil. Los administradores pueden ver perfiles de cualquier usuario de su hipica.
+
+### PUT /api/v1/users/{id}/profile
+
+Crea o actualiza (upsert) el perfil extendido de un usuario.
+
+**Permisos:** El propio usuario puede editar su perfil extendido. Los administradores pueden editar perfiles de usuarios de su hipica.
 
 ---
 
 ## Store reactivo: src/auth/profile.ts
 
-El módulo `profile.ts` centraliza el estado del perfil y sus derivados en un store ligero basado en `ref` y `computed` de Vue.
-
-### Estado y funciones exportadas
-
-| Exportación | Tipo | Descripción |
+| Exportacion | Tipo | Descripcion |
 |-------------|------|-------------|
-| `userProfile` | `Ref<UserProfile \| null>` | Perfil completo del usuario; `null` si no hay sesión activa |
+| `userProfile` | `Ref<UserProfile \| null>` | Perfil completo del usuario; `null` si no hay sesion activa |
 | `fetchProfile()` | `async function` | Llama a `GET /api/v1/me/profile`, actualiza `userProfile` y persiste en localStorage |
 | `clearProfile()` | `function` | Limpia `userProfile` y elimina la entrada de localStorage (se llama en logout) |
 | `canManage` | `ComputedRef<boolean>` | `true` si el rol es `stable_admin` o `app_admin` |
 | `isAppAdmin` | `ComputedRef<boolean>` | `true` si el rol es `app_admin` |
 
-### Persistencia en localStorage
-
-El perfil se serializa en `localStorage` bajo la clave `hipica_user_profile`. Esto permite que, al recargar la página, los computeds `canManage` e `isAppAdmin` tengan valores correctos de forma inmediata (antes de que se complete la llamada al backend).
-
-| Clave localStorage | Contenido |
-|-------------------|-----------|
-| `hipica_user_profile` | Objeto `UserProfile` serializado como JSON |
-
-### Flujo de carga
-
-```mermaid
-sequenceDiagram
-    participant Layout as MainLayout.vue
-    participant Store as profile.ts
-    participant B as Backend
-    participant LS as localStorage
-
-    Layout->>Store: fetchProfile()
-    Store->>B: GET /api/v1/me/profile
-    B-->>Store: { id, email, role, stable_id }
-    Store->>Store: userProfile.value = data
-    Store->>LS: setItem("hipica_user_profile", JSON)
-    Note over Layout: canManage y isAppAdmin se<br/>recalculan automáticamente
-```
-
-La carga se ejecuta en `onMounted` de `MainLayout.vue` en paralelo con `fetchFeatures()`:
-
-```
-onMounted → Promise.all([fetchFeatures(), fetchProfile()])
-```
-
----
-
-## Uso de canManage e isAppAdmin en vistas
-
-Estos dos computeds se importan directamente en cualquier componente que necesite aplicar gating:
-
-| Computed | Roles que devuelven true | Uso principal |
-|----------|--------------------------|---------------|
-| `canManage` | `stable_admin`, `app_admin` | Controla si se muestran botones de crear, editar y eliminar |
-| `isAppAdmin` | `app_admin` | Controla si se muestra el selector de hípica en formularios y si se cargan listas de todas las hípicas |
-
-Ejemplos de uso:
-
-- `Boxes.vue` y `Horses.vue`: el botón "Añadir" del footer y el botón "Eliminar" del diálogo están condicionados a `canManage`.
-- `Boxes.vue` y `Horses.vue`: el selector de hípica en el formulario está condicionado a `isAppAdmin`.
-- `MainLayout.vue`: la sección "Administración" del menú está condicionada a `isAppAdmin`.
+El perfil se persiste en `localStorage` bajo la clave `hipica_user_profile` para que `canManage` e `isAppAdmin` tengan valores correctos al recargar antes de que se complete la llamada al backend.
 
 ---
 
 ## Vista: Profile.vue
 
-La vista `/profile` muestra el perfil del usuario autenticado en formato de tarjeta de solo lectura. Lee directamente del store reactivo `userProfile`; no realiza ninguna llamada adicional al backend.
+La vista `/profile` muestra todos los datos del usuario autenticado y permite editarlos.
 
-Campos mostrados:
+### Datos mostrados
 
-| Campo | Icono | Fuente |
-|-------|-------|--------|
-| Email | `mdi-email-outline` | `userProfile.email` |
-| Rol | `mdi-shield-account-outline` | Traducido mediante clave i18n `profile.roles.<role>` |
-| Hípica | `mdi-home-outline` | `userProfile.stable_id` (solo si no es null) |
+**Seccion principal:**
 
-El rol se traduce usando la clave `profile.roles.{role}` del sistema i18n. Si no existe traducción para el rol, se muestra el valor bruto.
+| Campo | Fuente |
+|-------|--------|
+| Nombre | `userProfile.name` |
+| Apellidos | `userProfile.apellidos` |
+| Email | `userProfile.email` |
+| DNI / NIF | `userProfile.dni` |
+| Telefono | `userProfile.phone` |
+| Rol | Traducido via `profile.roles.<role>` |
+| Hipica | `userProfile.stable_name` |
+
+**Seccion "Datos adicionales"** (visible si el rol tiene perfil extendido):
+
+- `role=client` → campos de `ClientProfile`: direccion, IBAN, nivel, notas
+- `role=monitor` o `role=assistant` → campos de `MonitorProfile`: especialidad, certificados, experiencia, disponibilidad, IBAN, tarifa/hora, notas internas
+
+### Dialogo de edicion
+
+El dialogo de edicion incluye todos los campos editables organizados en secciones:
+
+1. **Campos basicos**: nombre, apellidos, email, DNI, telefono
+2. **Perfil de alumno** (solo `role=client`): direccion, IBAN, nivel (selector), notas
+3. **Perfil de monitor/ayudante** (solo `role=monitor` o `role=assistant`): especialidad, certificados, experiencia, disponibilidad, IBAN, tarifa/hora, notas internas
+
+Al guardar se realizan hasta dos llamadas en secuencia:
+1. `PUT /api/v1/me/profile` — campos basicos del usuario
+2. `PUT /api/v1/users/{id}/profile` — perfil extendido (si el rol tiene uno)
+
+### Flujo de carga
+
+```mermaid
+sequenceDiagram
+    participant Profile.vue
+    participant API
+
+    Profile.vue->>API: (onMounted) GET /api/v1/users/{id}/profile
+    API-->>Profile.vue: ClientProfileRead o MonitorProfileRead
+    Profile.vue->>API: (si role=client) GET /api/v1/levels
+    API-->>Profile.vue: Lista de niveles para el selector
+    Note over Profile.vue: Renderiza datos base (de userProfile store)<br/>+ datos extendidos cargados
+```
 
 ---
 
@@ -128,9 +129,16 @@ Definido en `src/types/api.ts`:
 ```typescript
 export type UserProfile = {
   id: number;
+  name: string;
+  apellidos: string | null;
   email: string;
+  dni: string | null;
+  phone: string | null;
   role: string;
   stable_id: number | null;
+  stable_name: string | null;
+  stable_theme: string | null;
+  avatar: string | null;
 };
 ```
 
@@ -140,16 +148,16 @@ export type UserProfile = {
 
 | Archivo | Responsabilidad |
 |---------|----------------|
-| `app/api/v1/endpoints/me.py` | Endpoint `GET /me/profile` |
-| `src/auth/profile.ts` | Store reactivo: `userProfile`, `fetchProfile`, `clearProfile`, `canManage`, `isAppAdmin` |
-| `src/views/Profile.vue` | Vista de solo lectura del perfil del usuario |
-| `src/layouts/MainLayout.vue` | Llama a `fetchProfile()` al montar; usa `isAppAdmin` para el gating del menú |
-| `src/types/api.ts` | Tipo `UserProfile` |
+| `app/api/v1/endpoints/me.py` | Endpoints `GET/PUT /me/profile` |
+| `app/api/v1/endpoints/user.py` | Endpoints `GET/PUT /users/{id}/profile` |
+| `src/auth/profile.ts` | Store reactivo global del perfil |
+| `src/views/Profile.vue` | Vista completa con lectura y edicion de todos los campos |
+| `src/types/api.ts` | Tipos `UserProfile`, `ClientProfileData`, `MonitorProfileData` |
 
 ---
 
 ## Consideraciones
 
-- `fetchProfile()` se llama en el layout y no en la vista `Profile.vue`. La vista solo consume el estado ya cargado. Esto evita llamadas duplicadas y hace que el perfil esté disponible globalmente desde el momento en que se monta el layout.
-- Si el token expira y el interceptor de Axios no puede renovarlo, `fetchProfile()` lanzará un error capturado en el `catch` del `onMounted` del layout, sin bloquear el resto de la aplicación.
-- `clearProfile()` debe llamarse siempre en el logout junto a `clearTokens()` para evitar que un usuario distinto vea el perfil de la sesión anterior.
+- `fetchProfile()` se llama en `MainLayout.vue`, no en `Profile.vue`. La vista consume el estado ya cargado del store y ademas carga el perfil extendido propio en su `onMounted`.
+- `apellidos` en `User` es el apellido del usuario. `ClientProfile` ya no tiene campo `apellidos` propio — se lee directamente de `User.apellidos`.
+- El campo `telefono` de `MonitorProfile` es independiente del `phone` de `User`: el primero es contacto profesional, el segundo es general.
