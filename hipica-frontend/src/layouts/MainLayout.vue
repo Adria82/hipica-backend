@@ -116,17 +116,19 @@ const brandingLogoUrl = computed(() => {
 
 const ADMIN_ITEMS: NavItem[] = [
   { titleKey: "menu.users",    icon: "mdi-account-multiple",  route: "/users"    },
+  { titleKey: "menu.reports",  icon: "mdi-chart-bar",         route: "/reports"  },
   { titleKey: "menu.stables",  icon: "mdi-home-group",        route: "/stables"  },
   { titleKey: "menu.levels",   icon: "mdi-stairs",            route: "/levels"   },
   { titleKey: "menu.features", icon: "mdi-toggle-switch",     route: "/features" },
-  { titleKey: "menu.reports",  icon: "mdi-chart-bar",         route: "/reports"  },
 ];
 
 const OPERATIVA_ITEMS: (NavItem & { feature?: FeatureCode })[] = [
-  { titleKey: "menu.horses",  icon: "mdi-horse",              route: "/horses",  feature: "HORSES"  },
-  { titleKey: "menu.boxes",   icon: "mdi-door",               route: "/boxes",   feature: "HORSES"  },
-  { titleKey: "menu.tracks",  icon: "mdi-map-marker-path",    route: "/tracks",  feature: "LESSONS" },
-  { titleKey: "menu.lessons", icon: "mdi-school",             route: "/lessons", feature: "LESSONS" },
+  { titleKey: "menu.users",   icon: "mdi-account-multiple",  route: "/users",   feature: "USERS"      },
+  { titleKey: "menu.reports", icon: "mdi-chart-bar",         route: "/reports", feature: "REPORTING"  },
+  { titleKey: "menu.horses",  icon: "mdi-horse",             route: "/horses",  feature: "HORSES"     },
+  { titleKey: "menu.boxes",   icon: "mdi-door",              route: "/boxes",   feature: "HORSES"     },
+  { titleKey: "menu.tracks",  icon: "mdi-map-marker-path",   route: "/tracks",  feature: "LESSONS"    },
+  { titleKey: "menu.lessons", icon: "mdi-school",            route: "/lessons", feature: "LESSONS"    },
 ];
 
 const MYSPACE_ITEMS: NavItem[] = [

@@ -271,7 +271,7 @@ const messages = {
       save: "Guardar cambios",
       codes: {
         HORSES: "Caballos y boxes",
-        CLIENTS: "Clientes",
+        USERS: "Usuarios",
         LESSONS: "Clases",
         BOOKINGS: "Reservas",
         BILLING: "Facturación",
@@ -786,7 +786,7 @@ const messages = {
       save: "Desar canvis",
       codes: {
         HORSES: "Cavalls i boxes",
-        CLIENTS: "Clients",
+        USERS: "Usuaris",
         LESSONS: "Classes",
         BOOKINGS: "Reserves",
         BILLING: "Facturació",
@@ -1301,7 +1301,7 @@ const messages = {
       save: "Save changes",
       codes: {
         HORSES: "Horses & boxes",
-        CLIENTS: "Clients",
+        USERS: "Users",
         LESSONS: "Lessons",
         BOOKINGS: "Bookings",
         BILLING: "Billing",

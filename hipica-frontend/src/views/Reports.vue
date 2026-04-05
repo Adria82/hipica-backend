@@ -247,6 +247,7 @@
               </v-select>
             </v-card-title>
             <VueApexCharts
+              :key="`weekday-${weekdayFilterType}-${weekdayFilterIds.join(',')}-${allLessonsDetailMap.size}`"
               type="bar"
               height="240"
               :options="weekdayChartOptions"
@@ -293,7 +294,7 @@ import { http } from "@/api/http";
 import { isAppAdmin } from "@/auth/profile";
 import type { LessonReport, LessonDetail, InstructorHours, HelperHours, StudentClasses, HorseHours, TrackHours, Stable } from "@/types/api";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 // ---------------------------------------------------------------------------
 // State
@@ -383,7 +384,17 @@ const detailHeaders = computed(() => [
 // ---------------------------------------------------------------------------
 // Chart data
 // ---------------------------------------------------------------------------
-const WEEKDAY_KEYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+// Etiquetas de día de la semana en el idioma activo, comenzando por lunes
+// Se usan como categorías del eje X de la gráfica de días
+const weekdayLabels = computed(() => {
+  // 2024-01-01 es lunes — sirve como ancla para generar 7 etiquetas Mon→Sun
+  const anchor = new Date(2024, 0, 1);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(anchor);
+    d.setDate(d.getDate() + i);
+    return d.toLocaleDateString(locale.value, { weekday: "short" });
+  });
+});
 
 const horseChartSeries = computed(() => {
   const top5 = report.value?.horse_hours.slice(0, 5) ?? [];
@@ -485,12 +496,15 @@ const CHART_COLORS = [
 ];
 
 const weekdayChartSeries = computed(() => {
+  // Convierte el índice JS (0=Dom,...,6=Sáb) a índice lunes-primero (0=Lun,...,6=Dom)
+  const toMondayFirst = (jsDay: number) => (jsDay + 6) % 7;
+
   if (weekdayFilterType.value === "all" || weekdayFilterIds.value.length === 0) {
     // Serie única con todas las clases
     const counts = new Array(7).fill(0);
     const lessons = allLessonsDetailMap.value.get(0) ?? [];
     lessons.forEach((l) => {
-      const dayIndex = new Date(l.date_time).getDay();
+      const dayIndex = toMondayFirst(new Date(l.date_time).getDay());
       counts[dayIndex] = (counts[dayIndex] ?? 0) + 1;
     });
     return [{ name: t("reports.charts.byWeekday"), data: counts }];
@@ -500,7 +514,7 @@ const weekdayChartSeries = computed(() => {
     const counts = new Array(7).fill(0);
     const lessons = allLessonsDetailMap.value.get(id) ?? [];
     lessons.forEach((l) => {
-      const dayIndex = new Date(l.date_time).getDay();
+      const dayIndex = toMondayFirst(new Date(l.date_time).getDay());
       counts[dayIndex] = (counts[dayIndex] ?? 0) + 1;
     });
     const opcion = weekdayFilterOptions.value.find((o) => o.id === id);
@@ -514,7 +528,7 @@ const weekdayChartSeries = computed(() => {
 
 const weekdayChartOptions = computed(() => ({
   chart: { toolbar: { show: false }, stacked: false },
-  xaxis: { categories: WEEKDAY_KEYS },
+  xaxis: { categories: weekdayLabels.value },
   plotOptions: { bar: { horizontal: false, borderRadius: 4 } },
   dataLabels: { enabled: false },
   tooltip: {

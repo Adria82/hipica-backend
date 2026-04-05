@@ -20,7 +20,7 @@ class FeatureCode(str, Enum):
     """
 
     HORSES = "HORSES"
-    CLIENTS = "CLIENTS"
+    USERS = "USERS"
     LESSONS = "LESSONS"
     BOOKINGS = "BOOKINGS"
     BILLING = "BILLING"

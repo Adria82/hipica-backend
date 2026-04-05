@@ -68,8 +68,9 @@ def seed_db() -> None:
         # --------------------------------------------------------------
         features = [
             FeatureCode.HORSES,
-            FeatureCode.CLIENTS,
+            FeatureCode.USERS,
             FeatureCode.LESSONS,
+            FeatureCode.REPORTING,
         ]
         session.add_all(
             [StableFeature(stable_id=stable.id, feature=feature) for feature in features]

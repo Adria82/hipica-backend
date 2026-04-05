@@ -415,6 +415,11 @@ const snackbarColor = ref<"success" | "error">("success");
 // ---------------------------------------------------------------------------
 const viewMode = ref<"week" | "month">("week");
 
+// Convierte una fecha local a cadena "YYYY-MM-DD" sin conversión UTC
+function toLocalIso(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 // ---------------------------------------------------------------------------
 // Week navigation
 // ---------------------------------------------------------------------------
@@ -435,7 +440,7 @@ const weekDays = computed(() => {
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart.value);
     d.setDate(d.getDate() + i);
-    const iso = d.toISOString().slice(0, 10);
+    const iso = toLocalIso(d);
     return {
       iso,
       label: d.toLocaleDateString(undefined, { weekday: "short" }),
@@ -519,7 +524,7 @@ const monthDays = computed(() => {
   for (let i = paddingStart - 1; i >= 0; i--) {
     const d = new Date(year, month, -i);
     days.push({
-      iso: d.toISOString().slice(0, 10),
+      iso: toLocalIso(d),
       dayNum: d.getDate(),
       isToday: d.getTime() === today.getTime(),
       isCurrentMonth: false,
@@ -530,7 +535,7 @@ const monthDays = computed(() => {
   for (let i = 1; i <= lastDay.getDate(); i++) {
     const d = new Date(year, month, i);
     days.push({
-      iso: d.toISOString().slice(0, 10),
+      iso: toLocalIso(d),
       dayNum: d.getDate(),
       isToday: d.getTime() === today.getTime(),
       isCurrentMonth: true,
@@ -541,7 +546,7 @@ const monthDays = computed(() => {
   for (let i = 1; i <= paddingEnd; i++) {
     const d = new Date(year, month + 1, i);
     days.push({
-      iso: d.toISOString().slice(0, 10),
+      iso: toLocalIso(d),
       dayNum: d.getDate(),
       isToday: d.getTime() === today.getTime(),
       isCurrentMonth: false,

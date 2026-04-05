@@ -78,7 +78,7 @@ const snackbar = ref(false);
 const snackbarText = ref("");
 const snackbarColor = ref("success");
 
-const ALL_FEATURES = ["HORSES", "CLIENTS", "LESSONS", "BOOKINGS", "BILLING", "REPORTING"];
+const ALL_FEATURES = ["HORSES", "USERS", "LESSONS", "BOOKINGS", "BILLING", "REPORTING"];
 
 async function load() {
   try {

@@ -125,7 +125,7 @@ export type MonitorProfileData = {
 
 export type FeatureCode =
   | "HORSES"
-  | "CLIENTS"
+  | "USERS"
   | "LESSONS"
   | "BOOKINGS"
   | "BILLING"
