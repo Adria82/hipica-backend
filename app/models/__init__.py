@@ -24,3 +24,9 @@ from .lesson import Lesson
 
 from .feature import FeatureCode
 from .stable_feature import StableFeature
+
+# Módulo Reservas
+from .lesson_recurrence import LessonRecurrence
+from .monitor_availability import MonitorAvailability
+from .booking import BookingStatus, Booking
+from .stable_config import StableConfig

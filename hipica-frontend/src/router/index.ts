@@ -12,6 +12,9 @@ import Stables from "../views/Stables.vue";
 import Levels from "../views/Levels.vue";
 import Features from "../views/Features.vue";
 import Profile from "../views/Profile.vue";
+import Bookings from "../views/Bookings.vue";
+import MonitorAvailability from "../views/MonitorAvailability.vue";
+import StableConfig from "../views/StableConfig.vue";
 import { isLoggedIn } from "../auth/tokens";
 import MainLayout from "../layouts/MainLayout.vue";
 import Users from "../views/Users.vue";
@@ -42,6 +45,11 @@ const routes: RouteRecordRaw[] = [
       { path: "levels",   name: "levels",   component: Levels   },
       { path: "features", name: "features", component: Features },
       { path: "reports",  name: "reports",  component: Reports  },
+
+      // Reservas
+      { path: "bookings",      name: "bookings",      component: Bookings           },
+      { path: "availability",  name: "availability",  component: MonitorAvailability },
+      { path: "stable-config", name: "stable-config", component: StableConfig        },
 
       // Mi espacio
       { path: "profile", name: "profile", component: Profile },

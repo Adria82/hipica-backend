@@ -43,6 +43,8 @@ class LessonCreate(SQLModel):
     student_ids: List[int] = []
     horse_ids: List[int] = []
     student_horse_pairs: Optional[List[StudentHorsePair]] = None
+    max_students: Optional[int] = None
+    is_published: bool = False
 
 
 class LessonRead(SQLModel):
@@ -64,6 +66,9 @@ class LessonRead(SQLModel):
     horse_names: List[str] = []
     student_names: List[str] = []
     student_horse_pairs: List[StudentHorsePair] = []
+    max_students: Optional[int] = None
+    is_published: bool = False
+    recurrence_id: Optional[int] = None
 
 
 class LessonUpdate(SQLModel):
@@ -78,3 +83,5 @@ class LessonUpdate(SQLModel):
     student_ids: Optional[List[int]] = None
     horse_ids: Optional[List[int]] = None
     student_horse_pairs: Optional[List[StudentHorsePair]] = None
+    max_students: Optional[int] = None
+    is_published: Optional[bool] = None

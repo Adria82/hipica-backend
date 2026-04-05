@@ -81,6 +81,9 @@ def _build_lesson_read(lesson: Lesson, session: Session) -> LessonRead:
         horse_names=horse_names,
         student_names=student_names,
         student_horse_pairs=student_horse_pairs,
+        max_students=lesson.max_students,
+        is_published=lesson.is_published,
+        recurrence_id=lesson.recurrence_id,
     )
 
 
@@ -135,6 +138,8 @@ def create_lesson(
         track_id=lesson_data.track_id,
         description=lesson_data.description,
         stable_id=lesson_data.stable_id,
+        max_students=lesson_data.max_students,
+        is_published=lesson_data.is_published,
     )
     session.add(lesson)
     session.commit()
@@ -230,6 +235,10 @@ def update_lesson(
         lesson.description = lesson_update.description
     if lesson_update.stable_id is not None:
         lesson.stable_id = lesson_update.stable_id
+    if lesson_update.max_students is not None:
+        lesson.max_students = lesson_update.max_students
+    if lesson_update.is_published is not None:
+        lesson.is_published = lesson_update.is_published
 
     session.add(lesson)
     session.commit()
@@ -293,3 +302,25 @@ def delete_lesson(
     session.delete(lesson)
     session.commit()
     return {"ok": True}
+
+
+@router.put("/{lesson_id}/publish", response_model=LessonRead)
+def toggle_lesson_publish(
+    lesson_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["stable_admin", "app_admin", "monitor"])),
+):
+    """Toggle is_published de una lección."""
+    lesson = session.get(Lesson, lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail=t(request, "lesson.not_found"))
+
+    if current_user.role != "app_admin" and lesson.stable_id != current_user.stable_id:
+        raise HTTPException(status_code=403, detail=t(request, "auth.permission_denied"))
+
+    lesson.is_published = not lesson.is_published
+    session.add(lesson)
+    session.commit()
+    session.refresh(lesson)
+    return _build_lesson_read(lesson, session)

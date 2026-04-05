@@ -12,14 +12,16 @@ La motivación es comercial: Hipica es una plataforma multi-tenant donde distint
 
 Definido como enum en `app/models/feature.py`:
 
-| Código | Módulo |
-|--------|--------|
-| `HORSES` | Gestión de caballos |
-| `CLIENTS` | Gestión de alumnos/clientes |
-| `LESSONS` | Gestión de clases |
-| `BOOKINGS` | Reservas |
-| `BILLING` | Facturación |
-| `REPORTING` | Informes y estadísticas |
+| Código | Módulo | Secciones de menú incluidas |
+|--------|--------|-----------------------------|
+| `HORSES` | Gestión de caballos y boxes | Caballos, Boxes |
+| `USERS` | Gestión de usuarios de la hípica | Usuarios |
+| `LESSONS` | Gestión de clases y pistas | Clases, Pistas |
+| `BOOKINGS` | Reservas | — |
+| `BILLING` | Facturación | — |
+| `REPORTING` | Informes y estadísticas | Informes |
+
+> **Nota:** El código `CLIENTS` fue renombrado a `USERS` (migración `c1d2e3f4a5b6`) para reflejar que el módulo gestiona usuarios de la hípica (alumnos, monitores, ayudantes), no solo clientes.
 
 ---
 
@@ -37,7 +39,7 @@ sequenceDiagram
     F->>B: GET /api/v1/me/features (Authorization: Bearer)
     B->>B: get_current_user() → obtiene user.stable_id
     alt stable_id es None (app_admin global)
-        B-->>F: { features: ["HORSES", "CLIENTS", "LESSONS", ...] } (todas)
+        B-->>F: { features: ["HORSES", "USERS", "LESSONS", ...] } (todas)
     else stable_id definido
         B->>DB: SELECT feature FROM stable_feature WHERE stable_id = ?
         DB-->>B: Lista de FeatureCode activos
@@ -85,7 +87,7 @@ class StableFeature(SQLModel, table=True):
 | Archivo | Responsabilidad |
 |---------|----------------|
 | `src/features/features.ts` | Estado global reactivo (`ref<FeatureCode[]>`); `fetchFeatures()` carga desde backend y persiste en `localStorage`; `clearFeatures()` limpia en logout |
-| `src/features/filter.ts` | Función `filterNavigation()` — filtra los items del menú según las features activas |
+| `src/layouts/MainLayout.vue` | Define `OPERATIVA_ITEMS` con campo `feature` opcional; filtra inline con `computed` según `features.value` |
 | `src/types/api.ts` | Tipo `FeatureCode` (union literal) y tipo `NavItem` con campo opcional `feature` |
 
 ---
@@ -105,14 +107,20 @@ const canSeeHorses = computed(() => features.value.includes("HORSES"));
 
 ### Filtrado del menú de navegación
 
-La función `filterNavigation` recibe los items del `branding.json` y la lista de features activas. Los items sin campo `feature` pasan siempre; los que tienen `feature` solo pasan si esa feature está en la lista:
+`MainLayout.vue` define dos listas estáticas:
+
+- **`ADMIN_ITEMS`** — visible solo para `app_admin` (sin feature gate): Usuarios, Informes, Hípicas, Niveles, Funcionalidades.
+- **`OPERATIVA_ITEMS`** — visible para todos los roles autenticados, filtrado por feature activa:
 
 ```typescript
-// Resultado: solo items sin feature requerida o con feature activa
-const navigation = computed(() =>
-  filterNavigation(branding?.navigation ?? [], features.value)
+const operativaItems = computed(() =>
+  OPERATIVA_ITEMS.filter((item) =>
+    !item.feature || features.value.includes(item.feature)
+  )
 );
 ```
+
+Los items sin campo `feature` pasan siempre; los que tienen `feature` solo se muestran si esa feature está activa en la hípica del usuario.
 
 ---
 

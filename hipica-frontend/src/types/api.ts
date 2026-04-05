@@ -193,6 +193,9 @@ export type Lesson = {
   horse_names: string[];
   student_names: string[];
   student_horse_pairs: StudentHorsePair[];
+  max_students: number | null;
+  is_published: boolean;
+  recurrence_id: number | null;
 };
 
 /**
@@ -215,6 +218,76 @@ export type LessonCreate = {
  * Payload para actualizar una lección (todos los campos opcionales).
  */
 export type LessonUpdate = Partial<LessonCreate>;
+
+// ---------------------------------------------------------------------------
+// Bookings
+// ---------------------------------------------------------------------------
+
+export type BookingStatus = "RESERVADO" | "CANCELADO" | "ASISTIO" | "NO_ASISTIO";
+
+export type Booking = {
+  id: number;
+  lesson_id: number;
+  lesson_datetime: string;
+  lesson_end_time: string | null;
+  user_id: number;
+  user_name: string;
+  status: BookingStatus;
+  horse_request: string | null;
+  notes: string | null;
+  created_at: string;
+  cancelled_at: string | null;
+};
+
+export type StableConfig = {
+  stable_id: number;
+  cancel_deadline_hours: number;
+  auto_attendance: boolean;
+};
+
+export type MonitorAvailability = {
+  id: number;
+  stable_id: number;
+  user_id: number;
+  user_name: string;
+  is_recurring: boolean;
+  day_of_week: number | null;
+  specific_date: string | null;
+  start_time: string;
+  end_time: string;
+  is_active: boolean;
+};
+
+export type LessonRecurrence = {
+  id: number;
+  stable_id: number;
+  instructor_id: number;
+  instructor_email: string;
+  helper_id: number | null;
+  helper_email: string | null;
+  track_id: number | null;
+  track_name: string | null;
+  day_of_week: number;
+  start_time: string;
+  end_time: string | null;
+  from_date: string;
+  to_date: string;
+  max_students: number | null;
+  description: string | null;
+  lesson_ids: number[];
+};
+
+export type AvailableLesson = {
+  id: number;
+  date_time: string;
+  end_time: string | null;
+  instructor_name: string;
+  track_name: string | null;
+  max_students: number | null;
+  booked_count: number;
+  available_slots: number | null;
+  description: string | null;
+};
 
 // ---------------------------------------------------------------------------
 // Reports

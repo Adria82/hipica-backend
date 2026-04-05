@@ -47,6 +47,9 @@ class Lesson(SQLModel, table=True):
     track_id: Optional[int] = Field(default=None, foreign_key="track.id", nullable=True)
     description: Optional[str] = Field(default=None, nullable=True)
     stable_id: int = Field(foreign_key="stable.id", index=True)
+    max_students: Optional[int] = Field(default=None, nullable=True)
+    is_published: bool = Field(default=False)
+    recurrence_id: Optional[int] = Field(default=None, foreign_key="lessonrecurrence.id", nullable=True)
 
     # Relaciones N:N usando strings
     horses: List["Horse"] = Relationship(

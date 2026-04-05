@@ -95,6 +95,10 @@ import { features, fetchFeatures } from "@/features/features";
 import { fetchProfile, clearProfile, isAppAdmin, userProfile } from "@/auth/profile";
 import type { NavItem, FeatureCode } from "@/types/api";
 
+const isMonitorOrAssistant = computed(() =>
+  ["monitor", "assistant"].includes(userProfile.value?.role ?? "")
+);
+
 const { t } = useI18n();
 const router = useRouter();
 const drawer = ref(true);
@@ -115,24 +119,27 @@ const brandingLogoUrl = computed(() => {
 // ---------------------------------------------------------------------------
 
 const ADMIN_ITEMS: NavItem[] = [
-  { titleKey: "menu.users",    icon: "mdi-account-multiple",  route: "/users"    },
-  { titleKey: "menu.reports",  icon: "mdi-chart-bar",         route: "/reports"  },
-  { titleKey: "menu.stables",  icon: "mdi-home-group",        route: "/stables"  },
-  { titleKey: "menu.levels",   icon: "mdi-stairs",            route: "/levels"   },
-  { titleKey: "menu.features", icon: "mdi-toggle-switch",     route: "/features" },
+  { titleKey: "menu.users",        icon: "mdi-account-multiple",  route: "/users"         },
+  { titleKey: "menu.reports",      icon: "mdi-chart-bar",         route: "/reports"       },
+  { titleKey: "menu.stables",      icon: "mdi-home-group",        route: "/stables"       },
+  { titleKey: "menu.levels",       icon: "mdi-stairs",            route: "/levels"        },
+  { titleKey: "menu.features",     icon: "mdi-toggle-switch",     route: "/features"      },
+  { titleKey: "menu.stableConfig", icon: "mdi-cog-outline",       route: "/stable-config" },
 ];
 
 const OPERATIVA_ITEMS: (NavItem & { feature?: FeatureCode })[] = [
-  { titleKey: "menu.users",   icon: "mdi-account-multiple",  route: "/users",   feature: "USERS"      },
-  { titleKey: "menu.reports", icon: "mdi-chart-bar",         route: "/reports", feature: "REPORTING"  },
-  { titleKey: "menu.horses",  icon: "mdi-horse",             route: "/horses",  feature: "HORSES"     },
-  { titleKey: "menu.boxes",   icon: "mdi-door",              route: "/boxes",   feature: "HORSES"     },
-  { titleKey: "menu.tracks",  icon: "mdi-map-marker-path",   route: "/tracks",  feature: "LESSONS"    },
-  { titleKey: "menu.lessons", icon: "mdi-school",            route: "/lessons", feature: "LESSONS"    },
+  { titleKey: "menu.users",     icon: "mdi-account-multiple",  route: "/users",    feature: "USERS"     },
+  { titleKey: "menu.reports",   icon: "mdi-chart-bar",         route: "/reports",  feature: "REPORTING" },
+  { titleKey: "menu.horses",    icon: "mdi-horse",             route: "/horses",   feature: "HORSES"    },
+  { titleKey: "menu.boxes",     icon: "mdi-door",              route: "/boxes",    feature: "HORSES"    },
+  { titleKey: "menu.tracks",    icon: "mdi-map-marker-path",   route: "/tracks",   feature: "LESSONS"   },
+  { titleKey: "menu.lessons",   icon: "mdi-school",            route: "/lessons",  feature: "LESSONS"   },
+  { titleKey: "menu.bookings",  icon: "mdi-calendar-check",    route: "/bookings", feature: "BOOKINGS"  },
 ];
 
 const MYSPACE_ITEMS: NavItem[] = [
-  { titleKey: "menu.profile", icon: "mdi-account-circle-outline", route: "/profile" },
+  { titleKey: "menu.profile",       icon: "mdi-account-circle-outline", route: "/profile"      },
+  { titleKey: "menu.availability",  icon: "mdi-clock-outline",          route: "/availability" },
 ];
 
 const adminItems = ADMIN_ITEMS;
@@ -143,7 +150,12 @@ const operativaItems = computed(() =>
   )
 );
 
-const myspaceItems = MYSPACE_ITEMS;
+const myspaceItems = computed(() =>
+  MYSPACE_ITEMS.filter((item) => {
+    if (item.route === "/availability") return isMonitorOrAssistant.value;
+    return true;
+  })
+);
 
 // ---------------------------------------------------------------------------
 // Auth
