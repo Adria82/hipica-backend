@@ -71,33 +71,90 @@ Computed relevantes:
 |-------|---------|-------|
 | **Hipica** | `v-select` | Solo visible para `app_admin`. Requerido al crear. |
 | Fecha y hora inicio | `datetime-local` | Requerido |
-| Fecha y hora fin | `datetime-local` | Opcional |
-| Instructor | `v-select` | Usuarios de la hipica |
-| Ayudante | `v-select` | Usuarios + opcion limpia |
-| Pista | `v-select` | Tracks activos + opcion limpia |
-| Caballos | `v-select` multiple | Chips |
-| Alumnos | `v-select` multiple | Chips |
+| Fecha y hora fin | `datetime-local` | Auto-relleno con inicio + 1h si esta vacio o es anterior al inicio |
+| Instructor | `v-select` | Solo usuarios con rol `monitor` |
+| Ayudante | `v-select` | Solo usuarios con rol `assistant`, con opcion para dejar en blanco |
+| Pista | `v-select` | Solo pistas activas de la hipica, con opcion para dejar en blanco |
+| Caballos | `v-select` multiple | Chips, solo caballos activos |
+| Alumnos | `v-select` multiple | Chips, solo usuarios activos con rol `client` |
+| Asignacion alumno-caballo | Filas dinamicas | Visible cuando hay alumnos seleccionados. Ver seccion siguiente. |
 | Descripcion | `v-textarea` | Notas adicionales |
 
 El campo **Hipica** es necesario porque `app_admin` no tiene `stable_id` propio. Para otros roles, el backend fuerza `stable_id = current_user.stable_id` y el campo no se muestra.
 
+### Emparejamiento alumno-caballo
+
+Cuando hay alumnos seleccionados en el dialogo, aparece automaticamente una seccion de asignacion que muestra una fila por cada alumno. Cada fila contiene el nombre del alumno y un selector de caballo restringido a los caballos ya seleccionados en la clase.
+
+La estructura interna que gestiona estos datos es `studentHorsePairs: StudentHorsePair[]`:
+
+```typescript
+interface StudentHorsePair {
+  student_id: number;
+  horse_id: number | null;
+}
+```
+
+Los pares se calculan mediante un `watch` sobre `form.student_ids`: al añadir un alumno se crea una entrada con `horse_id = null`; al eliminar un alumno, su entrada desaparece. Si al editar una clase ya existen pares guardados (`lesson.student_horse_pairs`), se restauran en el dialogo.
+
+Un segundo `watch` sobre `form.horse_ids` limpia automaticamente la asignacion de cualquier caballo que se haya deseleccionado de la clase, poniendo su `horse_id` a `null`.
+
+#### Validaciones al guardar
+
+| Condicion | Error mostrado |
+|-----------|---------------|
+| `end_time` es anterior o igual a `date_time` | `lessons.dialog.endBeforeStart` |
+| Numero de caballos != numero de alumnos (y ambos > 0) | `lessons.dialog.horseStudentMismatch` |
+| Algun alumno tiene `horse_id = null` | `lessons.dialog.unassignedPair` |
+| Un mismo caballo asignado a dos alumnos distintos | `lessons.dialog.duplicateHorse` (alerta visible en el formulario) |
+
+Las validaciones se ejecutan en orden antes de llamar a la API. Si alguna falla, se muestra un `v-snackbar` de error y no se realiza la peticion.
+
+#### Chips del calendario
+
+Los chips de clase en las vistas semanal y mensual muestran:
+- Hora de inicio de la clase (formato `HH:MM`)
+- Nombre de la pista entre parentesis, si esta asignada
+
+Al hacer hover sobre un chip, el tooltip muestra:
+- Nombre del instructor (resuelto desde `users[]` por `instructor_id`; si no se encuentra, se usa `instructor_email`)
+- Nombre del primer alumno de la clase; si hay mas de uno, se añade ` …`
+
+#### Persistencia en el backend
+
+Los pares se envian en el payload de creacion y edicion:
+
+```json
+{
+  "student_horse_pairs": [
+    { "student_id": 3, "horse_id": 7 },
+    { "student_id": 5, "horse_id": 2 }
+  ]
+}
+```
+
+El campo `horse_id` en `LessonUserLink` almacena la asignacion. Es opcional (`null` si el alumno no monta a caballo en esa clase).
+
 ## Frontend: Informes (`Reports.vue`)
 
-Vista nueva en el area de Administracion. Consume `GET /api/v1/reports/lessons` y presenta los resultados en cuatro tablas:
+Vista accesible para `monitor`, `stable_admin` y `app_admin`. Consume `GET /api/v1/reports/lessons` y presenta los resultados en cinco tablas con drill-down, gráficas de barras y filtros por entidad. Ver documentacion completa en `docs/features/informes.md`.
+
+Tablas disponibles:
 
 | Tabla | Datos mostrados |
 |-------|----------------|
-| Horas de instructor | Email + horas impartidas, ordenado desc |
-| Horas de ayudante | Email + horas como ayudante, ordenado desc |
-| Clases de alumnos | Nombre de cliente + numero de clases, ordenado desc |
-| Horas de caballos | Nombre de caballo + horas trabajadas, ordenado desc |
+| Instructores | Nombre + horas impartidas + nº clases, ordenado desc |
+| Ayudantes | Nombre + horas como ayudante + nº clases, ordenado desc |
+| Alumnos | Nombre + nº clases + horas, ordenado desc |
+| Caballos | Nombre + horas trabajadas, ordenado desc |
+| Pistas | Nombre + nº clases + horas, ordenado desc |
 
-El usuario selecciona un rango de fechas (`from_date` / `to_date`) y pulsa "Buscar" para cargar el informe. Si no se indican fechas se devuelven todas las clases de la hipica.
+El usuario selecciona un rango de fechas (`from_date` / `to_date`) y pulsa "Buscar". Las fechas se inicializan por defecto al mes anterior al cargar la vista.
 
 ### Acceso a la vista de informes
 
 - Ruta: `/reports`
-- Visible solo para `app_admin` en el menu lateral (`ADMIN_ITEMS` de `MainLayout.vue`).
+- Roles: `monitor`, `stable_admin`, `app_admin`
 - La ruta tiene `meta: { requiresAuth: true }`.
 
 ## Flujo de Datos — Crear Clase
