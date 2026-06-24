@@ -140,11 +140,26 @@ def create_booking(
         select(Booking).where(
             Booking.lesson_id == data.lesson_id,
             Booking.user_id == current_user.id,
-            Booking.status == BookingStatus.RESERVADO,
         )
     ).first()
+
     if existing:
-        raise HTTPException(status_code=409, detail=t(request, "booking.duplicate"))
+        if existing.status == BookingStatus.RESERVADO:
+            raise HTTPException(status_code=409, detail=t(request, "booking.duplicate"))
+        # Reactivar booking cancelado
+        existing.status = BookingStatus.RESERVADO
+        existing.horse_request = data.horse_request
+        existing.notes = data.notes
+        existing.cancelled_at = None
+        existing.updated_at = datetime.utcnow()
+        if lesson.max_students is not None:
+            booked = _count_bookings(lesson.id, session)
+            if booked >= lesson.max_students:
+                raise HTTPException(status_code=409, detail=t(request, "booking.full"))
+        session.add(existing)
+        session.commit()
+        session.refresh(existing)
+        return _build_booking_read(existing, session)
 
     if lesson.max_students is not None:
         booked = _count_bookings(lesson.id, session)
@@ -189,11 +204,27 @@ def bulk_create_bookings(
                 select(Booking).where(
                     Booking.lesson_id == lesson_id,
                     Booking.user_id == current_user.id,
-                    Booking.status == BookingStatus.RESERVADO,
                 )
             ).first()
+
             if existing:
-                results.append({"lesson_id": lesson_id, "success": False, "error": "duplicate"})
+                if existing.status == BookingStatus.RESERVADO:
+                    results.append({"lesson_id": lesson_id, "success": False, "error": "duplicate"})
+                    continue
+                # Reactivar booking cancelado
+                if lesson.max_students is not None:
+                    booked = _count_bookings(lesson.id, session)
+                    if booked >= lesson.max_students:
+                        results.append({"lesson_id": lesson_id, "success": False, "error": "full"})
+                        continue
+                existing.status = BookingStatus.RESERVADO
+                existing.horse_request = data.horse_request
+                existing.notes = data.notes
+                existing.cancelled_at = None
+                existing.updated_at = datetime.utcnow()
+                session.add(existing)
+                session.flush()
+                results.append({"lesson_id": lesson_id, "success": True, "booking_id": existing.id})
                 continue
 
             if lesson.max_students is not None:
