@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlmodel import Session, select
 from sqlalchemy import func
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 
 from app.db.session import get_session
@@ -71,12 +71,21 @@ def _build_booking_read(booking: Booking, session: Session) -> BookingRead:
 @router.get("/bookings/available", response_model=List[dict])
 def list_available_lessons(
     request: Request,
+    stable_id: Optional[int] = Query(None),
     session: Session = Depends(get_session),
     current_user: User = Depends(require_role(ALL_ROLES)),
 ):
     now = datetime.utcnow()
+
+    if current_user.role == "app_admin":
+        if stable_id is None:
+            return []
+        filter_stable_id = stable_id
+    else:
+        filter_stable_id = current_user.stable_id
+
     query = select(Lesson).where(
-        Lesson.stable_id == current_user.stable_id,
+        Lesson.stable_id == filter_stable_id,
         Lesson.is_published == True,
         Lesson.date_time > now,
     )
@@ -90,6 +99,13 @@ def list_available_lessons(
         instructor = session.get(User, lesson.instructor_id)
         from app.models.track import Track
         track = session.get(Track, lesson.track_id) if lesson.track_id else None
+        user_booking = session.exec(
+            select(Booking).where(
+                Booking.lesson_id == lesson.id,
+                Booking.user_id == current_user.id,
+                Booking.status == BookingStatus.RESERVADO,
+            )
+        ).first()
         result.append({
             "id": lesson.id,
             "date_time": lesson.date_time.isoformat(),
@@ -100,6 +116,7 @@ def list_available_lessons(
             "booked_count": booked,
             "available_slots": (lesson.max_students - booked) if lesson.max_students else None,
             "description": lesson.description,
+            "is_booked_by_me": user_booking is not None,
         })
     return result
 

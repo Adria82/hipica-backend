@@ -15,6 +15,7 @@ from app.models.lesson import Lesson
 from app.models.horse import Horse
 from app.models.track import Track
 from app.models.links import LessonUserLink, LessonHorseLink
+from app.models.booking import Booking, BookingStatus
 from app.dependencies import require_role
 from app.models import User
 from sqlmodel import SQLModel
@@ -358,6 +359,95 @@ def lessons_by_horse(
         ))
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# Client: informe de mis reservas
+# ---------------------------------------------------------------------------
+
+class ClientBookingItem(SQLModel):
+    """Detalle de una reserva del cliente para su informe personal."""
+    booking_id: int
+    lesson_datetime: str
+    lesson_end_time: Optional[str]
+    duration_hours: float
+    instructor_name: str
+    track_name: Optional[str]
+    status: str
+
+
+class ClientBookingReport(SQLModel):
+    """Resumen estadístico de reservas del cliente autenticado."""
+    total: int
+    reservado: int
+    cancelado: int
+    asistio: int
+    no_asistio: int
+    attended_hours: float
+    items: list[ClientBookingItem]
+
+
+@router.get("/my-bookings", response_model=ClientBookingReport)
+def my_bookings_report(
+    request: Request,
+    from_date: Optional[date] = None,
+    to_date: Optional[date] = None,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["client"])),
+):
+    """
+    Informe personal de reservas para el cliente autenticado.
+
+    Devuelve el resumen estadístico (total, estado, horas asistidas) y el
+    listado detallado de cada reserva, filtrable por rango de fechas.
+    """
+    bookings = session.exec(
+        select(Booking).where(Booking.user_id == current_user.id)
+    ).all()
+
+    items: list[ClientBookingItem] = []
+    counts = {s: 0 for s in BookingStatus}
+    attended_hours = 0.0
+
+    for booking in bookings:
+        lesson = session.get(Lesson, booking.lesson_id)
+        if not lesson:
+            continue
+
+        if from_date and lesson.date_time.date() < from_date:
+            continue
+        if to_date and lesson.date_time.date() > to_date:
+            continue
+
+        instructor = session.get(User, lesson.instructor_id)
+        track = session.get(Track, lesson.track_id) if lesson.track_id else None
+        duration = _lesson_duration_hours(lesson)
+
+        counts[booking.status] = counts.get(booking.status, 0) + 1
+        if booking.status == BookingStatus.ASISTIO:
+            attended_hours += duration
+
+        items.append(ClientBookingItem(
+            booking_id=booking.id,
+            lesson_datetime=lesson.date_time.isoformat(),
+            lesson_end_time=lesson.end_time.isoformat() if lesson.end_time else None,
+            duration_hours=round(duration, 2),
+            instructor_name=instructor.name if instructor else "—",
+            track_name=track.name if track else None,
+            status=booking.status,
+        ))
+
+    items.sort(key=lambda x: x.lesson_datetime, reverse=True)
+
+    return ClientBookingReport(
+        total=len(items),
+        reservado=counts.get(BookingStatus.RESERVADO, 0),
+        cancelado=counts.get(BookingStatus.CANCELADO, 0),
+        asistio=counts.get(BookingStatus.ASISTIO, 0),
+        no_asistio=counts.get(BookingStatus.NO_ASISTIO, 0),
+        attended_hours=round(attended_hours, 2),
+        items=items,
+    )
 
 
 @router.get("/lessons/by-track/{track_id}", response_model=list[LessonDetail])

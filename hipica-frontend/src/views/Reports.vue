@@ -1,5 +1,119 @@
 <template>
   <v-container fluid>
+
+    <!-- ================================================================ -->
+    <!-- VISTA CLIENTE                                                     -->
+    <!-- ================================================================ -->
+    <template v-if="isClient">
+      <h2 class="text-h5 mb-1">{{ t("reports.myBookings.title") }}</h2>
+      <p class="text-body-2 text-medium-emphasis mb-4">{{ t("reports.myBookings.subtitle") }}</p>
+
+      <!-- Filtros fecha -->
+      <v-row dense class="mb-4" align="center">
+        <v-col cols="12" sm="4" md="3">
+          <v-text-field
+            v-model="fromDate"
+            :label="t('reports.fromDate')"
+            type="date"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="12" sm="4" md="3">
+          <v-text-field
+            v-model="toDate"
+            :label="t('reports.toDate')"
+            type="date"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="auto">
+          <v-btn color="primary" prepend-icon="mdi-chart-bar" :loading="clientLoading" @click="loadClientReport">
+            {{ t("reports.search") }}
+          </v-btn>
+        </v-col>
+      </v-row>
+
+      <v-alert v-if="clientError" type="error" variant="tonal" class="mb-4">{{ clientError }}</v-alert>
+
+      <template v-if="clientLoaded && clientReport">
+        <!-- Tarjetas resumen -->
+        <v-row dense class="mb-4">
+          <v-col cols="6" sm="4" md="2">
+            <v-card variant="tonal" color="primary" class="text-center pa-3">
+              <div class="text-h5 font-weight-bold">{{ clientReport.total }}</div>
+              <div class="text-caption">{{ t("reports.myBookings.total") }}</div>
+            </v-card>
+          </v-col>
+          <v-col cols="6" sm="4" md="2">
+            <v-card variant="tonal" color="blue" class="text-center pa-3">
+              <div class="text-h5 font-weight-bold">{{ clientReport.reservado }}</div>
+              <div class="text-caption">{{ t("reports.myBookings.reservado") }}</div>
+            </v-card>
+          </v-col>
+          <v-col cols="6" sm="4" md="2">
+            <v-card variant="tonal" color="success" class="text-center pa-3">
+              <div class="text-h5 font-weight-bold">{{ clientReport.asistio }}</div>
+              <div class="text-caption">{{ t("reports.myBookings.asistio") }}</div>
+            </v-card>
+          </v-col>
+          <v-col cols="6" sm="4" md="2">
+            <v-card variant="tonal" color="warning" class="text-center pa-3">
+              <div class="text-h5 font-weight-bold">{{ clientReport.no_asistio }}</div>
+              <div class="text-caption">{{ t("reports.myBookings.no_asistio") }}</div>
+            </v-card>
+          </v-col>
+          <v-col cols="6" sm="4" md="2">
+            <v-card variant="tonal" color="error" class="text-center pa-3">
+              <div class="text-h5 font-weight-bold">{{ clientReport.cancelado }}</div>
+              <div class="text-caption">{{ t("reports.myBookings.cancelado") }}</div>
+            </v-card>
+          </v-col>
+          <v-col cols="6" sm="4" md="2">
+            <v-card variant="tonal" color="teal" class="text-center pa-3">
+              <div class="text-h5 font-weight-bold">{{ clientReport.attended_hours }}</div>
+              <div class="text-caption">{{ t("reports.myBookings.attendedHours") }}</div>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <!-- Tabla de reservas -->
+        <v-alert v-if="clientReport.items.length === 0" type="info" variant="tonal">
+          {{ t("reports.myBookings.empty") }}
+        </v-alert>
+        <v-data-table
+          v-else
+          :headers="clientHeaders"
+          :items="clientReport.items"
+          density="compact"
+          :no-data-text="t('reports.myBookings.empty')"
+        >
+          <template #[`item.lesson_datetime`]="{ item }">
+            {{ new Date(item.lesson_datetime).toLocaleDateString() }}
+            {{ new Date(item.lesson_datetime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }}
+          </template>
+          <template #[`item.status`]="{ item }">
+            <v-chip
+              size="small"
+              :color="item.status === 'ASISTIO' ? 'success' : item.status === 'RESERVADO' ? 'primary' : item.status === 'NO_ASISTIO' ? 'warning' : 'error'"
+            >
+              {{ t(`bookingStatus.${item.status}`) }}
+            </v-chip>
+          </template>
+          <template #[`item.track_name`]="{ item }">
+            {{ item.track_name ?? "—" }}
+          </template>
+        </v-data-table>
+      </template>
+    </template>
+
+    <!-- ================================================================ -->
+    <!-- VISTA STAFF                                                       -->
+    <!-- ================================================================ -->
+    <template v-else>
     <h2 class="text-h5 mb-1">{{ t("reports.title") }}</h2>
     <p class="text-body-2 text-medium-emphasis mb-4">{{ t("reports.subtitle") }}</p>
 
@@ -283,6 +397,8 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    </template><!-- end v-else staff -->
+
   </v-container>
 </template>
 
@@ -291,10 +407,45 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import VueApexCharts from "vue3-apexcharts";
 import { http } from "@/api/http";
-import { isAppAdmin } from "@/auth/profile";
-import type { LessonReport, LessonDetail, InstructorHours, HelperHours, StudentClasses, HorseHours, TrackHours, Stable } from "@/types/api";
+import { isAppAdmin, userProfile } from "@/auth/profile";
+import type { LessonReport, LessonDetail, InstructorHours, HelperHours, StudentClasses, HorseHours, TrackHours, Stable, ClientBookingReport } from "@/types/api";
 
 const { t, locale } = useI18n();
+
+const isClient = computed(() => userProfile.value?.role === "client");
+
+// ---------------------------------------------------------------------------
+// Client report state
+// ---------------------------------------------------------------------------
+const clientReport = ref<ClientBookingReport | null>(null);
+const clientLoading = ref(false);
+const clientError = ref<string | null>(null);
+const clientLoaded = ref(false);
+
+const clientHeaders = computed(() => [
+  { title: t("reports.myBookings.tableDate"),       key: "lesson_datetime", sortable: true },
+  { title: t("reports.myBookings.tableInstructor"), key: "instructor_name", sortable: true },
+  { title: t("reports.myBookings.tableTrack"),      key: "track_name",      sortable: true },
+  { title: t("reports.myBookings.tableDuration"),   key: "duration_hours",  sortable: true },
+  { title: t("reports.myBookings.tableStatus"),     key: "status",          sortable: true },
+]);
+
+async function loadClientReport() {
+  clientLoading.value = true;
+  clientError.value = null;
+  try {
+    const params: Record<string, string> = {};
+    if (fromDate.value) params.from_date = fromDate.value;
+    if (toDate.value) params.to_date = toDate.value;
+    const { data } = await http.get<ClientBookingReport>("/api/v1/reports/my-bookings", { params });
+    clientReport.value = data;
+    clientLoaded.value = true;
+  } catch {
+    clientError.value = t("reports.error");
+  } finally {
+    clientLoading.value = false;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // State
@@ -579,7 +730,11 @@ async function loadStables() {
 
 onMounted(() => {
   ensureDefaultReportDates();
-  loadStables();
+  if (isClient.value) {
+    loadClientReport();
+  } else {
+    loadStables();
+  }
 });
 
 // ---------------------------------------------------------------------------

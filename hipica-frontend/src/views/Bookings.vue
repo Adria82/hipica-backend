@@ -15,6 +15,18 @@
       <!-- TAB: Clases disponibles -->
       <v-window-item value="available">
         <div class="d-flex align-center mb-3 gap-3 flex-wrap">
+          <v-select
+            v-if="isAppAdmin"
+            v-model="selectedStableId"
+            :items="stables"
+            item-title="name"
+            item-value="id"
+            :label="t('bookings.selectStable')"
+            density="compact"
+            hide-details
+            style="max-width: 300px"
+            clearable
+          />
           <v-text-field
             v-model="filterDate"
             type="date"
@@ -55,6 +67,11 @@
           <template #[`item.available_slots`]="{ item }">
             <span v-if="item.available_slots !== null">{{ item.available_slots }}</span>
             <span v-else>{{ t("bookings.unlimited") }}</span>
+          </template>
+          <template #[`item.is_booked_by_me`]="{ item }">
+            <v-chip v-if="item.is_booked_by_me" color="success" size="small" variant="tonal">
+              {{ t("bookings.alreadyBooked") }}
+            </v-chip>
           </template>
           <template #[`item.actions`]="{ item }">
             <v-btn size="small" color="primary" variant="tonal" @click="openReserveDialog(item)">
@@ -254,8 +271,8 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { http } from "@/api/http";
-import { userProfile } from "@/auth/profile";
-import type { Booking, AvailableLesson, Lesson } from "@/types/api";
+import { userProfile, isAppAdmin } from "@/auth/profile";
+import type { Booking, AvailableLesson, Lesson, Stable } from "@/types/api";
 
 const { t } = useI18n();
 
@@ -264,6 +281,21 @@ const activeTab = ref("available");
 const isStaff = computed(() =>
   ["stable_admin", "app_admin", "monitor", "assistant"].includes(userProfile.value?.role ?? "")
 );
+
+// ---------------------------------------------------------------------------
+// Stables (solo app_admin)
+// ---------------------------------------------------------------------------
+const stables = ref<Stable[]>([]);
+const selectedStableId = ref<number | null>(null);
+
+async function loadStables() {
+  try {
+    const { data } = await http.get<Stable[]>("/api/v1/stables");
+    stables.value = data;
+  } catch {
+    // silencioso
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Available lessons
@@ -280,6 +312,7 @@ const availableHeaders = [
   { title: t("bookings.tableInstructor"), key: "instructor_name" },
   { title: t("bookings.tableTrack"), key: "track_name" },
   { title: t("bookings.tableSlots"), key: "available_slots" },
+  { title: t("bookings.tableBooked"), key: "is_booked_by_me", sortable: true },
   { title: t("bookings.tableActions"), key: "actions", sortable: false },
 ];
 
@@ -289,10 +322,15 @@ const filteredAvailable = computed(() => {
 });
 
 async function loadAvailable() {
+  if (isAppAdmin.value && !selectedStableId.value) {
+    availableLessons.value = [];
+    return;
+  }
   availableLoading.value = true;
   availableError.value = "";
   try {
-    const { data } = await http.get<AvailableLesson[]>("/api/v1/bookings/available");
+    const params = isAppAdmin.value ? { stable_id: selectedStableId.value } : {};
+    const { data } = await http.get<AvailableLesson[]>("/api/v1/bookings/available", { params });
     availableLessons.value = data;
   } catch {
     availableError.value = t("bookings.reserveError");
@@ -300,6 +338,8 @@ async function loadAvailable() {
     availableLoading.value = false;
   }
 }
+
+watch(selectedStableId, () => loadAvailable());
 
 // ---------------------------------------------------------------------------
 // My bookings
@@ -526,6 +566,7 @@ function showSnackbar(message: string, color = "success") {
 // Init
 // ---------------------------------------------------------------------------
 onMounted(() => {
+  if (isAppAdmin.value) loadStables();
   loadAvailable();
   loadMyBookings();
   if (isStaff.value) loadAllLessons();

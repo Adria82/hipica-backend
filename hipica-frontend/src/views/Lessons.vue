@@ -321,6 +321,27 @@
               </v-alert>
             </v-col>
 
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model.number="form.max_students"
+                :label="t('lessons.dialog.maxStudents')"
+                type="number"
+                min="1"
+                variant="outlined"
+                density="compact"
+                :placeholder="t('lessons.dialog.maxStudentsHint')"
+              />
+            </v-col>
+            <v-col cols="12" sm="6" class="d-flex align-center">
+              <v-switch
+                v-model="form.is_published"
+                :label="t('lessons.dialog.isPublished')"
+                color="primary"
+                hide-details
+                density="compact"
+              />
+            </v-col>
+
             <v-col cols="12">
               <v-textarea
                 v-model="form.description"
@@ -654,6 +675,8 @@ interface LessonForm {
   student_ids: number[];
   description: string;
   stable_id: number | null;
+  max_students: number | null;
+  is_published: boolean;
 }
 
 function emptyForm(dateIso?: string | null): LessonForm {
@@ -668,6 +691,8 @@ function emptyForm(dateIso?: string | null): LessonForm {
     student_ids: [],
     description: "",
     stable_id: null,
+    max_students: null,
+    is_published: false,
   };
 }
 
@@ -742,6 +767,8 @@ function openEditDialog(lesson: Lesson) {
     student_ids: studentIds,
     description: lesson.description ?? "",
     stable_id: null,
+    max_students: lesson.max_students ?? null,
+    is_published: lesson.is_published ?? false,
   };
   // Poblar pares desde los datos de la lección; si no hay, crear pares vacíos
   if (lesson.student_horse_pairs && lesson.student_horse_pairs.length > 0) {
@@ -807,6 +834,8 @@ async function save() {
         description: form.value.description || null,
         horse_ids: form.value.horse_ids,
         student_horse_pairs: studentHorsePairs.value,
+        max_students: form.value.max_students,
+        is_published: form.value.is_published,
       };
       await http.put(`/api/v1/lessons/${editingLesson.value.id}`, payload);
     } else {
@@ -819,6 +848,8 @@ async function save() {
         description: form.value.description || null,
         horse_ids: form.value.horse_ids,
         student_horse_pairs: studentHorsePairs.value,
+        max_students: form.value.max_students,
+        is_published: form.value.is_published,
         ...(isAppAdmin.value && form.value.stable_id ? { stable_id: form.value.stable_id } : {}),
       };
       await http.post("/api/v1/lessons/", payload);

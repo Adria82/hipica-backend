@@ -93,7 +93,7 @@ import LanguageSelector from "@/components/LanguageSelector.vue";
 import { getAccessToken, clearTokens } from "@/auth/tokens";
 import { features, fetchFeatures } from "@/features/features";
 import { fetchProfile, clearProfile, isAppAdmin, userProfile } from "@/auth/profile";
-import type { NavItem, FeatureCode } from "@/types/api";
+import type { NavItem } from "@/types/api";
 
 const isMonitorOrAssistant = computed(() =>
   ["monitor", "assistant"].includes(userProfile.value?.role ?? "")
@@ -127,14 +127,16 @@ const ADMIN_ITEMS: NavItem[] = [
   { titleKey: "menu.stableConfig", icon: "mdi-cog-outline",       route: "/stable-config" },
 ];
 
-const OPERATIVA_ITEMS: (NavItem & { feature?: FeatureCode })[] = [
-  { titleKey: "menu.users",     icon: "mdi-account-multiple",  route: "/users",    feature: "USERS"     },
-  { titleKey: "menu.reports",   icon: "mdi-chart-bar",         route: "/reports",  feature: "REPORTING" },
-  { titleKey: "menu.horses",    icon: "mdi-horse",             route: "/horses",   feature: "HORSES"    },
-  { titleKey: "menu.boxes",     icon: "mdi-door",              route: "/boxes",    feature: "HORSES"    },
-  { titleKey: "menu.tracks",    icon: "mdi-map-marker-path",   route: "/tracks",   feature: "LESSONS"   },
-  { titleKey: "menu.lessons",   icon: "mdi-school",            route: "/lessons",  feature: "LESSONS"   },
-  { titleKey: "menu.bookings",  icon: "mdi-calendar-check",    route: "/bookings", feature: "BOOKINGS"  },
+const STAFF_ROLES = ["app_admin", "stable_admin", "monitor", "assistant"];
+
+const OPERATIVA_ITEMS: NavItem[] = [
+  { titleKey: "menu.users",    icon: "mdi-account-multiple", route: "/users",    feature: "USERS",     roles: STAFF_ROLES },
+  { titleKey: "menu.reports",  icon: "mdi-chart-bar",        route: "/reports",  feature: "REPORTING"  },
+  { titleKey: "menu.horses",   icon: "mdi-horse",            route: "/horses",   feature: "HORSES",    roles: STAFF_ROLES },
+  { titleKey: "menu.boxes",    icon: "mdi-door",             route: "/boxes",    feature: "HORSES",    roles: STAFF_ROLES },
+  { titleKey: "menu.tracks",   icon: "mdi-map-marker-path",  route: "/tracks",   feature: "LESSONS",   roles: STAFF_ROLES },
+  { titleKey: "menu.lessons",  icon: "mdi-school",           route: "/lessons",  feature: "LESSONS",   roles: STAFF_ROLES },
+  { titleKey: "menu.bookings", icon: "mdi-calendar-check",   route: "/bookings", feature: "BOOKINGS"   },
 ];
 
 const MYSPACE_ITEMS: NavItem[] = [
@@ -144,11 +146,14 @@ const MYSPACE_ITEMS: NavItem[] = [
 
 const adminItems = ADMIN_ITEMS;
 
-const operativaItems = computed(() =>
-  OPERATIVA_ITEMS.filter((item) =>
-    !item.feature || features.value.includes(item.feature)
-  )
-);
+const operativaItems = computed(() => {
+  const role = userProfile.value?.role ?? "";
+  return OPERATIVA_ITEMS.filter((item) => {
+    if (item.feature && !features.value.includes(item.feature)) return false;
+    if (item.roles && !item.roles.includes(role)) return false;
+    return true;
+  });
+});
 
 const myspaceItems = computed(() =>
   MYSPACE_ITEMS.filter((item) => {

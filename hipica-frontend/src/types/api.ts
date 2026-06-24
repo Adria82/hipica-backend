@@ -136,6 +136,7 @@ export type NavItem = {
   icon?: string;
   route: string;
   feature?: FeatureCode; // si existe, se filtra por licencia
+  roles?: string[];      // si existe, solo visible para esos roles
 };
 
 /**
@@ -212,6 +213,9 @@ export type LessonCreate = {
   horse_ids: number[];
   student_ids?: number[];
   student_horse_pairs?: StudentHorsePair[];
+  stable_id?: number | null;
+  max_students?: number | null;
+  is_published?: boolean;
 };
 
 /**
@@ -287,11 +291,32 @@ export type AvailableLesson = {
   booked_count: number;
   available_slots: number | null;
   description: string | null;
+  is_booked_by_me: boolean;
 };
 
 // ---------------------------------------------------------------------------
 // Reports
 // ---------------------------------------------------------------------------
+
+export type ClientBookingItem = {
+  booking_id: number;
+  lesson_datetime: string;
+  lesson_end_time: string | null;
+  duration_hours: number;
+  instructor_name: string;
+  track_name: string | null;
+  status: BookingStatus;
+};
+
+export type ClientBookingReport = {
+  total: number;
+  reservado: number;
+  cancelado: number;
+  asistio: number;
+  no_asistio: number;
+  attended_hours: number;
+  items: ClientBookingItem[];
+};
 
 export type InstructorHours = {
   user_id: number;
