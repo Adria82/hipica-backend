@@ -6,7 +6,21 @@
       "Bash(python -c \"import sys; print\\(sys.executable\\)\")",
       "Bash(pip show:*)",
       "Bash(pip3 show:*)",
-      "mcp__hipica__listar_usuarios"
+      "mcp__hipica__listar_usuarios",
+      "Bash(node -e \"const d=require\\(''/c/abe/Hipica/app/hipica-backend/hipica-frontend/package.json''\\); console.log\\(''Vue:'',d.dependencies[''vue'']\\); console.log\\(''Vuetify:'',d.dependencies[''vuetify'']\\); console.log\\(''vue-router:'',d.dependencies[''vue-router'']\\); console.log\\(''vue-i18n:'',d.dependencies[''vue-i18n'']\\); console.log\\(''axios:'',d.dependencies[''axios'']\\); console.log\\(''TS:'',d.devDependencies[''typescript'']\\); console.log\\(''vite:'',d.devDependencies[''vite'']\\)\")",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(npm run:*)",
+      "Bash(PYTHONPATH=. python app/seed.py)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "Read(//c/abe/Hipica/app/hipica-frontend/src/views/**)",
+      "PowerShell(git -C \"c:\\\\abe\\\\Hipica\\\\app\\\\hipica-backend\" status)",
+      "PowerShell(git -C \"c:\\\\abe\\\\Hipica\\\\app\\\\hipica-backend\" diff --stat HEAD)",
+      "PowerShell(git -C \"c:\\\\abe\\\\Hipica\\\\app\\\\hipica-backend\" log --oneline -5)",
+      "PowerShell(git -C \"c:\\\\abe\\\\Hipica\\\\app\\\\hipica-backend\" diff --staged --stat)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

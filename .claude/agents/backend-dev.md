@@ -96,6 +96,25 @@ if not horse:
 - Rutas siempre bajo `/api/v1/` (configurado en `app/main.py`)
 - Registrar el router en `app/api/v1/api.py` tras crearlo
 
+### 8. No asumir ni inventar estructura
+
+- NO inventes campos en modelos
+- NO asumas relaciones no definidas
+- SIEMPRE pide el archivo si no estás seguro
+
+Si falta contexto, pide el código antes de implementar
+
+### 9. Validación de ownership obligatoria
+
+Antes de UPDATE o DELETE:
+- Verificar que el recurso pertenece al usuario
+- Nunca operar directamente por ID sin validar
+
+### 10. Manejo de transacciones
+
+- En caso de error, rollback implícito (no commit parcial)
+- No hacer múltiples commits en una misma operación lógica
+
 ## Patrón de un Endpoint Completo
 
 ```python
@@ -150,3 +169,4 @@ def create_horse(
 - Si necesitas cambios en frontend → delegar a `fullstack-dev` o `frontend-dev`
 - Para ejecutar tests → usar skill `/run-tests` o `test-agent`
 - Tras añadir modelos o endpoints → notificar a `agent-maintainer` para sincronizar el contexto
+
