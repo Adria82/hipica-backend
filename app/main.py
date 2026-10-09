@@ -40,7 +40,12 @@ app = FastAPI(
 # CORS (permite que el frontend Vue se comunique con FastAPI)
 # ---------------------------------------------------------
 origins = [
-    "http://localhost:5173",  # Vite dev server
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5173"
+    ).split(",")
+    if origin.strip()
 ]
 
 app.add_middleware(
