@@ -236,3 +236,113 @@ hipica-backend/
 - [docs/api/](docs/api/): endpoints de la API (entradas, salidas y roles necesarios)
 - [docs/features/](docs/features/): funcionalidades (autenticación, reservas, informes, licencias, branding...)
 - [Docu/](Docu/): notas de diseño (i18n, Vuetify, layouts, branding, menú por licencia, servidor MCP)
+
+---
+
+## Funcionalidades principales
+
+### 1. Plataforma multi-hípica (multi-tenant)
+
+- Una sola instalación da servicio a varias hípicas, con los **datos aislados**: cada caballo, box, pista, clase, reserva y usuario pertenece a una hípica (`stable_id`).
+- El backend filtra todas las consultas por la hípica del usuario autenticado. Solo el superadministrador ve los datos de todas las hípicas.
+- El superadministrador gestiona las hípicas: alta, edición, baja y tema visual.
+
+### 2. Autenticación y control de acceso por roles
+
+- Inicio de sesión con email y contraseña. Las contraseñas se guardan cifradas con **bcrypt**.
+- Sesión con **JWT**: access token de 15 minutos y refresh token de 7 días, que renueva la sesión sin volver a pedir las credenciales.
+- Rutas del frontend protegidas con guards. Los endpoints del backend se protegen por rol.
+- Cuatro roles con permisos distintos:
+
+| Rol | Descripción | Qué puede hacer |
+|-----|-------------|-----------------|
+| `app_admin` | Superadministrador | Todo, en todas las hípicas. Gestiona hípicas, licencias y niveles |
+| `stable_admin` | Administrador de la hípica | Gestión completa de su hípica: caballos, boxes, pistas, clases, usuarios, reservas, configuración e informes |
+| `monitor` | Monitor / profesor | Crea y gestiona clases y registra su disponibilidad horaria |
+| `client` | Alumno | Reserva clases, gestiona y cancela sus reservas, consulta su historial |
+
+> **Nota:** en esta entrega se han implementado y probado los perfiles de **superadministrador** (`app_admin`) y **administrador de la hípica** (`stable_admin`). Los roles `monitor` y `client` están definidos en el modelo de permisos. Las funcionalidades de reservas del alumno están disponibles en la API y en la interfaz. Que el profesor pueda crear clases es el comportamiento previsto, pero todavía no está habilitado: hoy solo los administradores pueden crear clases.
+
+### 3. Licenciamiento por funcionalidades
+
+- Cada hípica tiene activados solo los **módulos que ha contratado**: `HORSES`, `USERS`, `LESSONS`, `BOOKINGS` y `REPORTING`.
+- El superadministrador activa o desactiva los módulos de cada hípica desde la pantalla de *Funcionalidades*.
+- El **menú lateral se construye de forma dinámica**: combina la marca de la hípica, las licencias activas y el rol del usuario. Los módulos no contratados no aparecen.
+
+### 4. Gestión de caballos y boxes
+
+- Alta, consulta, edición y baja de **caballos** (nombre, raza, estado, box asignado y niveles de equitación aptos).
+- Alta, consulta, edición y baja de **boxes**, con su **capacidad máxima**.
+- **Validación de la capacidad**: no se puede asignar un caballo a un box lleno. El error indica qué caballos ocupan el box.
+- Al editar un box se ven los caballos que tiene asignados.
+
+### 5. Gestión de pistas
+
+- Alta, consulta, edición y baja de las pistas de la hípica.
+- Las pistas se asignan a las clases y aparecen en el calendario y en los informes.
+
+### 6. Clases y calendario
+
+- **Calendario semanal** de clases: fecha, hora de inicio y fin, pista, instructor, ayudante, descripción y aforo máximo.
+- Asignación de **parejas alumno–caballo** en cada clase.
+- **Clases recurrentes**: a partir de una plantilla (día de la semana, horario y rango de fechas) se generan automáticamente todas las clases del periodo. Al modificar o eliminar una serie, la aplicación avisa de las clases afectadas. El cambio se puede aplicar a toda la serie o a una sola clase.
+- **Publicación de clases**: solo las clases publicadas se pueden reservar.
+
+### 7. Reservas
+
+- El alumno ve las **clases disponibles** y se inscribe en una o en **varias a la vez** (reserva múltiple).
+- Validaciones: la clase debe estar publicada, no puede haber empezado ni estar llena, y no se permiten reservas duplicadas.
+- **Cancelación con plazo**: el alumno puede cancelar hasta X horas antes de la clase. El plazo lo configura cada hípica.
+- El personal de la hípica ve los inscritos de cada clase y cambia el estado de las reservas: *Reservado*, *Cancelado*, *Asistió*, *No asistió*.
+- **Asistencia automática** (opcional): marca como asistidas las reservas de las clases ya terminadas.
+- Configuración de la hípica: plazo de cancelación y asistencia automática.
+
+### 8. Disponibilidad de monitores
+
+- Cada monitor registra sus franjas horarias, **recurrentes** (por día de la semana) o **puntuales** (en una fecha concreta).
+- El administrador consulta y gestiona la disponibilidad de todos los monitores de su hípica.
+
+### 9. Gestión de usuarios
+
+- Alta, consulta, edición y baja de los usuarios de la hípica. El administrador también puede cambiar la contraseña de un usuario.
+- **Perfiles ampliados** según el rol:
+  - **Alumno**: dirección, IBAN y otros datos administrativos.
+  - **Monitor**: certificaciones, tarifa y otros datos profesionales.
+- **Niveles de equitación** gestionados por el superadministrador, con el nombre en los tres idiomas (ca/es/en). Se asignan a los caballos.
+
+### 10. Mi perfil
+
+- Cada usuario consulta y edita sus datos y su perfil ampliado.
+- Puede subir una **foto de perfil (avatar)**.
+
+### 11. Informes y estadísticas
+
+- Informe de actividad para un **rango de fechas** (por defecto, el mes anterior): resúmenes de horas y clases por instructor, ayudante, alumno, caballo y pista.
+- **Ver el detalle de cada fila**: al pulsar una fila se ven las clases concretas de esa persona, caballo o pista.
+- **Gráficas** (ApexCharts): los 5 caballos con más horas, las 5 personas con más horas y la distribución de clases por día de la semana.
+- El alumno dispone de un informe con su propio historial de reservas.
+- **Exportación a Excel (.xlsx)** de los listados: caballos, boxes, pistas, usuarios, hípicas e informes.
+
+### 12. Marca personalizada por hípica (branding)
+
+- Cada hípica tiene su **propia imagen**: logo, colores y menú. Se define en `public/branding/<tema>/` y el tema se guarda en la base de datos.
+- Ejemplo: `?client=canValls` carga la imagen de marca de Hípica Can Valls.
+
+### 13. Interfaz multi-idioma
+
+- Toda la interfaz está traducida al **catalán, castellano e inglés**, con selector de idioma.
+- El backend también devuelve los **mensajes de error traducidos** al idioma del usuario.
+
+### 14. Interfaz responsive
+
+- Hecha con Vuetify 3 (Material Design): se adapta a escritorio, tableta y móvil.
+- Tablas con búsqueda y ordenación, formularios en diálogos, confirmación antes de eliminar y avisos con el resultado de cada operación.
+
+### 15. Calidad, documentación y herramientas
+
+- **API REST documentada** automáticamente con OpenAPI/Swagger (`/docs`).
+- **Tests de integración** con pytest, sobre una base de datos SQLite en memoria.
+- **Migraciones de base de datos** con Alembic.
+- **Datos de demostración** que se cargan automáticamente al primer arranque.
+- **Docker** para levantar el entorno local, y **despliegue en la nube**: Firebase Hosting, Render y Neon.
+- **Servidor MCP** (`hipica_mcp/`) para consultar y gestionar los datos de la hípica desde un asistente de IA (Claude).
