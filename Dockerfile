@@ -22,4 +22,12 @@ COPY alembic.ini .
 # - app.main:app -> módulo y objeto FastAPI
 # - --host 0.0.0.0 permite acceso desde fuera del contenedor
 # - --reload habilita recarga automática (ideal en desarrollo)
+
+# Copiamos el script de arranque
+COPY start.sh /app/start.sh
+
+# Damos permisos de ejecución
+RUN chmod +x /app/start.sh
+
+# Arrancamos el contenedor
 CMD ["/app/start.sh"]
