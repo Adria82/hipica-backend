@@ -22,4 +22,4 @@ COPY alembic.ini .
 # - app.main:app -> módulo y objeto FastAPI
 # - --host 0.0.0.0 permite acceso desde fuera del contenedor
 # - --reload habilita recarga automática (ideal en desarrollo)
-CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["/app/start.sh"]
