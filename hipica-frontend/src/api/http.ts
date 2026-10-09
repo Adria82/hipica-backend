@@ -11,7 +11,9 @@
  * Proyecto: Gestión de Hípica
  */
 
-import axios from "axios";
+import axios, {
+  type InternalAxiosRequestConfig
+} from "axios";
 import { getAccessToken } from "@/auth/tokens";
 import { getAppLocale } from "@/i18n";
 

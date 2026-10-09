@@ -14,14 +14,20 @@ import { createVuetifyInstance } from "./plugins/vuetify";
 import "./assets/theme.css";
 
 /**
- * Crear Vuetify YA con el branding cargado en index.html
+ * Esperar al branding cargado en index.html y crear Vuetify con él.
  */
-const vuetify = createVuetifyInstance();
+async function start() {
+  await (window as any).__BRANDING_READY__;
 
-const app = createApp(App);
+  const vuetify = createVuetifyInstance();
 
-app.use(i18n);
-app.use(router);
-app.use(vuetify);
+  const app = createApp(App);
 
-app.mount("#app");
+  app.use(i18n);
+  app.use(router);
+  app.use(vuetify);
+
+  app.mount("#app");
+}
+
+start();

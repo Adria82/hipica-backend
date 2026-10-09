@@ -38,8 +38,12 @@
 
       async function bootstrap() {
         try {
+          // Si no existe, el hosting puede devolver index.html con 200: comprobar que es JSON
           const res = await fetch(`/branding/${client}/branding.json`);
-          const branding = res.ok
+          const isJson = (res.headers.get("content-type") || "").includes("json");
+          const found = res.ok && isJson;
+          const brandingClient = found ? client : "default";
+          const branding = found
             ? await res.json()
             : await fetch(`/branding/default/branding.json`).then(r => r.json());
 
@@ -48,20 +52,16 @@
           document.title = branding.appName;
 
           const favicon = document.getElementById("app-favicon");
-          favicon.href = `/branding/${client}/${branding.favicon}`;
+          favicon.href = `/branding/${brandingClient}/${branding.favicon}`;
         } catch (e) {
           console.warn("Branding load failed, continuing without branding.");
           window.__APP_BRANDING__ = {};
         }
 
-        // SOLO ahora arrancamos Vue
-        const script = document.createElement("script");
-        script.type = "module";
-        script.src = "/src/main.ts";
-        document.body.appendChild(script);
       }
 
-      bootstrap();
+      // main.ts espera a esta promesa antes de arrancar Vue
+      window.__BRANDING_READY__ = bootstrap();
     </script>
 
 
@@ -69,6 +69,8 @@
 
   <body>
     <div id="app"></div>
+    <!-- Carga estática para que Vite empaquete la app en el build -->
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
 
