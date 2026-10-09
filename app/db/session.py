@@ -12,7 +12,13 @@ from app.core.config import DATABASE_URL
 # -------------------------------------------------------------------------
 # Motor de conexión
 # -------------------------------------------------------------------------
-engine = create_engine(DATABASE_URL, echo=True)  # echo=True muestra las queries en consola
+import os
+
+engine = create_engine(
+    DATABASE_URL,
+    echo=os.getenv("SQL_ECHO", "false").lower() == "true",
+    pool_pre_ping=True,
+)
 
 # -------------------------------------------------------------------------
 # Función para obtener sesión
