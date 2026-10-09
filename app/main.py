@@ -9,6 +9,7 @@ Autor:  Adrià Bofill
 Fecha:  31/01/2026
 Proyecto: Gestión de Hípica
 """
+import os
 
 from fastapi import FastAPI, Request
 from sqlalchemy import create_engine, text
