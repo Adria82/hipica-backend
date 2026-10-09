@@ -11,9 +11,14 @@ services:
     env_file:
       - .env                   # Carga variables de entorno (.env)
     depends_on:
-      - db                     # Espera a que PostgreSQL esté levantado
+      db:
+        condition: service_healthy   # Espera a que PostgreSQL acepte conexiones
     volumes:
       - ./app:/app/app         # Monta el código para hot-reload en desarrollo
+    # Carga los datos de prueba solo si la BD está vacía y arranca la API
+    command: >
+      sh -c "PYTHONPATH=. python app/seed.py --if-empty &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
   # -----------------------------------------------------------------------
   # Servicio PostgreSQL
@@ -27,6 +32,11 @@ services:
       - "5432:5432"             # Puerto local de PostgreSQL
     volumes:
       - postgres_data:/var/lib/postgresql/data  # Persistencia de datos
+    healthcheck:                # Indica cuándo PostgreSQL está listo
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 # ---------------------------------------------------------------------------
 # Volúmenes

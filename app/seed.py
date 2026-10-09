@@ -13,9 +13,11 @@ Proyecto: Gestión de Hípica
 """
 
 import json
+import sys
 from datetime import datetime, timezone
 
-from sqlmodel import Session, SQLModel
+from sqlalchemy import inspect
+from sqlmodel import Session, SQLModel, select
 
 from app.db.session import engine
 from app.models.level import Level
@@ -342,5 +344,21 @@ def seed_db() -> None:
 # -------------------------------------------------------------------------
 # Ejecutar script
 # -------------------------------------------------------------------------
-if __name__ == "__main__":
+def seed_if_empty() -> None:
+    """
+    Ejecuta seed_db() solo si la base de datos no tiene ninguna hípica.
+    Pensado para el arranque automático en Docker: no borra datos existentes.
+    """
+    if inspect(engine).has_table(Stable.__tablename__):
+        with Session(engine) as session:
+            if session.exec(select(Stable)).first() is not None:
+                print("La base de datos ya tiene datos. Seed omitido.")
+                return
     seed_db()
+
+
+if __name__ == "__main__":
+    if "--if-empty" in sys.argv:
+        seed_if_empty()
+    else:
+        seed_db()
